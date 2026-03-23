@@ -20,6 +20,7 @@ export default function SignUp() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showCharityModal, setShowCharityModal] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handlePhoto(file: File) {
@@ -330,10 +331,26 @@ export default function SignUp() {
 
           </div>
 
+          {/* Terms agreement */}
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="mt-0.5 w-4 h-4 accent-[#4A3728] shrink-0"
+            />
+            <span className="text-sm text-[#6B5040] leading-relaxed">
+              I have read and agree to Commune's{" "}
+              <Link href="/terms" target="_blank" className="text-[#4A3728] font-medium hover:underline">
+                Terms & Conditions
+              </Link>
+            </span>
+          </label>
+
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading || success}
+            disabled={loading || success || !agreedToTerms}
             className="mt-2 w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? "Creating account..." : "Join Commune · 500 EGP / year"}
