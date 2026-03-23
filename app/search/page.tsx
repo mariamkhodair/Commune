@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
@@ -30,7 +30,7 @@ const placeholderResults = [
   { id: 6, name: "Mechanical Keyboard", category: "Electronics", condition: "Like New", points: 800, owner: "Omar S.", ownerId: 6, match: false, image: null },
 ];
 
-export default function Search() {
+function SearchInner() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [category, setCategory] = useState(searchParams.get("category") ?? "All Stuff");
@@ -216,5 +216,13 @@ export default function Search() {
       )}
 
     </div>
+  );
+}
+
+export default function Search() {
+  return (
+    <Suspense>
+      <SearchInner />
+    </Suspense>
   );
 }

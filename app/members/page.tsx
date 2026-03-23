@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
@@ -44,7 +44,7 @@ function Stars({ rating }: { rating: number | null }) {
   );
 }
 
-export default function Members() {
+function MembersInner() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [liked, setLiked] = useState<Set<number>>(new Set());
@@ -140,5 +140,13 @@ export default function Members() {
 
       </main>
     </div>
+  );
+}
+
+export default function Members() {
+  return (
+    <Suspense>
+      <MembersInner />
+    </Suspense>
   );
 }
