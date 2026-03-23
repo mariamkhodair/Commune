@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 
 // Placeholder — will be replaced with Supabase data
 const placeholderConversations = [
-  { id: 1, name: "Sara M.", lastMessage: "Sure, I can meet this weekend!", time: "2m ago", unread: true },
-  { id: 2, name: "Karim A.", lastMessage: "Is the keyboard still available?", time: "1h ago", unread: true },
-  { id: 3, name: "Nour T.", lastMessage: "Thanks for the swap, enjoy the book!", time: "Yesterday", unread: false },
-  { id: 4, name: "Dina H.", lastMessage: "Would you consider swapping for a mascara set?", time: "2d ago", unread: false },
+  { id: 1, name: "Sara M.", memberId: 1, lastMessage: "Sure, I can meet this weekend!", time: "2m ago", unread: true },
+  { id: 2, name: "Karim A.", memberId: 2, lastMessage: "Is the keyboard still available?", time: "1h ago", unread: true },
+  { id: 3, name: "Nour T.", memberId: 3, lastMessage: "Thanks for the swap, enjoy the book!", time: "Yesterday", unread: false },
+  { id: 4, name: "Dina H.", memberId: 5, lastMessage: "Would you consider swapping for a mascara set?", time: "2d ago", unread: false },
 ];
 
 export default function Messages() {
+  const router = useRouter();
   return (
     <div className="min-h-screen flex">
       <Sidebar />
@@ -29,10 +31,10 @@ export default function Messages() {
         ) : (
           <div className="flex flex-col gap-2 max-w-2xl">
             {placeholderConversations.map((convo) => (
-              <Link
+              <div
                 key={convo.id}
-                href={`/messages/${convo.id}`}
-                className="bg-white/60 backdrop-blur-sm rounded-2xl px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow"
+                onClick={() => router.push(`/messages/${convo.id}`)}
+                className="bg-white/60 backdrop-blur-sm rounded-2xl px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow cursor-pointer"
               >
                 {/* Avatar */}
                 <div className="relative shrink-0">
@@ -47,16 +49,20 @@ export default function Messages() {
                 {/* Text */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
-                    <p className={`text-sm ${convo.unread ? "font-semibold text-[#4A3728]" : "font-medium text-[#4A3728]"}`}>
+                    <Link
+                      href={`/members/${convo.memberId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`text-sm hover:underline ${convo.unread ? "font-semibold text-[#4A3728]" : "font-medium text-[#4A3728]"}`}
+                    >
                       {convo.name}
-                    </p>
+                    </Link>
                     <p className="text-xs text-[#A09080] shrink-0 ml-2">{convo.time}</p>
                   </div>
                   <p className={`text-sm truncate ${convo.unread ? "text-[#6B5040]" : "text-[#A09080]"}`}>
                     {convo.lastMessage}
                   </p>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}

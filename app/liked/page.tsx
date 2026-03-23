@@ -5,10 +5,10 @@ import Sidebar from "@/components/Sidebar";
 
 // Placeholder — will be replaced with Supabase data
 const placeholderLiked = [
-  { id: 1, name: "Vintage Levi's Jacket", category: "Apparel", condition: "Good", points: 420, owner: "Sara M.", image: null },
-  { id: 2, name: "Sony WH-1000XM4 Headphones", category: "Electronics", condition: "Like New", points: 1200, owner: "Karim A.", image: null },
-  { id: 3, name: "Maybelline Mascara Set", category: "Cosmetics", condition: "New", points: 200, owner: "Dina H.", image: null },
-  { id: 4, name: "IKEA Desk Lamp", category: "Furniture & Home Decor", condition: "New", points: 150, owner: "Ahmed R.", image: null },
+  { id: 1, name: "Vintage Levi's Jacket", category: "Apparel", condition: "Good", points: 420, owner: "Sara M.", ownerId: 1, image: null },
+  { id: 2, name: "Sony WH-1000XM4 Headphones", category: "Electronics", condition: "Like New", points: 1200, owner: "Karim A.", ownerId: 2, image: null },
+  { id: 3, name: "Maybelline Mascara Set", category: "Cosmetics", condition: "New", points: 200, owner: "Dina H.", ownerId: 5, image: null },
+  { id: 4, name: "IKEA Desk Lamp", category: "Furniture & Home Decor", condition: "New", points: 150, owner: "Ahmed R.", ownerId: 4, image: null },
 ];
 
 export default function LikedStuff() {
@@ -59,7 +59,7 @@ export default function LikedStuff() {
                   <Link href={`/items/${item.id}`} className="block">
                     <p className="font-medium text-[#4A3728] truncate text-sm hover:underline">{item.name}</p>
                   </Link>
-                  <p className="text-xs text-[#8B7355]">{item.owner} · {item.condition}</p>
+                  <p className="text-xs text-[#8B7355]"><Link href={`/members/${item.ownerId}`} className="hover:underline">{item.owner}</Link> · {item.condition}</p>
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
                     <button className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors">

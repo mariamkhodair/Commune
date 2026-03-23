@@ -204,7 +204,7 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
           {item.moreItems.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-[#4A3728]">More from {item.ownerName}</h3>
+                <h3 className="text-sm font-medium text-[#4A3728]">More from <Link href={`/members/${item.ownerId}`} className="hover:underline">{item.ownerName}</Link></h3>
                 <Link href={`/members/${item.ownerId}`} className="text-xs text-[#8B7355] hover:underline">
                   See all
                 </Link>
@@ -239,7 +239,7 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
 
       {proposing && (
         <ProposeSwapModal
-          items={[{ id, name: item.name, points: item.points, owner: item.ownerName }]}
+          items={[{ id, name: item.name, points: item.points, owner: item.ownerName, ownerId: item.ownerId }]}
           onClose={() => setProposing(false)}
         />
       )}

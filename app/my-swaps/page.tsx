@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 
 type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Declined";
@@ -22,6 +23,7 @@ const placeholderSwaps = [
     status: "Proposed" as SwapStatus,
     direction: "incoming",
     otherUser: "Sara M.",
+    otherUserId: 1,
     theirItem: { name: "Vintage Levi's Jacket", points: 420 },
     yourItem: { name: "Canon EOS Camera", points: 850 },
   },
@@ -30,6 +32,7 @@ const placeholderSwaps = [
     status: "In Progress" as SwapStatus,
     direction: "outgoing",
     otherUser: "Karim A.",
+    otherUserId: 2,
     theirItem: { name: "Sony Headphones", points: 1200 },
     yourItem: { name: "Mechanical Keyboard", points: 800 },
   },
@@ -38,6 +41,7 @@ const placeholderSwaps = [
     status: "Completed" as SwapStatus,
     direction: "outgoing",
     otherUser: "Nour T.",
+    otherUserId: 3,
     theirItem: { name: "The Alchemist", points: 60 },
     yourItem: { name: "Linen Blazer", points: 180 },
   },
@@ -46,6 +50,7 @@ const placeholderSwaps = [
     status: "Declined" as SwapStatus,
     direction: "incoming",
     otherUser: "Ahmed R.",
+    otherUserId: 4,
     theirItem: { name: "IKEA Desk Lamp", points: 150 },
     yourItem: { name: "Vintage Denim Jacket", points: 320 },
   },
@@ -155,7 +160,7 @@ export default function MySwaps() {
                       {swap.otherUser.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-[#4A3728]">{swap.otherUser}</p>
+                      <Link href={`/members/${swap.otherUserId}`} className="text-sm font-medium text-[#4A3728] hover:underline">{swap.otherUser}</Link>
                       <p className="text-xs text-[#A09080]">{swap.direction === "incoming" ? "sent you a request" : "you proposed this swap"}</p>
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 
@@ -264,7 +265,7 @@ export default function StuffIWant() {
                         <div className="w-7 h-7 rounded-full bg-[#4A3728] flex items-center justify-center text-[#F5F0E8] text-xs font-[family-name:var(--font-permanent-marker)]">
                           {match.member[0]}
                         </div>
-                        <span className="text-sm font-medium text-[#4A3728]">{match.member}</span>
+                        <Link href={`/members/${match.memberId}`} className="text-sm font-medium text-[#4A3728] hover:underline">{match.member}</Link>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${match.pointsDiff <= 50 ? "bg-[#D8E4D0] text-[#4A6640]" : "bg-[#EDE8DF] text-[#6B5040]"}`}>

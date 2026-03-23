@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 // Placeholder — will be replaced with the logged-in member's real listed items from Supabase
 const myItems = [
@@ -19,6 +20,7 @@ export type SwapTargetItem = {
   name: string;
   points: number;
   owner: string;
+  ownerId?: number | string;
 };
 
 // Finds the subset of items whose points total is closest to the target
@@ -66,6 +68,7 @@ export default function ProposeSwapModal({
   }
 
   const ownerName = items[0]?.owner ?? "";
+  const ownerId = items[0]?.ownerId;
   const theirTotal = items.reduce((sum, i) => sum + i.points, 0);
   const selectedItems = myItems.filter((i) => selected.has(i.id));
   const myTotal = selectedItems.reduce((sum, i) => sum + i.points, 0);
@@ -119,7 +122,7 @@ export default function ProposeSwapModal({
             </div>
           ))}
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#C4B9AA]">
-            <p className="text-xs text-[#8B7355]">Listed by {ownerName}</p>
+            <p className="text-xs text-[#8B7355]">Listed by {ownerId ? <Link href={`/members/${ownerId}`} className="hover:underline font-medium text-[#4A3728]">{ownerName}</Link> : ownerName}</p>
             <p className="text-xs font-bold text-[#4A3728]">{theirTotal} pts total</p>
           </div>
         </div>

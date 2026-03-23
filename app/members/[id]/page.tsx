@@ -67,7 +67,7 @@ const reportReasons = [
 export default function MemberProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [liked, setLiked] = useState<Set<number>>(new Set());
-  const [proposingItems, setProposingItems] = useState<{ id: number; name: string; points: number; owner: string }[] | null>(null);
+  const [proposingItems, setProposingItems] = useState<{ id: number; name: string; points: number; owner: string; ownerId: string }[] | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedForSwap, setSelectedForSwap] = useState<Set<number>>(new Set());
   const [showReport, setShowReport] = useState(false);
@@ -83,7 +83,7 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
   function openBundleSwap() {
     const chosen = member.items
       .filter((i) => selectedForSwap.has(i.id))
-      .map((i) => ({ id: i.id, name: i.name, points: i.points, owner: member.name }));
+      .map((i) => ({ id: i.id, name: i.name, points: i.points, owner: member.name, ownerId: id }));
     setProposingItems(chosen);
   }
   const [reportForm, setReportForm] = useState({ reason: "", details: "" });
@@ -245,7 +245,7 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
                     <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
                     {!selectMode && (
                       <button
-                        onClick={() => setProposingItems([{ id: item.id, name: item.name, points: item.points, owner: member.name }])}
+                        onClick={() => setProposingItems([{ id: item.id, name: item.name, points: item.points, owner: member.name, ownerId: id }])}
                         className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
                       >
                         Propose swap

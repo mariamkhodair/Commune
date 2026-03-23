@@ -21,12 +21,12 @@ const conditions = ["Any", "New", "Like New", "Good", "Fair"];
 // Placeholder results — will be replaced with Supabase queries
 // "match: true" means the item owner wants something the logged-in user has listed
 const placeholderResults = [
-  { id: 1, name: "Vintage Levi's Jacket", category: "Apparel", condition: "Good", points: 420, owner: "Sara M.", match: true, image: null },
-  { id: 2, name: "Sony WH-1000XM4 Headphones", category: "Electronics", condition: "Like New", points: 1200, owner: "Karim A.", match: true, image: null },
-  { id: 3, name: "The Alchemist (Arabic)", category: "Books", condition: "Good", points: 60, owner: "Nour T.", match: false, image: null },
-  { id: 4, name: "IKEA Desk Lamp", category: "Furniture & Home Decor", condition: "New", points: 150, owner: "Ahmed R.", match: false, image: null },
-  { id: 5, name: "Maybelline Mascara Set", category: "Cosmetics", condition: "New", points: 200, owner: "Dina H.", match: true, image: null },
-  { id: 6, name: "Mechanical Keyboard", category: "Electronics", condition: "Like New", points: 800, owner: "Omar S.", match: false, image: null },
+  { id: 1, name: "Vintage Levi's Jacket", category: "Apparel", condition: "Good", points: 420, owner: "Sara M.", ownerId: 1, match: true, image: null },
+  { id: 2, name: "Sony WH-1000XM4 Headphones", category: "Electronics", condition: "Like New", points: 1200, owner: "Karim A.", ownerId: 2, match: true, image: null },
+  { id: 3, name: "The Alchemist (Arabic)", category: "Books", condition: "Good", points: 60, owner: "Nour T.", ownerId: 3, match: false, image: null },
+  { id: 4, name: "IKEA Desk Lamp", category: "Furniture & Home Decor", condition: "New", points: 150, owner: "Ahmed R.", ownerId: 4, match: false, image: null },
+  { id: 5, name: "Maybelline Mascara Set", category: "Cosmetics", condition: "New", points: 200, owner: "Dina H.", ownerId: 5, match: true, image: null },
+  { id: 6, name: "Mechanical Keyboard", category: "Electronics", condition: "Like New", points: 800, owner: "Omar S.", ownerId: 6, match: false, image: null },
 ];
 
 export default function Search() {
@@ -37,7 +37,7 @@ export default function Search() {
   const [maxPoints, setMaxPoints] = useState("");
   const [matchOnly, setMatchOnly] = useState(false);
   const [liked, setLiked] = useState<Set<number>>(new Set());
-  const [proposingItems, setProposingItems] = useState<{ id: number; name: string; points: number; owner: string }[] | null>(null);
+  const [proposingItems, setProposingItems] = useState<{ id: number; name: string; points: number; owner: string; ownerId: number }[] | null>(null);
 
   function toggleLike(id: number) {
     setLiked((prev) => {
@@ -182,11 +182,11 @@ export default function Search() {
                     <Link href={`/items/${item.id}`} className="block">
                       <p className="font-medium text-[#4A3728] truncate text-sm hover:underline">{item.name}</p>
                     </Link>
-                    <p className="text-xs text-[#8B7355]">{item.owner} · {item.condition}</p>
+                    <p className="text-xs text-[#8B7355]"><Link href={`/members/${item.ownerId}`} onClick={(e) => e.stopPropagation()} className="hover:underline">{item.owner}</Link> · {item.condition}</p>
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
                       <button
-                        onClick={() => setProposingItems([{ id: item.id, name: item.name, points: item.points, owner: item.owner }])}
+                        onClick={() => setProposingItems([{ id: item.id, name: item.name, points: item.points, owner: item.owner, ownerId: item.ownerId }])}
                         className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
                       >
                         Propose swap

@@ -5,20 +5,20 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 
 // Placeholder — will be replaced with Supabase data
-const placeholderChats: Record<string, { name: string; messages: { id: number; from: "me" | "them"; text: string; time: string }[] }> = {
-  "1": { name: "Sara M.", messages: [
+const placeholderChats: Record<string, { name: string; memberId: number; messages: { id: number; from: "me" | "them"; text: string; time: string }[] }> = {
+  "1": { name: "Sara M.", memberId: 1, messages: [
     { id: 1, from: "them", text: "Hi! I saw you wanted to swap your Canon camera — I have the Levi's jacket you liked.", time: "10:02" },
     { id: 2, from: "me", text: "Yes! I'm interested. Is it still available?", time: "10:05" },
     { id: 3, from: "them", text: "Sure, I can meet this weekend!", time: "10:08" },
   ]},
-  "2": { name: "Karim A.", messages: [
+  "2": { name: "Karim A.", memberId: 2, messages: [
     { id: 1, from: "them", text: "Is the keyboard still available?", time: "Yesterday" },
   ]},
-  "3": { name: "Nour T.", messages: [
+  "3": { name: "Nour T.", memberId: 3, messages: [
     { id: 1, from: "me", text: "Just received the book, thank you!", time: "Monday" },
     { id: 2, from: "them", text: "Thanks for the swap, enjoy the book!", time: "Monday" },
   ]},
-  "4": { name: "Dina H.", messages: [
+  "4": { name: "Dina H.", memberId: 5, messages: [
     { id: 1, from: "them", text: "Would you consider swapping for a mascara set?", time: "Tuesday" },
   ]},
 };
@@ -64,7 +64,7 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
           <div className="w-9 h-9 rounded-full bg-[#EDE8DF] flex items-center justify-center text-sm font-medium text-[#4A3728] font-[family-name:var(--font-permanent-marker)]">
             {chat.name.charAt(0)}
           </div>
-          <p className="font-medium text-[#4A3728]">{chat.name}</p>
+          <Link href={`/members/${chat.memberId}`} className="font-medium text-[#4A3728] hover:underline">{chat.name}</Link>
         </div>
 
         {/* Messages */}
