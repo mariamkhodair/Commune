@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/useUser";
 
 const categories = [
   "Apparel",
@@ -14,23 +16,25 @@ const categories = [
   "Miscellaneous",
 ];
 
-// Placeholder — will be replaced with Supabase data
-const placeholderMembers = [
-  { id: 1, name: "Sara M." },
-  { id: 2, name: "Karim A." },
-  { id: 3, name: "Nour T." },
-  { id: 4, name: "Ahmed R." },
-  { id: 5, name: "Dina H." },
-  { id: 6, name: "Omar S." },
-];
-
 export default function Dashboard() {
   const router = useRouter();
+  const { userId, profile } = useUser();
   const [openPanel, setOpenPanel] = useState<"categories" | "members" | "stuff" | null>(null);
   const [memberQuery, setMemberQuery] = useState("");
   const [stuffQuery, setStuffQuery] = useState("");
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
 
-  const filteredMembers = placeholderMembers.filter((m) =>
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from("profiles")
+      .select("id, name")
+      .neq("id", userId)
+      .order("name")
+      .then(({ data }) => setMembers(data ?? []));
+  }, [userId]);
+
+  const filteredMembers = members.filter((m) =>
     m.name.toLowerCase().includes(memberQuery.toLowerCase())
   );
 
@@ -44,7 +48,9 @@ export default function Dashboard() {
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
 
-        <h1 className="text-3xl font-light text-[#4A3728] mb-1 font-[family-name:var(--font-jost)]">Welcome back</h1>
+        <h1 className="text-3xl font-light text-[#4A3728] mb-1 font-[family-name:var(--font-jost)]">
+          Welcome back{profile?.name ? `, ${profile.name.split(" ")[0]}` : ""}
+        </h1>
         <p className="text-[#8B7355] mb-10">What are you looking for today?</p>
 
         <div className="flex flex-col gap-3 max-w-xl">

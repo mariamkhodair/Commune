@@ -1,108 +1,92 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
+import { supabase } from "@/lib/supabase";
 
-// Placeholder — will be replaced with Supabase data
-const placeholderItems: Record<string, {
+type ItemData = {
+  id: string;
   name: string;
   category: string;
   condition: string;
   points: number;
   description: string;
-  ownerId: string;
+  photos: string[];
+  owner_id: string;
   ownerName: string;
-  image: null;
-  moreItems: { id: string; name: string; points: number; condition: string }[];
-}> = {
-  "3": {
-    name: "Sony WH-1000XM4 Headphones",
-    category: "Electronics",
-    condition: "Like New",
-    points: 1200,
-    description: "Sony WH-1000XM4 wireless noise-cancelling headphones in like-new condition. Used for about 3 months, no scratches or damage. Comes with original carry case, charging cable, and audio jack adapter. Battery life still at 100% capacity. Perfect for commuting or working from home.",
-    ownerId: "2",
-    ownerName: "Karim A.",
-    image: null,
-    moreItems: [
-      { id: "4", name: "Mechanical Keyboard (TKL)", points: 800, condition: "Good" },
-      { id: "9", name: "Canon EOS 200D Camera", points: 950, condition: "Good" },
-      { id: "10", name: "iPad Pro 11\" (2021)", points: 2200, condition: "Like New" },
-      { id: "15", name: "Logitech MX Master 3 Mouse", points: 650, condition: "Like New" },
-    ],
-  },
-  "4": {
-    name: "Mechanical Keyboard (TKL)",
-    category: "Electronics",
-    condition: "Good",
-    points: 800,
-    description: "Tenkeyless mechanical keyboard with Cherry MX Brown switches. Great tactile feedback, ideal for typing and gaming. Some light wear on the keycaps from regular use but fully functional. No missing keys, no spills. USB-C connection.",
-    ownerId: "2",
-    ownerName: "Karim A.",
-    image: null,
-    moreItems: [
-      { id: "3", name: "Sony WH-1000XM4 Headphones", points: 1200, condition: "Like New" },
-      { id: "9", name: "Canon EOS 200D Camera", points: 950, condition: "Good" },
-      { id: "14", name: "JBL Flip 6 Speaker", points: 750, condition: "Like New" },
-    ],
-  },
-  "1": {
-    name: "Vintage Levi's Jacket",
-    category: "Apparel",
-    condition: "Good",
-    points: 420,
-    description: "Authentic vintage Levi's denim jacket from the 90s. Size M, fits true to size. Minor fading consistent with age which adds to the character. No rips, stains, or damage. A timeless wardrobe staple.",
-    ownerId: "1",
-    ownerName: "Sara M.",
-    image: null,
-    moreItems: [
-      { id: "101", name: "Ceramic Vase", points: 180, condition: "Like New" },
-    ],
-  },
-  "2": {
-    name: "Sony WH-1000XM4 Headphones",
-    category: "Electronics",
-    condition: "Like New",
-    points: 1200,
-    description: "Sony WH-1000XM4 wireless noise-cancelling headphones. Barely used — purchased as a gift but already have a pair. Comes with original packaging, carry case, and all accessories. Zero scratches.",
-    ownerId: "2",
-    ownerName: "Karim A.",
-    image: null,
-    moreItems: [
-      { id: "4", name: "Mechanical Keyboard (TKL)", points: 800, condition: "Good" },
-      { id: "9", name: "Canon EOS 200D Camera", points: 950, condition: "Good" },
-    ],
-  },
-  "5": {
-    name: "Maybelline Mascara Set",
-    category: "Cosmetics",
-    condition: "New",
-    points: 200,
-    description: "Brand new Maybelline mascara set — 3 mascaras still in original packaging, never opened. Includes Lash Sensational, Sky High, and Colossal. Great gift or treat for yourself.",
-    ownerId: "5",
-    ownerName: "Dina H.",
-    image: null,
-    moreItems: [],
-  },
-  "6": {
-    name: "IKEA Desk Lamp",
-    category: "Furniture & Home Decor",
-    condition: "New",
-    points: 150,
-    description: "IKEA FORSÅ work lamp in matte black. Bought as a spare, never used, still has original sticker. Adjustable arm and head. Takes standard E14 bulb (not included).",
-    ownerId: "4",
-    ownerName: "Ahmed R.",
-    image: null,
-    moreItems: [],
-  },
+  moreItems: { id: string; name: string; points: number; condition: string; photos: string[] }[];
 };
 
 export default function ItemPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const item = placeholderItems[id];
+  const [item, setItem] = useState<ItemData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [proposing, setProposing] = useState(false);
+  const [currentPhoto, setCurrentPhoto] = useState(0);
+
+  useEffect(() => {
+    fetchItem();
+  }, [id]);
+
+  async function fetchItem() {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("items")
+      .select("id, name, category, condition, points, description, photos, owner_id, profiles(id, name)")
+      .eq("id", id)
+      .single();
+
+    if (error || !data) {
+      setLoading(false);
+      return;
+    }
+
+    const profile = data.profiles as unknown as { id: string; name: string } | null;
+
+    // Fetch more items from same owner
+    const { data: moreData } = await supabase
+      .from("items")
+      .select("id, name, points, condition, photos")
+      .eq("owner_id", data.owner_id)
+      .eq("status", "Available")
+      .neq("id", id)
+      .limit(4);
+
+    setItem({
+      id: data.id,
+      name: data.name,
+      category: data.category,
+      condition: data.condition,
+      points: data.points,
+      description: data.description,
+      photos: data.photos ?? [],
+      owner_id: data.owner_id,
+      ownerName: profile?.name ?? "Unknown",
+      moreItems: (moreData ?? []).map((m) => ({
+        id: m.id,
+        name: m.name,
+        points: m.points,
+        condition: m.condition,
+        photos: m.photos ?? [],
+      })),
+    });
+    setCurrentPhoto(0);
+    setLoading(false);
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-[#4A3728] border-t-transparent rounded-full animate-spin" />
+        </main>
+      </div>
+    );
+  }
 
   if (!item) {
     return (
@@ -121,7 +105,6 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
 
       <main className="flex-1 overflow-y-auto">
 
-        {/* Top bar */}
         <div className="flex items-center gap-4 px-8 py-5 border-b border-[#D9CFC4] bg-white/60 backdrop-blur-sm sticky top-0 z-10">
           <button onClick={() => window.history.back()} className="text-[#8B7355] hover:text-[#4A3728] transition-colors">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-5 h-5">
@@ -133,13 +116,30 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
 
         <div className="max-w-xl mx-auto px-6 py-8 flex flex-col gap-6">
 
-          {/* Photo */}
-          <div className="w-full aspect-square rounded-2xl bg-[#EDE8DF] flex items-center justify-center overflow-hidden">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-16 h-16">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="m21 15-5-5L5 21" />
-            </svg>
+          {/* Photos */}
+          <div className="flex flex-col gap-2">
+            <div className="w-full aspect-square rounded-2xl bg-[#EDE8DF] flex items-center justify-center overflow-hidden">
+              {item.photos[currentPhoto] ? (
+                <img src={item.photos[currentPhoto]} alt={item.name} className="w-full h-full object-cover" />
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-16 h-16">
+                  <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" />
+                </svg>
+              )}
+            </div>
+            {item.photos.length > 1 && (
+              <div className="flex gap-2">
+                {item.photos.map((photo, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPhoto(i)}
+                    className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-colors ${currentPhoto === i ? "border-[#4A3728]" : "border-transparent"}`}
+                  >
+                    <img src={photo} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Item info */}
@@ -158,21 +158,15 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
                 {item.ownerName.charAt(0)}
               </div>
               <div>
-                <Link
-                  href={`/members/${item.ownerId}`}
-                  className="text-sm font-semibold text-[#4A3728] hover:underline"
-                >
+                <Link href={`/members/${item.owner_id}`} className="text-sm font-semibold text-[#4A3728] hover:underline">
                   {item.ownerName}
                 </Link>
                 <p className="text-xs text-[#A09080]">View their full listings</p>
               </div>
             </div>
-
-            {/* Action icons */}
             <div className="flex items-center gap-2">
-              {/* Message */}
               <Link
-                href={`/messages/${item.ownerId}`}
+                href={`/messages/${item.owner_id}`}
                 className="w-10 h-10 rounded-full border border-[#D9CFC4] flex items-center justify-center text-[#6B5040] hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
                 title="Message"
               >
@@ -180,8 +174,6 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
               </Link>
-
-              {/* Propose swap */}
               <button
                 onClick={() => setProposing(true)}
                 className="w-10 h-10 rounded-full bg-[#4A3728] flex items-center justify-center text-[#F5F0E8] hover:bg-[#6B5040] transition-colors"
@@ -204,10 +196,10 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
           {item.moreItems.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-[#4A3728]">More from <Link href={`/members/${item.ownerId}`} className="hover:underline">{item.ownerName}</Link></h3>
-                <Link href={`/members/${item.ownerId}`} className="text-xs text-[#8B7355] hover:underline">
-                  See all
-                </Link>
+                <h3 className="text-sm font-medium text-[#4A3728]">
+                  More from <Link href={`/members/${item.owner_id}`} className="hover:underline">{item.ownerName}</Link>
+                </h3>
+                <Link href={`/members/${item.owner_id}`} className="text-xs text-[#8B7355] hover:underline">See all</Link>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {item.moreItems.map((m) => (
@@ -216,12 +208,14 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
                     href={`/items/${m.id}`}
                     className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                   >
-                    <div className="aspect-square bg-[#EDE8DF] flex items-center justify-center">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-7 h-7">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <circle cx="8.5" cy="8.5" r="1.5" />
-                        <path d="m21 15-5-5L5 21" />
-                      </svg>
+                    <div className="aspect-square bg-[#EDE8DF] flex items-center justify-center overflow-hidden">
+                      {m.photos[0] ? (
+                        <img src={m.photos[0]} alt={m.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-7 h-7">
+                          <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" />
+                        </svg>
+                      )}
                     </div>
                     <div className="p-3">
                       <p className="text-xs font-medium text-[#4A3728] truncate">{m.name}</p>
@@ -239,7 +233,7 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
 
       {proposing && (
         <ProposeSwapModal
-          items={[{ id, name: item.name, points: item.points, owner: item.ownerName, ownerId: item.ownerId }]}
+          items={[{ id, name: item.name, points: item.points, owner: item.ownerName, ownerId: item.owner_id }]}
           onClose={() => setProposing(false)}
         />
       )}

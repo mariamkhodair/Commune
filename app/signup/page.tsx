@@ -52,7 +52,8 @@ export default function SignUp() {
         data: {
           full_name: form.name,
           phone: `+20${form.phone}`,
-          address: `${form.street}, ${form.area}, ${form.city}, Egypt`.replace(/^,\s*|,\s*,/g, ""),
+          area: form.area,
+          city: form.city,
         },
       },
     });

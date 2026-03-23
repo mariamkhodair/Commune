@@ -1,9 +1,39 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
+import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/useUser";
+
+type MemberItem = {
+  id: string;
+  name: string;
+  category: string;
+  condition: string;
+  points: number;
+  photos: string[];
+};
+
+type MemberData = {
+  id: string;
+  name: string;
+  area: string;
+  city: string;
+  rating_sum: number;
+  rating_count: number;
+  created_at: string;
+};
+
+const reportReasons = [
+  "Misrepresented item condition",
+  "Inappropriate behaviour",
+  "No-show / didn't complete swap",
+  "Fake listing",
+  "Harassment",
+  "Other",
+];
 
 function Stars({ rating }: { rating: number | null }) {
   if (rating === null) return <p className="text-xs text-[#C4B9AA]">No ratings yet</p>;
@@ -19,60 +49,59 @@ function Stars({ rating }: { rating: number | null }) {
   );
 }
 
-// Placeholder — will be replaced with Supabase data
-const placeholderMembers: Record<string, { name: string; joined: string; rating: number | null; ratingCount: number; items: { id: number; name: string; category: string; points: number; condition: string }[] }> = {
-  "1": { name: "Sara M.", joined: "Jan 2024", rating: 4.8, ratingCount: 12, items: [
-    { id: 1, name: "Vintage Levi's Jacket", category: "Apparel", points: 420, condition: "Good" },
-    { id: 2, name: "Ceramic Vase", category: "Furniture & Home Decor", points: 180, condition: "Like New" },
-  ]},
-  "2": { name: "Karim A.", joined: "Mar 2024", rating: 4.5, ratingCount: 9, items: [
-    { id: 3, name: "Sony WH-1000XM4 Headphones", category: "Electronics", points: 1200, condition: "Like New" },
-    { id: 4, name: "Mechanical Keyboard (TKL)", category: "Electronics", points: 800, condition: "Good" },
-    { id: 9, name: "Canon EOS 200D Camera", category: "Electronics", points: 950, condition: "Good" },
-    { id: 10, name: "iPad Pro 11\" (2021)", category: "Electronics", points: 2200, condition: "Like New" },
-    { id: 11, name: "Nike Air Max 90", category: "Apparel", points: 480, condition: "Good" },
-    { id: 12, name: "Levi's 501 Jeans", category: "Apparel", points: 320, condition: "Like New" },
-    { id: 13, name: "Atomic Habits", category: "Books", points: 90, condition: "Like New" },
-    { id: 14, name: "IKEA KALLAX Shelf", category: "Furniture & Home Decor", points: 550, condition: "Good" },
-    { id: 15, name: "Logitech MX Master 3 Mouse", category: "Electronics", points: 650, condition: "Like New" },
-    { id: 16, name: "Vintage Denim Jacket", category: "Apparel", points: 370, condition: "Good" },
-    { id: 17, name: "Moleskine Notebook Set", category: "Stationery & Art Supplies", points: 120, condition: "New" },
-    { id: 18, name: "Nespresso Vertuo Coffee Machine", category: "Furniture & Home Decor", points: 1800, condition: "Like New" },
-    { id: 19, name: "Harry Potter Box Set (Arabic)", category: "Books", points: 280, condition: "Good" },
-    { id: 20, name: "JBL Flip 6 Speaker", category: "Electronics", points: 750, condition: "Like New" },
-  ]},
-  "3": { name: "Nour T.", joined: "Feb 2024", rating: 5.0, ratingCount: 4, items: [
-    { id: 5, name: "The Alchemist (Arabic)", category: "Books", points: 60, condition: "Good" },
-  ]},
-  "4": { name: "Ahmed R.", joined: "Dec 2023", rating: 4.2, ratingCount: 17, items: [
-    { id: 6, name: "IKEA Desk Lamp", category: "Furniture & Home Decor", points: 150, condition: "New" },
-  ]},
-  "5": { name: "Dina H.", joined: "Apr 2024", rating: 4.9, ratingCount: 7, items: [
-    { id: 7, name: "Maybelline Mascara Set", category: "Cosmetics", points: 200, condition: "New" },
-  ]},
-  "6": { name: "Omar S.", joined: "May 2024", rating: null, ratingCount: 0, items: [
-    { id: 8, name: "Wireless Mouse", category: "Electronics", points: 250, condition: "Like New" },
-  ]},
-};
-
-const reportReasons = [
-  "Misrepresented item condition",
-  "Inappropriate behaviour",
-  "No-show / didn't complete swap",
-  "Fake listing",
-  "Harassment",
-  "Other",
-];
-
 export default function MemberProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [liked, setLiked] = useState<Set<number>>(new Set());
-  const [proposingItems, setProposingItems] = useState<{ id: number; name: string; points: number; owner: string; ownerId: string }[] | null>(null);
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedForSwap, setSelectedForSwap] = useState<Set<number>>(new Set());
-  const [showReport, setShowReport] = useState(false);
+  const { userId } = useUser();
 
-  function toggleSelectForSwap(itemId: number) {
+  const [member, setMember] = useState<MemberData | null>(null);
+  const [items, setItems] = useState<MemberItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [liked, setLiked] = useState<Set<string>>(new Set());
+  const [proposingItems, setProposingItems] = useState<{ id: string; name: string; points: number; owner: string; ownerId: string }[] | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedForSwap, setSelectedForSwap] = useState<Set<string>>(new Set());
+  const [showReport, setShowReport] = useState(false);
+  const [reportForm, setReportForm] = useState({ reason: "", details: "" });
+  const [reportSubmitted, setReportSubmitted] = useState(false);
+
+  useEffect(() => {
+    fetchMember();
+  }, [id, userId]);
+
+  async function fetchMember() {
+    setLoading(true);
+
+    const [profileRes, itemsRes] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", id).single(),
+      supabase.from("items").select("id, name, category, condition, points, photos")
+        .eq("owner_id", id).eq("status", "Available").order("created_at", { ascending: false }),
+    ]);
+
+    setMember(profileRes.data ?? null);
+    setItems(itemsRes.data ?? []);
+
+    // Fetch liked items
+    if (userId) {
+      const { data: likesData } = await supabase
+        .from("item_likes").select("item_id").eq("user_id", userId);
+      setLiked(new Set((likesData ?? []).map((l: { item_id: string }) => l.item_id)));
+    }
+
+    setLoading(false);
+  }
+
+  async function toggleLike(itemId: string) {
+    if (!userId) return;
+    if (liked.has(itemId)) {
+      setLiked((prev) => { const next = new Set(prev); next.delete(itemId); return next; });
+      await supabase.from("item_likes").delete().eq("item_id", itemId).eq("user_id", userId);
+    } else {
+      setLiked((prev) => new Set(prev).add(itemId));
+      await supabase.from("item_likes").insert({ item_id: itemId, user_id: userId });
+    }
+  }
+
+  function toggleSelectForSwap(itemId: string) {
     setSelectedForSwap((prev) => {
       const next = new Set(prev);
       next.has(itemId) ? next.delete(itemId) : next.add(itemId);
@@ -81,27 +110,27 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
   }
 
   function openBundleSwap() {
-    const chosen = member.items
+    if (!member) return;
+    const chosen = items
       .filter((i) => selectedForSwap.has(i.id))
       .map((i) => ({ id: i.id, name: i.name, points: i.points, owner: member.name, ownerId: id }));
     setProposingItems(chosen);
   }
-  const [reportForm, setReportForm] = useState({ reason: "", details: "" });
-  const [reportSubmitted, setReportSubmitted] = useState(false);
-  const member = placeholderMembers[id];
 
   function handleReportSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: send report to commune.eg@gmail.com via backend
     setReportSubmitted(true);
   }
 
-  function toggleLike(id: number) {
-    setLiked((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  if (loading) {
+    return (
+      <div className="min-h-screen flex">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-[#4A3728] border-t-transparent rounded-full animate-spin" />
+        </main>
+      </div>
+    );
   }
 
   if (!member) {
@@ -115,13 +144,15 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
     );
   }
 
+  const rating = member.rating_count > 0 ? member.rating_sum / member.rating_count : null;
+  const joined = new Date(member.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+
   return (
     <div className="min-h-screen flex">
       <Sidebar />
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
 
-        {/* Back */}
         <Link href="/members" className="inline-flex items-center gap-2 text-[#8B7355] hover:text-[#4A3728] transition-colors mb-6 text-sm">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
             <path d="M19 12H5M12 5l-7 7 7 7" />
@@ -137,8 +168,8 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
             </div>
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">{member.name}</h1>
-              <Stars rating={member.rating} />
-              <p className="text-xs text-[#A09080]">Member since {member.joined} · {member.ratingCount} rating{member.ratingCount !== 1 ? "s" : ""}</p>
+              <Stars rating={rating} />
+              <p className="text-xs text-[#A09080]">Member since {joined} · {member.rating_count} rating{member.rating_count !== 1 ? "s" : ""}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -174,20 +205,19 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
           </button>
         </div>
 
-        {member.items.length === 0 ? (
+        {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">Nothing listed yet</p>
             <p className="text-[#A09080]">This member hasn't listed any items yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-3">
-            {member.items.map((item) => (
+            {items.map((item) => (
               <div
                 key={item.id}
                 onClick={selectMode ? () => toggleSelectForSwap(item.id) : undefined}
                 className={`bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm transition-shadow relative ${selectMode ? "cursor-pointer hover:shadow-md" : ""} ${selectMode && selectedForSwap.has(item.id) ? "ring-2 ring-[#4A3728]" : ""}`}
               >
-                {/* Like button — hidden in select mode */}
                 {!selectMode && (
                   <button
                     onClick={() => toggleLike(item.id)}
@@ -199,7 +229,6 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
                   </button>
                 )}
 
-                {/* Selection checkbox */}
                 {selectMode && (
                   <div className="absolute top-2 right-2 z-10">
                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${selectedForSwap.has(item.id) ? "bg-[#4A3728] border-[#4A3728]" : "bg-white/80 border-[#D9CFC4]"}`}>
@@ -212,26 +241,28 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
                   </div>
                 )}
 
-                {/* Image */}
                 {selectMode ? (
-                  <div className="aspect-square bg-[#EDE8DF] flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-8 h-8">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <path d="m21 15-5-5L5 21" />
-                    </svg>
+                  <div className="aspect-square bg-[#EDE8DF] flex items-center justify-center overflow-hidden">
+                    {item.photos[0] ? (
+                      <img src={item.photos[0]} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-8 h-8">
+                        <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" />
+                      </svg>
+                    )}
                   </div>
                 ) : (
-                  <Link href={`/items/${item.id}`} className="block aspect-square bg-[#EDE8DF] flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-8 h-8">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <path d="m21 15-5-5L5 21" />
-                    </svg>
+                  <Link href={`/items/${item.id}`} className="block aspect-square bg-[#EDE8DF] flex items-center justify-center overflow-hidden">
+                    {item.photos[0] ? (
+                      <img src={item.photos[0]} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-8 h-8">
+                        <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" />
+                      </svg>
+                    )}
                   </Link>
                 )}
 
-                {/* Info */}
                 <div className="p-3">
                   {selectMode ? (
                     <p className="font-medium text-[#4A3728] truncate text-sm">{item.name}</p>
@@ -261,12 +292,11 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
 
       </main>
 
-      {/* Sticky bundle bar */}
       {selectMode && selectedForSwap.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 bg-[#4A3728] text-[#F5F0E8] px-6 py-3.5 rounded-full shadow-lg">
           <p className="text-sm font-medium">
             {selectedForSwap.size} item{selectedForSwap.size !== 1 ? "s" : ""} selected ·{" "}
-            {member.items.filter((i) => selectedForSwap.has(i.id)).reduce((s, i) => s + i.points, 0)} pts
+            {items.filter((i) => selectedForSwap.has(i.id)).reduce((s, i) => s + i.points, 0)} pts
           </p>
           <button
             onClick={openBundleSwap}
@@ -281,19 +311,12 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
         <ProposeSwapModal items={proposingItems} onClose={() => setProposingItems(null)} />
       )}
 
-      {/* Report modal */}
       {showReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setShowReport(false)} />
           <div className="relative w-full max-w-sm bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg">
-
-            <button
-              onClick={() => setShowReport(false)}
-              className="absolute top-4 right-4 w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-[#8B7355] hover:bg-[#D9CFC4] transition-colors"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
+            <button onClick={() => setShowReport(false)} className="absolute top-4 right-4 w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-[#8B7355] hover:bg-[#D9CFC4] transition-colors">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
             </button>
 
             {reportSubmitted ? (
@@ -304,8 +327,7 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
             ) : (
               <>
                 <h3 className="text-lg font-semibold text-[#4A3728] mb-1">Report {member.name}</h3>
-                <p className="text-xs text-[#8B7355] mb-5">Your report will be sent to our team at commune.eg@gmail.com and reviewed confidentially.</p>
-
+                <p className="text-xs text-[#8B7355] mb-5">Your report will be sent to our team and reviewed confidentially.</p>
                 <form onSubmit={handleReportSubmit} className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1">
                     <label className="text-sm text-[#6B5040]">Reason</label>
@@ -319,7 +341,6 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
                       {reportReasons.map((r) => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
-
                   <div className="flex flex-col gap-1">
                     <label className="text-sm text-[#6B5040]">Details <span className="text-[#A09080]">(optional)</span></label>
                     <textarea
@@ -330,7 +351,6 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
                       className="rounded-xl border border-[#D9CFC4] bg-white px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors resize-none"
                     />
                   </div>
-
                   <button
                     type="submit"
                     disabled={!reportForm.reason}
@@ -341,7 +361,6 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
                 </form>
               </>
             )}
-
           </div>
         </div>
       )}

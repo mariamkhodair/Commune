@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/useUser";
 
 const sidebarItems = [
   {
@@ -119,6 +121,13 @@ const sidebarItems = [
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
   const pathname = usePathname();
+  const router = useRouter();
+  const { profile } = useUser();
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
 
   return (
     <aside className={`relative overflow-visible flex flex-col bg-white/70 backdrop-blur-sm border-r border-[#D9CFC4] transition-all duration-300 ease-in-out ${open ? "w-52" : "w-16"} shrink-0 z-30`}>
@@ -132,11 +141,11 @@ export default function Sidebar() {
         </svg>
       </button>
 
-      <Link href="/" className="px-4 py-6 text-[#4A3728] font-[family-name:var(--font-permanent-marker)] whitespace-nowrap overflow-hidden" style={{ fontSize: open ? "1.5rem" : "0" }}>
+      <Link href="/dashboard" className="px-4 py-6 text-[#4A3728] font-[family-name:var(--font-permanent-marker)] whitespace-nowrap overflow-hidden" style={{ fontSize: open ? "1.5rem" : "0" }}>
         Commune
       </Link>
 
-      <nav className="flex flex-col gap-1 px-2 mt-2">
+      <nav className="flex flex-col gap-1 px-2 mt-2 flex-1 overflow-y-auto">
         {sidebarItems.map((item) => {
           const active = pathname === item.href;
           return (
@@ -151,6 +160,39 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* User info + sign out */}
+      <div className={`px-2 py-3 border-t border-[#EDE8DF] ${open ? "" : "flex justify-center"}`}>
+        {open ? (
+          <div className="flex items-center justify-between px-3 py-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-xs font-medium text-[#4A3728] font-[family-name:var(--font-permanent-marker)] shrink-0">
+                {profile?.name?.charAt(0) ?? "?"}
+              </div>
+              <span className="text-xs text-[#4A3728] font-medium truncate">{profile?.name ?? ""}</span>
+            </div>
+            <button
+              onClick={handleSignOut}
+              title="Sign out"
+              className="shrink-0 text-[#A09080] hover:text-[#A0624A] transition-colors ml-1"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleSignOut}
+            title="Sign out"
+            className="p-2 text-[#A09080] hover:text-[#A0624A] transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-5 h-5">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        )}
+      </div>
 
     </aside>
   );

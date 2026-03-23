@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/useUser";
+import type { Item, Profile } from "@/lib/database.types";
 
 const statusStyles: Record<string, string> = {
   Available: "bg-[#D8E4D0] text-[#4A6640]",
@@ -10,8 +13,7 @@ const statusStyles: Record<string, string> = {
   Swapped: "bg-[#DDD8C8] text-[#6B5040]",
 };
 
-// Placeholder — will be replaced with real data from Supabase
-const myRating = { score: 4.7, count: 10 };
+type ItemWithLikes = Item & { likedBy: { id: string; name: string }[] };
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -22,38 +24,75 @@ function Stars({ rating }: { rating: number }) {
         </svg>
       ))}
       <span className="text-xs text-[#8B7355] ml-0.5">{rating.toFixed(1)}</span>
-      <span className="text-xs text-[#A09080]">({myRating.count} ratings)</span>
     </div>
   );
 }
 
-// Placeholder items — will be replaced with real data from Supabase
-const placeholderItems = [
-  { id: 1, name: "Vintage Denim Jacket", category: "Apparel", points: 320, status: "Available", image: null,
-    likedBy: [{ id: 2, name: "Karim A." }, { id: 5, name: "Dina H." }] },
-  { id: 2, name: "Canon EOS Camera", category: "Electronics", points: 850, status: "In a Swap", image: null,
-    likedBy: [{ id: 1, name: "Sara M." }] },
-  { id: 3, name: "The Alchemist", category: "Books", points: 80, status: "Swapped", image: null,
-    likedBy: [] },
-];
-
 export default function MyStuff() {
-  const [likersModal, setLikersModal] = useState<{ itemName: string; likedBy: { id: number; name: string }[] } | null>(null);
+  const { userId, profile, loading: userLoading } = useUser();
+  const [items, setItems] = useState<ItemWithLikes[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [likersModal, setLikersModal] = useState<{ itemName: string; likedBy: { id: string; name: string }[] } | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchItems();
+  }, [userId]);
+
+  async function fetchItems() {
+    setLoading(true);
+
+    // Fetch items owned by current user
+    const { data: itemsData, error } = await supabase
+      .from("items")
+      .select("*")
+      .eq("owner_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error || !itemsData) {
+      setLoading(false);
+      return;
+    }
+
+    // For each item, fetch who liked it
+    const itemsWithLikes: ItemWithLikes[] = await Promise.all(
+      itemsData.map(async (item) => {
+        const { data: likes } = await supabase
+          .from("item_likes")
+          .select("user_id, profiles(id, name)")
+          .eq("item_id", item.id);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const likedBy = (likes ?? []).map((l: any) => ({
+          id: l.user_id as string,
+          name: (Array.isArray(l.profiles) ? l.profiles[0]?.name : l.profiles?.name) ?? "Unknown",
+        }));
+
+        return { ...item, likedBy };
+      })
+    );
+
+    setItems(itemsWithLikes);
+    setLoading(false);
+  }
+
+  const rating = profile && profile.rating_count > 0
+    ? { score: profile.rating_sum / profile.rating_count, count: profile.rating_count }
+    : null;
 
   return (
     <div className="min-h-screen flex">
-
       <Sidebar />
 
-      {/* ── Main content ── */}
       <main className="flex-1 px-8 py-8 overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">My Stuff</h1>
-            <p className="text-[#8B7355] mt-1 mb-1">{placeholderItems.length} items listed</p>
-            <Stars rating={myRating.score} />
+            <p className="text-[#8B7355] mt-1 mb-1">{items.length} item{items.length !== 1 ? "s" : ""} listed</p>
+            {rating && <Stars rating={rating.score} />}
+            {rating && <span className="text-xs text-[#A09080] ml-1">({rating.count} rating{rating.count !== 1 ? "s" : ""})</span>}
           </div>
           <Link
             href="/my-stuff/new"
@@ -66,8 +105,15 @@ export default function MyStuff() {
           </Link>
         </div>
 
+        {/* Loading */}
+        {(loading || userLoading) && (
+          <div className="flex items-center justify-center py-32">
+            <div className="w-6 h-6 border-2 border-[#4A3728] border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
         {/* Items grid */}
-        {placeholderItems.length === 0 ? (
+        {!loading && !userLoading && items.length === 0 && (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">Nothing here yet</p>
             <p className="text-[#A09080] mb-6">List your first item and start swapping.</p>
@@ -78,42 +124,46 @@ export default function MyStuff() {
               List an Item
             </Link>
           </div>
-        ) : (
-          <div>
-            <div className="grid grid-cols-4 gap-3">
-              {placeholderItems.map((item) => (
-                <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  {/* Image area */}
-                  <div className="aspect-square bg-[#EDE8DF] flex items-center justify-center">
+        )}
+
+        {!loading && !userLoading && items.length > 0 && (
+          <div className="grid grid-cols-4 gap-3">
+            {items.map((item) => (
+              <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                {/* Image area */}
+                <Link href={`/items/${item.id}`} className="block aspect-square bg-[#EDE8DF] flex items-center justify-center overflow-hidden">
+                  {item.photos[0] ? (
+                    <img src={item.photos[0]} alt={item.name} className="w-full h-full object-cover" />
+                  ) : (
                     <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-8 h-8">
                       <rect x="3" y="3" width="18" height="18" rx="2" />
                       <circle cx="8.5" cy="8.5" r="1.5" />
                       <path d="m21 15-5-5L5 21" />
                     </svg>
+                  )}
+                </Link>
+                {/* Info */}
+                <div className="p-3">
+                  <p className="font-medium text-[#4A3728] truncate text-sm">{item.name}</p>
+                  <p className="text-xs text-[#8B7355] mb-2">{item.category}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusStyles[item.status] ?? ""}`}>
+                      {item.status}
+                    </span>
                   </div>
-                  {/* Info */}
-                  <div className="p-3">
-                    <p className="font-medium text-[#4A3728] truncate text-sm">{item.name}</p>
-                    <p className="text-xs text-[#8B7355] mb-2">{item.category}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusStyles[item.status]}`}>
-                        {item.status}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setLikersModal({ itemName: item.name, likedBy: item.likedBy })}
-                      className="flex items-center gap-1 mt-2 text-xs text-[#A09080] hover:text-[#A0624A] transition-colors"
-                    >
-                      <svg viewBox="0 0 24 24" fill={item.likedBy.length > 0 ? "#A0624A" : "none"} stroke="#A0624A" strokeWidth="2" className="w-3.5 h-3.5">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                      </svg>
-                      {item.likedBy.length === 0 ? "No likes yet" : `${item.likedBy.length} ${item.likedBy.length === 1 ? "like" : "likes"}`}
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setLikersModal({ itemName: item.name, likedBy: item.likedBy })}
+                    className="flex items-center gap-1 mt-2 text-xs text-[#A09080] hover:text-[#A0624A] transition-colors"
+                  >
+                    <svg viewBox="0 0 24 24" fill={item.likedBy.length > 0 ? "#A0624A" : "none"} stroke="#A0624A" strokeWidth="2" className="w-3.5 h-3.5">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                    {item.likedBy.length === 0 ? "No likes yet" : `${item.likedBy.length} ${item.likedBy.length === 1 ? "like" : "likes"}`}
+                  </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         )}
       </main>

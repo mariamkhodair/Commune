@@ -2,6 +2,9 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/useUser";
 
 const categories = [
   "Apparel",
@@ -30,9 +33,14 @@ type Step = "form" | "preview";
 const MIN_PHOTOS = 3;
 
 export default function NewItem() {
+  const router = useRouter();
+  const { userId } = useUser();
   const [step, setStep] = useState<Step>("form");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<string[]>([]); // base64 previews
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]); // raw File objects for upload
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [points, setPoints] = useState<number | null>(null);
   const [pointsMode, setPointsMode] = useState<"ai" | "manual">("ai");
   const [manualPoints, setManualPoints] = useState("");
@@ -59,6 +67,7 @@ export default function NewItem() {
   function handleFiles(files: FileList | File[]) {
     Array.from(files).forEach((file) => {
       if (!file.type.startsWith("image/")) return;
+      setPhotoFiles((prev) => [...prev, file]);
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
@@ -70,6 +79,7 @@ export default function NewItem() {
 
   function removePhoto(index: number) {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPhotoFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleAnalyse() {
@@ -89,6 +99,61 @@ export default function NewItem() {
   function handleManualSubmit() {
     setPoints(parseInt(manualPoints));
     setStep("preview");
+  }
+
+  async function handleListItem() {
+    if (!userId || !points) return;
+    setSaving(true);
+    setSaveError("");
+
+    try {
+      // Upload photos to Supabase Storage
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < photoFiles.length; i++) {
+        const file = photoFiles[i];
+        const ext = file.name.split(".").pop() ?? "jpg";
+        const path = `${userId}/${Date.now()}_${i}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("item-photos")
+          .upload(path, file, { cacheControl: "3600", upsert: false });
+
+        if (uploadError) {
+          // If storage bucket doesn't exist yet, fall back to base64 (dev mode)
+          uploadedUrls.push(photos[i]);
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from("item-photos")
+            .getPublicUrl(path);
+          uploadedUrls.push(publicUrl);
+        }
+      }
+
+      // Insert item into DB
+      const brand = form.brand === "Other" ? form.customBrand : form.brand;
+      const { error: insertError } = await supabase.from("items").insert({
+        owner_id: userId,
+        name: form.name,
+        category: form.category,
+        brand: brand || null,
+        condition: form.condition,
+        description: form.description,
+        points,
+        status: "Available",
+        photos: uploadedUrls,
+      });
+
+      if (insertError) {
+        setSaveError(insertError.message);
+        setSaving(false);
+        return;
+      }
+
+      router.push("/my-stuff");
+    } catch {
+      setSaveError("Something went wrong. Please try again.");
+      setSaving(false);
+    }
   }
 
   const formComplete = photos.length >= MIN_PHOTOS && form.name && form.category && form.condition && form.description;
@@ -367,17 +432,23 @@ export default function NewItem() {
               </div>
             </div>
 
+            {saveError && (
+              <p className="text-sm text-[#A0624A] text-center">{saveError}</p>
+            )}
+
             {/* Actions */}
             <div className="flex flex-col gap-3">
               <button
-                className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3.5 font-semibold hover:bg-[#6B5040] transition-colors"
-                onClick={() => alert("Item listed! (Supabase save coming next)")}
+                className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3.5 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleListItem}
+                disabled={saving}
               >
-                List This Item
+                {saving ? "Listing your item…" : "List This Item"}
               </button>
               <button
                 className="w-full rounded-full border border-[#D9CFC4] text-[#6B5040] py-3.5 font-medium hover:border-[#4A3728] transition-colors"
                 onClick={() => setStep("form")}
+                disabled={saving}
               >
                 Edit Details
               </button>
