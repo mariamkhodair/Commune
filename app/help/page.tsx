@@ -13,6 +13,10 @@ const faqs = [
     answer: "Find an item you want in Search, then propose a swap. For a swap to be a true match, your offer must include at least one item from the other member's Stuff I Want list — and the item you're requesting must satisfy something on yours. The other member will review your proposal and can accept or decline. Once accepted, you coordinate the handoff and both items are marked as swapped.",
   },
   {
+    question: "Can I swap multiple items at once?",
+    answer: "Yes — this is called a bundle swap. If one member's item is worth more than any single item you have, you can offer multiple items whose points add up to the same value. To propose a bundle swap, go to a member's profile page and tap 'Select items'. Choose all the items you're interested in, then tap 'Propose Bundle Swap'. From there you can select multiple items from your own listings to match the total points value. The same matching rule applies — at least one item on each side must satisfy something on the other member's Stuff I Want list.",
+  },
+  {
     question: "What if the points value assigned to my item doesn't feel fair?",
     answer: "You're in control. When listing an item you can either let our AI suggest a points value based on the current Egyptian market price, or set your own value manually. If you go with AI and the result doesn't feel right, simply switch to 'Set My Own' and enter the value you think is fair.",
   },
