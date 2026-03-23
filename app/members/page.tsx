@@ -5,14 +5,29 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 
 // Placeholder — will be replaced with Supabase data
+// Logged-in member's location (will come from Supabase auth profile)
+const myLocation = { area: "Maadi", city: "Cairo" };
+
 const placeholderMembers = [
-  { id: 1, name: "Sara M.", itemCount: 8, joined: "Jan 2024", rating: 4.8, ratingCount: 12 },
-  { id: 2, name: "Karim A.", itemCount: 14, joined: "Mar 2024", rating: 4.5, ratingCount: 9 },
-  { id: 3, name: "Nour T.", itemCount: 5, joined: "Feb 2024", rating: 5.0, ratingCount: 4 },
-  { id: 4, name: "Ahmed R.", itemCount: 11, joined: "Dec 2023", rating: 4.2, ratingCount: 17 },
-  { id: 5, name: "Dina H.", itemCount: 7, joined: "Apr 2024", rating: 4.9, ratingCount: 7 },
-  { id: 6, name: "Omar S.", itemCount: 3, joined: "May 2024", rating: null, ratingCount: 0 },
+  { id: 1, name: "Sara M.",  itemCount: 8,  joined: "Jan 2024", rating: 4.8, ratingCount: 12, area: "Maadi",        city: "Cairo" },
+  { id: 2, name: "Karim A.", itemCount: 14, joined: "Mar 2024", rating: 4.5, ratingCount: 9,  area: "Zamalek",      city: "Cairo" },
+  { id: 3, name: "Nour T.",  itemCount: 5,  joined: "Feb 2024", rating: 5.0, ratingCount: 4,  area: "Maadi",        city: "Cairo" },
+  { id: 4, name: "Ahmed R.", itemCount: 11, joined: "Dec 2023", rating: 4.2, ratingCount: 17, area: "Sporting",     city: "Alexandria" },
+  { id: 5, name: "Dina H.",  itemCount: 7,  joined: "Apr 2024", rating: 4.9, ratingCount: 7,  area: "New Cairo",    city: "Cairo" },
+  { id: 6, name: "Omar S.",  itemCount: 3,  joined: "May 2024", rating: null, ratingCount: 0, area: "Smouha",       city: "Alexandria" },
 ];
+
+function proximityScore(member: typeof placeholderMembers[0]) {
+  if (member.area === myLocation.area && member.city === myLocation.city) return 0;
+  if (member.city === myLocation.city) return 1;
+  return 2;
+}
+
+function proximityLabel(member: typeof placeholderMembers[0]) {
+  if (member.area === myLocation.area && member.city === myLocation.city) return { text: "Same area", color: "bg-[#D8E4D0] text-[#4A6640]" };
+  if (member.city === myLocation.city) return { text: member.area, color: "bg-[#EDE8DF] text-[#6B5040]" };
+  return { text: `${member.area}, ${member.city}`, color: "bg-[#F5F0E8] text-[#A09080]" };
+}
 
 function Stars({ rating }: { rating: number | null }) {
   if (rating === null) return <p className="text-xs text-[#C4B9AA]">No ratings yet</p>;
@@ -40,9 +55,9 @@ export default function Members() {
     });
   }
 
-  const filtered = placeholderMembers.filter((m) =>
-    m.name.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = placeholderMembers
+    .filter((m) => m.name.toLowerCase().includes(query.toLowerCase()))
+    .sort((a, b) => proximityScore(a) - proximityScore(b));
 
   return (
     <div className="min-h-screen flex">
@@ -53,7 +68,7 @@ export default function Members() {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)] mb-1">Members</h1>
-          <p className="text-[#8B7355]">Browse the community and see what members have to offer.</p>
+          <p className="text-[#8B7355]">Browse the community and see what members have to offer. Members nearest to you appear first.</p>
         </div>
 
         {/* Search */}
@@ -100,6 +115,9 @@ export default function Members() {
                 <div className="flex flex-col items-center gap-1">
                   <p className="font-medium text-[#4A3728]">{member.name}</p>
                   <Stars rating={member.rating} />
+                  {(() => { const l = proximityLabel(member); return (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${l.color}`}>{l.text}</span>
+                  ); })()}
                   <p className="text-xs text-[#8B7355]">{member.itemCount} items listed</p>
                   <p className="text-xs text-[#A09080]">Member since {member.joined}</p>
                 </div>
