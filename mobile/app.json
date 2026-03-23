@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Commune",
+    "slug": "commune",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#FAF7F2"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.commune.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FAF7F2"
+      },
+      "package": "com.commune.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Commune needs access to your photos to let you upload item photos."
+        }
+      ]
+    ],
+    "scheme": "commune",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
