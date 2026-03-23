@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 
 // Placeholder — will be replaced with Supabase data
