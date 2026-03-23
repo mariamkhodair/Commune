@@ -12,20 +12,20 @@ const myItems = [
 ];
 
 // Placeholder — will be replaced with the other member's real Stuff I Want list from Supabase
-// These are the categories/items the other member has said they're looking for
 const theirWantedCategories = ["Electronics", "Books"];
 
-type TargetItem = {
+export type SwapTargetItem = {
+  id: number | string;
   name: string;
   points: number;
   owner: string;
 };
 
 export default function ProposeSwapModal({
-  item,
+  items,
   onClose,
 }: {
-  item: TargetItem;
+  items: SwapTargetItem[];
   onClose: () => void;
 }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -39,17 +39,13 @@ export default function ProposeSwapModal({
     });
   }
 
+  const ownerName = items[0]?.owner ?? "";
+  const theirTotal = items.reduce((sum, i) => sum + i.points, 0);
   const selectedItems = myItems.filter((i) => selected.has(i.id));
   const myTotal = selectedItems.reduce((sum, i) => sum + i.points, 0);
-  const diff = myTotal - item.points;
+  const diff = myTotal - theirTotal;
   const balanced = Math.abs(diff) <= 50;
-
-  // Check if at least one selected item satisfies something the other member wants
-  const satisfiesTheirWant = selectedItems.some((i) =>
-    theirWantedCategories.includes(i.category)
-  );
-
-  // A true match: points are balanced AND at least one item satisfies their wants
+  const satisfiesTheirWant = selectedItems.some((i) => theirWantedCategories.includes(i.category));
   const isMatch = balanced && satisfiesTheirWant;
 
   if (submitted) {
@@ -60,12 +56,9 @@ export default function ProposeSwapModal({
           <p className="text-3xl mb-4">🤝🏽</p>
           <p className="text-lg font-semibold text-[#4A3728] mb-2">Proposal sent!</p>
           <p className="text-sm text-[#6B5040] leading-relaxed mb-6">
-            {item.owner} will be notified and can accept or decline your offer.
+            {ownerName} will be notified and can accept or decline your offer.
           </p>
-          <button
-            onClick={onClose}
-            className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors"
-          >
+          <button onClick={onClose} className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors">
             Done
           </button>
         </div>
@@ -79,10 +72,7 @@ export default function ProposeSwapModal({
       <div className="relative w-full max-w-md bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg max-h-[90vh] overflow-y-auto">
 
         {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-[#8B7355] hover:bg-[#D9CFC4] transition-colors"
-        >
+        <button onClick={onClose} className="absolute top-4 right-4 w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-[#8B7355] hover:bg-[#D9CFC4] transition-colors">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5">
             <path d="M18 6 6 18M6 6l12 12" />
           </svg>
@@ -90,14 +80,22 @@ export default function ProposeSwapModal({
 
         <h3 className="text-lg font-semibold text-[#4A3728] mb-1">Propose a Swap</h3>
         <p className="text-xs text-[#8B7355] mb-5">
-          For a swap to go through, your offer must satisfy something on {item.owner}'s Stuff I Want list — and their item must satisfy something on yours.
+          For a swap to go through, your offer must satisfy something on {ownerName}'s Stuff I Want list — and their items must satisfy something on yours.
         </p>
 
-        {/* You want */}
+        {/* They want */}
         <div className="bg-[#EDE8DF] rounded-2xl px-4 py-4 mb-5">
-          <p className="text-xs text-[#A09080] mb-1">You want</p>
-          <p className="text-sm font-semibold text-[#4A3728]">{item.name}</p>
-          <p className="text-xs text-[#8B7355]">Listed by {item.owner} · <span className="font-semibold text-[#4A3728]">{item.points} pts</span></p>
+          <p className="text-xs text-[#A09080] mb-2">You want{items.length > 1 ? ` (${items.length} items)` : ""}</p>
+          {items.map((item) => (
+            <div key={item.id} className="flex items-center justify-between py-1.5 border-b border-[#D9CFC4] last:border-0 last:pb-0 first:pt-0">
+              <p className="text-sm font-medium text-[#4A3728]">{item.name}</p>
+              <span className="text-xs font-semibold text-[#4A3728] ml-3 shrink-0">{item.points} pts</span>
+            </div>
+          ))}
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#C4B9AA]">
+            <p className="text-xs text-[#8B7355]">Listed by {ownerName}</p>
+            <p className="text-xs font-bold text-[#4A3728]">{theirTotal} pts total</p>
+          </div>
         </div>
 
         {/* What they want */}
@@ -106,8 +104,8 @@ export default function ProposeSwapModal({
             <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
           </svg>
           <p className="text-xs text-[#6B5040] leading-relaxed">
-            <span className="font-medium">{item.owner}</span> is looking for items in:{" "}
-            <span className="font-medium text-[#4A3728]">{theirWantedCategories.join(", ")}</span>. Items marked 🤝🏽 below match what they want.
+            <span className="font-medium">{ownerName}</span> is looking for:{" "}
+            <span className="font-medium text-[#4A3728]">{theirWantedCategories.join(", ")}</span>. Items marked 🤝🏽 match what they want.
           </p>
         </div>
 
@@ -122,11 +120,9 @@ export default function ProposeSwapModal({
                 key={myItem.id}
                 onClick={() => toggleItem(myItem.id)}
                 className={`flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors ${
-                  isSelected
-                    ? "border-[#4A3728] bg-[#4A3728]/5"
-                    : wantedByThem
-                    ? "border-[#7A9E6E] bg-[#D8E4D0]/40 hover:border-[#4A3728]"
-                    : "border-[#D9CFC4] bg-white/60 hover:border-[#4A3728]"
+                  isSelected ? "border-[#4A3728] bg-[#4A3728]/5"
+                  : wantedByThem ? "border-[#7A9E6E] bg-[#D8E4D0]/40 hover:border-[#4A3728]"
+                  : "border-[#D9CFC4] bg-white/60 hover:border-[#4A3728]"
                 }`}
               >
                 <div>
@@ -154,42 +150,36 @@ export default function ProposeSwapModal({
         {/* Status indicators */}
         {selected.size > 0 && (
           <div className="flex flex-col gap-2 mb-5">
-
-            {/* Points balance */}
             <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${balanced ? "bg-[#D8E4D0]" : "bg-[#ECD8D4]"}`}>
               <div>
                 <p className={`text-xs font-medium ${balanced ? "text-[#4A6640]" : "text-[#8B3A2A]"}`}>
                   {balanced ? "Points balanced" : diff > 0 ? `You're offering ${diff} pts more` : `You're ${Math.abs(diff)} pts short`}
                 </p>
                 <p className={`text-xs mt-0.5 ${balanced ? "text-[#4A6640]" : "text-[#8B3A2A]"}`}>
-                  Your offer: <span className="font-semibold">{myTotal} pts</span> · Their item: <span className="font-semibold">{item.points} pts</span>
+                  Your offer: <span className="font-semibold">{myTotal} pts</span> · Their items: <span className="font-semibold">{theirTotal} pts</span>
                 </p>
               </div>
               <span className="text-base">{balanced ? "✓" : "⚠️"}</span>
             </div>
 
-            {/* Want satisfaction */}
             <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${satisfiesTheirWant ? "bg-[#D8E4D0]" : "bg-[#E4E0D0]"}`}>
               <p className={`text-xs font-medium ${satisfiesTheirWant ? "text-[#4A6640]" : "text-[#6B5040]"}`}>
                 {satisfiesTheirWant
-                  ? `Your offer includes something ${item.owner} is looking for`
-                  : `None of your selected items match ${item.owner}'s want list — they may be less likely to accept`}
+                  ? `Your offer includes something ${ownerName} is looking for`
+                  : `None of your selected items match ${ownerName}'s want list`}
               </p>
               <span className="text-base ml-3 shrink-0">{satisfiesTheirWant ? "✓" : "⚠️"}</span>
             </div>
 
-            {/* True match banner */}
             {isMatch && (
               <div className="rounded-xl px-4 py-3 bg-[#4A3728] flex items-center gap-2">
                 <span>🤝🏽</span>
                 <p className="text-xs text-[#F5F0E8] font-medium">This is a mutual match — both of you get something you want!</p>
               </div>
             )}
-
           </div>
         )}
 
-        {/* Send */}
         <button
           onClick={() => setSubmitted(true)}
           disabled={selected.size === 0}

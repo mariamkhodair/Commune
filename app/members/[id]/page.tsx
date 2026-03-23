@@ -67,8 +67,25 @@ const reportReasons = [
 export default function MemberProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [liked, setLiked] = useState<Set<number>>(new Set());
-  const [proposingItem, setProposingItem] = useState<{ name: string; points: number; owner: string } | null>(null);
+  const [proposingItems, setProposingItems] = useState<{ id: number; name: string; points: number; owner: string }[] | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedForSwap, setSelectedForSwap] = useState<Set<number>>(new Set());
   const [showReport, setShowReport] = useState(false);
+
+  function toggleSelectForSwap(itemId: number) {
+    setSelectedForSwap((prev) => {
+      const next = new Set(prev);
+      next.has(itemId) ? next.delete(itemId) : next.add(itemId);
+      return next;
+    });
+  }
+
+  function openBundleSwap() {
+    const chosen = member.items
+      .filter((i) => selectedForSwap.has(i.id))
+      .map((i) => ({ id: i.id, name: i.name, points: i.points, owner: member.name }));
+    setProposingItems(chosen);
+  }
   const [reportForm, setReportForm] = useState({ reason: "", details: "" });
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const member = placeholderMembers[id];
@@ -147,7 +164,15 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
         </div>
 
         {/* Their Stuff */}
-        <h2 className="text-lg font-medium text-[#4A3728] mb-4">Their Stuff</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium text-[#4A3728]">Their Stuff</h2>
+          <button
+            onClick={() => { setSelectMode(!selectMode); setSelectedForSwap(new Set()); }}
+            className={`text-xs px-4 py-1.5 rounded-full border font-medium transition-colors ${selectMode ? "bg-[#4A3728] text-[#F5F0E8] border-[#4A3728]" : "border-[#D9CFC4] text-[#6B5040] hover:border-[#4A3728]"}`}
+          >
+            {selectMode ? "Cancel selection" : "Select items"}
+          </button>
+        </div>
 
         {member.items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
@@ -157,41 +182,75 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
         ) : (
           <div className="grid grid-cols-4 gap-3">
             {member.items.map((item) => (
-              <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
+              <div
+                key={item.id}
+                onClick={selectMode ? () => toggleSelectForSwap(item.id) : undefined}
+                className={`bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm transition-shadow relative ${selectMode ? "cursor-pointer hover:shadow-md" : ""} ${selectMode && selectedForSwap.has(item.id) ? "ring-2 ring-[#4A3728]" : ""}`}
+              >
+                {/* Like button — hidden in select mode */}
+                {!selectMode && (
+                  <button
+                    onClick={() => toggleLike(item.id)}
+                    className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/80 flex items-center justify-center hover:bg-white transition-colors"
+                  >
+                    <svg viewBox="0 0 24 24" fill={liked.has(item.id) ? "#A0624A" : "none"} stroke="#A0624A" strokeWidth="2" className="w-4 h-4">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                  </button>
+                )}
 
-                {/* Like button */}
-                <button
-                  onClick={() => toggleLike(item.id)}
-                  className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/80 flex items-center justify-center hover:bg-white transition-colors"
-                >
-                  <svg viewBox="0 0 24 24" fill={liked.has(item.id) ? "#A0624A" : "none"} stroke="#A0624A" strokeWidth="2" className="w-4 h-4">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                  </svg>
-                </button>
+                {/* Selection checkbox */}
+                {selectMode && (
+                  <div className="absolute top-2 right-2 z-10">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${selectedForSwap.has(item.id) ? "bg-[#4A3728] border-[#4A3728]" : "bg-white/80 border-[#D9CFC4]"}`}>
+                      {selectedForSwap.has(item.id) && (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" className="w-3 h-3">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-                {/* Image — clickable */}
-                <Link href={`/items/${item.id}`} className="block aspect-square bg-[#EDE8DF] flex items-center justify-center">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-8 h-8">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <path d="m21 15-5-5L5 21" />
-                  </svg>
-                </Link>
+                {/* Image */}
+                {selectMode ? (
+                  <div className="aspect-square bg-[#EDE8DF] flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-8 h-8">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="m21 15-5-5L5 21" />
+                    </svg>
+                  </div>
+                ) : (
+                  <Link href={`/items/${item.id}`} className="block aspect-square bg-[#EDE8DF] flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-8 h-8">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="m21 15-5-5L5 21" />
+                    </svg>
+                  </Link>
+                )}
 
                 {/* Info */}
                 <div className="p-3">
-                  <Link href={`/items/${item.id}`} className="block">
-                    <p className="font-medium text-[#4A3728] truncate text-sm hover:underline">{item.name}</p>
-                  </Link>
+                  {selectMode ? (
+                    <p className="font-medium text-[#4A3728] truncate text-sm">{item.name}</p>
+                  ) : (
+                    <Link href={`/items/${item.id}`} className="block">
+                      <p className="font-medium text-[#4A3728] truncate text-sm hover:underline">{item.name}</p>
+                    </Link>
+                  )}
                   <p className="text-xs text-[#8B7355] mb-2">{item.category} · {item.condition}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
-                    <button
-                      onClick={() => setProposingItem({ name: item.name, points: item.points, owner: member.name })}
-                      className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
-                    >
-                      Propose swap
-                    </button>
+                    {!selectMode && (
+                      <button
+                        onClick={() => setProposingItems([{ id: item.id, name: item.name, points: item.points, owner: member.name }])}
+                        className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
+                      >
+                        Propose swap
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -202,8 +261,24 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
 
       </main>
 
-      {proposingItem && (
-        <ProposeSwapModal item={proposingItem} onClose={() => setProposingItem(null)} />
+      {/* Sticky bundle bar */}
+      {selectMode && selectedForSwap.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 bg-[#4A3728] text-[#F5F0E8] px-6 py-3.5 rounded-full shadow-lg">
+          <p className="text-sm font-medium">
+            {selectedForSwap.size} item{selectedForSwap.size !== 1 ? "s" : ""} selected ·{" "}
+            {member.items.filter((i) => selectedForSwap.has(i.id)).reduce((s, i) => s + i.points, 0)} pts
+          </p>
+          <button
+            onClick={openBundleSwap}
+            className="text-sm font-semibold bg-[#F5F0E8] text-[#4A3728] px-4 py-1.5 rounded-full hover:bg-white transition-colors"
+          >
+            Propose Bundle Swap
+          </button>
+        </div>
+      )}
+
+      {proposingItems && (
+        <ProposeSwapModal items={proposingItems} onClose={() => setProposingItems(null)} />
       )}
 
       {/* Report modal */}

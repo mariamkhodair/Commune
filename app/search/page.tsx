@@ -37,7 +37,7 @@ export default function Search() {
   const [maxPoints, setMaxPoints] = useState("");
   const [matchOnly, setMatchOnly] = useState(false);
   const [liked, setLiked] = useState<Set<number>>(new Set());
-  const [proposingItem, setProposingItem] = useState<{ name: string; points: number; owner: string } | null>(null);
+  const [proposingItems, setProposingItems] = useState<{ id: number; name: string; points: number; owner: string }[] | null>(null);
 
   function toggleLike(id: number) {
     setLiked((prev) => {
@@ -186,7 +186,7 @@ export default function Search() {
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
                       <button
-                        onClick={() => setProposingItem({ name: item.name, points: item.points, owner: item.owner })}
+                        onClick={() => setProposingItems([{ id: item.id, name: item.name, points: item.points, owner: item.owner }])}
                         className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
                       >
                         Propose swap
@@ -202,8 +202,8 @@ export default function Search() {
 
       </main>
 
-      {proposingItem && (
-        <ProposeSwapModal item={proposingItem} onClose={() => setProposingItem(null)} />
+      {proposingItems && (
+        <ProposeSwapModal items={proposingItems} onClose={() => setProposingItems(null)} />
       )}
 
     </div>

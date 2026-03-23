@@ -239,7 +239,7 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
 
       {proposing && (
         <ProposeSwapModal
-          item={{ name: item.name, points: item.points, owner: item.ownerName }}
+          items={[{ id, name: item.name, points: item.points, owner: item.ownerName }]}
           onClose={() => setProposing(false)}
         />
       )}
