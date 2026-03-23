@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
@@ -30,8 +31,16 @@ const placeholderResults = [
 ];
 
 export default function Search() {
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("All Stuff");
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [category, setCategory] = useState(searchParams.get("category") ?? "All Stuff");
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    const cat = searchParams.get("category");
+    if (q) setQuery(q);
+    if (cat) setCategory(cat);
+  }, [searchParams]);
   const [condition, setCondition] = useState("Any");
   const [minPoints, setMinPoints] = useState("");
   const [maxPoints, setMaxPoints] = useState("");
