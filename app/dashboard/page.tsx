@@ -176,7 +176,7 @@ const categories = [
 
 export default function Dashboard() {
   return (
-    <div className="min-h-screen bg-[#F5F0E8] flex">
+    <div className="min-h-screen flex">
       <Sidebar />
 
       {/* ── Main content ── */}

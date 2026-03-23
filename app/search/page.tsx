@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 
 const categories = [
@@ -34,13 +34,6 @@ export default function Search() {
   const [minPoints, setMinPoints] = useState("");
   const [maxPoints, setMaxPoints] = useState("");
   const [matchOnly, setMatchOnly] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const gridRef = useRef<HTMLDivElement>(null);
-
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    setZoom((prev) => Math.min(2, Math.max(0.5, prev - e.deltaY * 0.001)));
-  }, []);
 
   const filtered = placeholderResults.filter((item) => {
     if (query && !item.name.toLowerCase().includes(query.toLowerCase())) return false;
@@ -56,7 +49,7 @@ export default function Search() {
   const sorted = [...filtered].sort((a, b) => (b.match ? 1 : 0) - (a.match ? 1 : 0));
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8] flex">
+    <div className="min-h-screen flex">
       <Sidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -134,22 +127,14 @@ export default function Search() {
         </div>
 
         {/* ── Results ── */}
-        <div
-          ref={gridRef}
-          onWheel={handleWheel}
-          className="flex-1 overflow-y-auto px-8 pb-8"
-          style={{ cursor: "zoom-in" }}
-        >
+        <div className="flex-1 overflow-y-auto px-8 pb-8">
           {sorted.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-32 text-center">
               <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">No results found</p>
               <p className="text-[#A09080]">Try adjusting your filters.</p>
             </div>
           ) : (
-            <div
-              className="grid gap-3"
-              style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${Math.round(180 * zoom)}px, 1fr))` }}
-            >
+            <div className="grid grid-cols-4 gap-3">
               {sorted.map((item) => (
                 <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 
@@ -18,16 +18,9 @@ const placeholderItems = [
 ];
 
 export default function MyStuff() {
-  const [zoom, setZoom] = useState(1);
-  const gridRef = useRef<HTMLDivElement>(null);
-
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    setZoom((prev) => Math.min(2, Math.max(0.5, prev - e.deltaY * 0.001)));
-  }, []);
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8] flex">
+    <div className="min-h-screen flex">
 
       <Sidebar />
 
@@ -64,17 +57,8 @@ export default function MyStuff() {
             </Link>
           </div>
         ) : (
-          <div
-            ref={gridRef}
-            onWheel={handleWheel}
-            style={{ cursor: "zoom-in" }}
-          >
-            <div
-              className="grid gap-3"
-              style={{
-                gridTemplateColumns: `repeat(auto-fill, minmax(${Math.round(160 * zoom)}px, 1fr))`,
-              }}
-            >
+          <div>
+            <div className="grid grid-cols-4 gap-3">
               {placeholderItems.map((item) => (
                 <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                   {/* Image area */}

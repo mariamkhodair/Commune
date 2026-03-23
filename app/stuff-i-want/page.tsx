@@ -39,7 +39,7 @@ export default function StuffIWant() {
   const formComplete = form.name && form.category && form.condition;
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8] flex">
+    <div className="min-h-screen flex">
       <Sidebar />
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">

@@ -51,28 +51,8 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8] flex flex-col items-center relative overflow-hidden px-4 pt-10">
+    <div className="min-h-screen flex flex-col items-center relative overflow-hidden px-4 pt-10">
 
-      {/* ── Corner leaves ── */}
-      <svg className="pointer-events-none absolute top-0 left-0 w-64 h-64" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,100 Q30,60 70,40 Q100,0 140,10 Q100,50 90,80 Q70,110 20,120 Z" fill="#7A9E6E" opacity="0.18" />
-        <path d="M0,160 Q40,110 90,100 Q60,140 30,170 Q10,180 0,170 Z" fill="#5C7A4E" opacity="0.13" />
-        <path d="M30,0 Q80,20 60,70 Q35,55 10,25 Z" fill="#9AB88A" opacity="0.15" />
-      </svg>
-      <svg className="pointer-events-none absolute top-0 right-0 w-64 h-64" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <path d="M200,100 Q170,60 130,40 Q100,0 60,10 Q100,50 110,80 Q130,110 180,120 Z" fill="#7A9E6E" opacity="0.18" />
-        <path d="M200,160 Q160,110 110,100 Q140,140 170,170 Q190,180 200,170 Z" fill="#5C7A4E" opacity="0.13" />
-        <path d="M170,0 Q120,20 140,70 Q165,55 190,25 Z" fill="#9AB88A" opacity="0.15" />
-      </svg>
-      <svg className="pointer-events-none absolute bottom-0 left-0 w-64 h-64" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,100 Q30,140 70,160 Q100,200 140,190 Q100,150 90,120 Q70,90 20,80 Z" fill="#7A9E6E" opacity="0.18" />
-        <path d="M30,200 Q80,180 60,130 Q35,145 10,175 Z" fill="#9AB88A" opacity="0.15" />
-      </svg>
-      <svg className="pointer-events-none absolute bottom-0 right-0 w-64 h-64" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <path d="M200,100 Q170,140 130,160 Q100,200 60,190 Q100,150 110,120 Q130,90 180,80 Z" fill="#7A9E6E" opacity="0.18" />
-        <path d="M170,200 Q120,180 140,130 Q165,145 190,175 Z" fill="#9AB88A" opacity="0.15" />
-        <path d="M200,60 Q160,110 110,100 Q140,70 180,50 Z" fill="#5C7A4E" opacity="0.13" />
-      </svg>
 
       {/* ── T-shirt — top left ── */}
       <svg className="pointer-events-none absolute left-0 top-1/4 w-40 h-40" style={{transform: "rotate(12deg) translateX(-10px)"}} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">

@@ -62,7 +62,7 @@ export default function NewItem() {
   const formComplete = photo && form.name && form.category && form.condition && form.description;
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8]">
+    <div className="min-h-screen">
 
       {/* Top bar */}
       <div className="flex items-center gap-4 px-8 py-5 border-b border-[#D9CFC4] bg-white/60 backdrop-blur-sm">
