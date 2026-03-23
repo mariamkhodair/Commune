@@ -10,7 +10,7 @@ export default function AboutUs() {
 
           {/* Header */}
           <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)] mb-1">About Commune</h1>
-          <p className="text-[#8B7355] mb-10">Why we built Commune and what we stand for.</p>
+          <p className="text-[#8B7355] mb-10">Why we started Commune and what we stand for.</p>
 
           {/* Story */}
           <section className="mb-10">
