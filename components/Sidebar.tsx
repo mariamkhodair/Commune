@@ -103,11 +103,11 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className={`relative flex flex-col bg-white/70 backdrop-blur-sm border-r border-[#D9CFC4] transition-all duration-300 ease-in-out ${open ? "w-52" : "w-16"} shrink-0`}>
+    <aside className={`relative overflow-visible flex flex-col bg-white/70 backdrop-blur-sm border-r border-[#D9CFC4] transition-all duration-300 ease-in-out ${open ? "w-52" : "w-16"} shrink-0 z-30`}>
 
       <button
         onClick={() => setOpen(!open)}
-        className="absolute -right-3 top-6 w-6 h-6 rounded-full bg-[#4A3728] text-[#F5F0E8] flex items-center justify-center shadow-sm hover:bg-[#6B5040] transition-colors z-10"
+        className="absolute -right-3 top-6 w-6 h-6 rounded-full bg-[#4A3728] text-[#F5F0E8] flex items-center justify-center shadow-sm hover:bg-[#6B5040] transition-colors z-50"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3 h-3">
           {open ? <path d="M15 18l-6-6 6-6" /> : <path d="M9 18l6-6-6-6" />}
