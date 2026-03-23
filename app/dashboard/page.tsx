@@ -207,6 +207,9 @@ export default function Dashboard() {
           </div>
 
         </div>
+
+        <p className="mt-10 text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)]">Welcome to the Commune! Start Swapping :)</p>
+
       </main>
     </div>
   );
