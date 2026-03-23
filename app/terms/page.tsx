@@ -95,7 +95,7 @@ export default function TermsAndConditions() {
           </div>
 
           <div className="mt-12 pt-6 border-t border-[#D9CFC4]">
-            <p className="text-xs text-[#A09080]">Last updated March 2026. For questions, contact us at{" "}
+            <p className="text-xs text-[#A09080]">Last updated 23 March 2026. For questions, contact us at{" "}
               <a href="mailto:commune.eg@gmail.com" className="text-[#4A3728] hover:underline">commune.eg@gmail.com</a>.
             </p>
             <Link href="/signup" className="inline-block mt-4 text-sm text-[#4A3728] font-medium hover:underline">
