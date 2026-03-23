@@ -21,6 +21,10 @@ const faqs = [
     answer: "You're in control. When listing an item you can either let our AI suggest a points value based on the current Egyptian market price, or set your own value manually. If you go with AI and the result doesn't feel right, simply switch to 'Set My Own' and enter the value you think is fair.",
   },
   {
+    question: "I've matched — now how do I swap?",
+    answer: "Once a swap proposal is accepted, here's how the full process works:\n\n1. Head to the chat with your match and use the 'Schedule a Swap' button (next to the send button) to suggest a date. Pick a day on the calendar and send the suggestion — the other member will need to confirm it before the date is locked in.\n\n2. Once you both agree, the swap will appear in your Scheduled Swaps section in the sidebar, with all the details of what's being exchanged and when.\n\n3. On the day of the swap, open the app and go to Scheduled Swaps. When you're ready to leave, press 'Off to Swap'. This will activate location sharing between you and the other member so you can both see that the other is on their way — and as a safety measure during the exchange.\n\n4. We strongly recommend meeting in a public place — a café, a mall, or another busy location. Inspect the item when you meet, and don't go alone to meet someone for the first time. If you have any doubts about the item beforehand, ask for more photos in the chat.\n\n5. Once the swap is done and you're safely on your way home, press 'Swapped and Safe'. This ends location tracking for both members. After that, you'll be prompted to leave a rating for the other member.",
+  },
+  {
     question: "Who can use Commune?",
     answer: "Commune is currently available in Egypt only. You'll need a valid Egyptian phone number to sign up.",
   },
@@ -86,8 +90,10 @@ export default function GetHelp() {
                     </svg>
                   </button>
                   {openIndex === i && (
-                    <div className="px-5 pb-4 text-sm text-[#6B5040] leading-relaxed border-t border-[#EDE8DF] pt-3">
-                      {faq.answer}
+                    <div className="px-5 pb-4 text-sm text-[#6B5040] leading-relaxed border-t border-[#EDE8DF] pt-3 flex flex-col gap-2">
+                      {faq.answer.split("\n\n").map((para, pi) => (
+                        <p key={pi}>{para}</p>
+                      ))}
                     </div>
                   )}
                 </div>

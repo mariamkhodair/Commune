@@ -23,10 +23,81 @@ const placeholderChats: Record<string, { name: string; memberId: number; message
   ]},
 };
 
+const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function Calendar({ onSelect }: { onSelect: (date: Date) => void }) {
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [selected, setSelected] = useState<Date | null>(null);
+
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+  function prevMonth() {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  }
+  function nextMonth() {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  }
+  function isPast(day: number) {
+    const d = new Date(viewYear, viewMonth, day);
+    d.setHours(0,0,0,0);
+    const t = new Date(); t.setHours(0,0,0,0);
+    return d < t;
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <button onClick={prevMonth} className="w-7 h-7 rounded-full hover:bg-[#EDE8DF] flex items-center justify-center text-[#6B5040] transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <p className="text-sm font-semibold text-[#4A3728]">{MONTHS[viewMonth]} {viewYear}</p>
+        <button onClick={nextMonth} className="w-7 h-7 rounded-full hover:bg-[#EDE8DF] flex items-center justify-center text-[#6B5040] transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {DAYS.map(d => <p key={d} className="text-center text-xs font-medium text-[#A09080] py-1">{d}</p>)}
+        {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const day = i + 1;
+          const past = isPast(day);
+          const sel = selected && selected.getFullYear() === viewYear && selected.getMonth() === viewMonth && selected.getDate() === day;
+          return (
+            <button
+              key={day}
+              disabled={past}
+              onClick={() => setSelected(new Date(viewYear, viewMonth, day))}
+              className={`aspect-square rounded-full text-xs font-medium transition-colors ${sel ? "bg-[#4A3728] text-[#F5F0E8]" : past ? "text-[#D9CFC4] cursor-not-allowed" : "text-[#4A3728] hover:bg-[#EDE8DF]"}`}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        disabled={!selected}
+        onClick={() => selected && onSelect(selected)}
+        className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-2.5 text-sm font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        {selected ? `Suggest ${selected.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}` : "Select a date"}
+      </button>
+    </div>
+  );
+}
+
 export default function Chat({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [message, setMessage] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [suggestedDate, setSuggestedDate] = useState<Date | null>(null);
+  const [dateConfirmed, setDateConfirmed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chat = placeholderChats[id];
 
@@ -35,6 +106,11 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
     const reader = new FileReader();
     reader.onload = (e) => setImagePreview(e.target?.result as string);
     reader.readAsDataURL(file);
+  }
+
+  function handleSuggestDate(date: Date) {
+    setSuggestedDate(date);
+    setShowCalendar(false);
   }
 
   if (!chat) {
@@ -77,6 +153,56 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
               </div>
             </div>
           ))}
+
+          {/* Suggested date bubble */}
+          {suggestedDate && !dateConfirmed && (
+            <div className="flex justify-end">
+              <div className="max-w-xs bg-[#4A3728] text-[#F5F0E8] rounded-2xl rounded-br-sm px-4 py-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-3.5 h-3.5 shrink-0">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                  </svg>
+                  <p className="text-xs font-semibold">Swap date suggested</p>
+                </div>
+                <p className="text-sm font-medium">{suggestedDate.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+                <p className="text-xs text-[#C4B9AA] mt-1">Waiting for {chat.name} to confirm…</p>
+              </div>
+            </div>
+          )}
+
+          {/* Confirmed date bubble — simulated as if other person accepted */}
+          {dateConfirmed && suggestedDate && (
+            <div className="flex justify-center">
+              <div className="bg-[#D8E4D0] rounded-2xl px-5 py-3 text-center">
+                <p className="text-xs font-semibold text-[#4A6640] mb-0.5">🤝🏽 Swap date confirmed!</p>
+                <p className="text-sm font-medium text-[#4A3728]">{suggestedDate.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+                <Link href="/scheduled-swaps" className="text-xs text-[#4A6640] underline underline-offset-2 mt-1 inline-block">View in Scheduled Swaps →</Link>
+              </div>
+            </div>
+          )}
+
+          {/* Simulate the other person accepting (demo only) */}
+          {suggestedDate && !dateConfirmed && (
+            <div className="flex justify-start">
+              <div className="max-w-xs bg-white/80 text-[#4A3728] rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                <p className="text-xs text-[#A09080] mb-2">{chat.name} received your date suggestion</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setDateConfirmed(true)}
+                    className="flex-1 rounded-full bg-[#4A3728] text-[#F5F0E8] py-1.5 text-xs font-semibold hover:bg-[#6B5040] transition-colors"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => setSuggestedDate(null)}
+                    className="flex-1 rounded-full border border-[#D9CFC4] text-[#6B5040] py-1.5 text-xs font-medium hover:border-[#A0624A] hover:text-[#A0624A] transition-colors"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Input */}
@@ -112,6 +238,18 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleImage(e.target.files[0]); }} />
 
+            {/* Schedule a Swap button */}
+            <button
+              type="button"
+              onClick={() => setShowCalendar(true)}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-[#D9CFC4] bg-white/60 text-xs font-medium text-[#6B5040] hover:border-[#4A3728] hover:text-[#4A3728] transition-colors shrink-0"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+              </svg>
+              Schedule a Swap
+            </button>
+
             <input
               type="text"
               placeholder="Type a message..."
@@ -133,6 +271,27 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
         </div>
 
       </main>
+
+      {/* Calendar modal */}
+      {showCalendar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setShowCalendar(false)} />
+          <div className="relative w-full max-w-sm bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg">
+            <button
+              onClick={() => setShowCalendar(false)}
+              className="absolute top-4 right-4 w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-[#8B7355] hover:bg-[#D9CFC4] transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+            <h3 className="text-base font-semibold text-[#4A3728] mb-1">Schedule a Swap</h3>
+            <p className="text-xs text-[#8B7355] mb-5">Pick a date to suggest to {chat.name}. They'll need to confirm before it's locked in.</p>
+            <Calendar onSelect={handleSuggestDate} />
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

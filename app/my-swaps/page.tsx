@@ -208,15 +208,26 @@ export default function MySwaps() {
 
                 {/* Chat button for active swaps */}
                 {(swap.status === "Accepted" || swap.status === "In Progress" || swap.status === "Proposed") && (
-                  <a
-                    href="/messages/1"
-                    className="mt-3 flex items-center justify-center gap-2 w-full rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                    Message {swap.otherUser}
-                  </a>
+                  <div className="flex gap-2 mt-3">
+                    <a
+                      href="/messages/1"
+                      className="flex-1 flex items-center justify-center gap-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      Message
+                    </a>
+                    <Link
+                      href="/scheduled-swaps"
+                      className="flex-1 flex items-center justify-center gap-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
+                        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                      </svg>
+                      Schedule
+                    </Link>
+                  </div>
                 )}
 
                 {/* Rating prompt for completed swaps */}
