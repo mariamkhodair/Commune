@@ -185,10 +185,14 @@ export default function NewItem() {
                 <label className="text-sm text-[#6B5040]">
                   Photos <span className="text-[#A0624A] font-medium">minimum 3 required</span>
                 </label>
-                <span className="text-xs text-[#A09080]">{photos.length} / 3{photos.length > 3 ? `+${photos.length - 3}` : ""} added</span>
+                <span className="text-xs text-[#A09080]">{photos.length} added</span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                className="grid grid-cols-3 gap-2"
+              >
                 {photos.map((src, i) => (
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-[#EDE8DF]">
                     <img src={src} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
@@ -206,17 +210,17 @@ export default function NewItem() {
                   </div>
                 ))}
 
-                {/* Add photo slot */}
+                {/* Add photo slot — always visible, opens multi-select picker */}
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  onDrop={handleDrop}
-                  onDragOver={(e) => e.preventDefault()}
                   className="aspect-square rounded-xl border-2 border-dashed border-[#D9CFC4] bg-white/50 hover:border-[#4A3728] hover:bg-[#FAF7F2] flex flex-col items-center justify-center cursor-pointer transition-colors"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="2" strokeLinecap="round" className="w-6 h-6 mb-1">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
-                  <p className="text-xs text-[#A09080]">{photos.length < MIN_PHOTOS ? `${MIN_PHOTOS - photos.length} more needed` : "Add more"}</p>
+                  <p className="text-xs text-[#A09080] text-center px-1">
+                    {photos.length < MIN_PHOTOS ? `${MIN_PHOTOS - photos.length} more needed` : "Add more"}
+                  </p>
                 </div>
               </div>
 
@@ -228,7 +232,7 @@ export default function NewItem() {
                 className="hidden"
                 onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ""; }}
               />
-              <p className="text-xs text-[#A09080] mt-2">First photo will be used as the cover. Drag & drop or click the + to add photos.</p>
+              <p className="text-xs text-[#A09080] mt-2">First photo will be the cover. Select multiple photos at once from your library, or drag & drop.</p>
             </div>
 
             {/* Item name */}
