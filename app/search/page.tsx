@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import ProposeSwapModal from "@/components/ProposeSwapModal";
 
 const categories = [
   "All",
@@ -35,6 +37,7 @@ export default function Search() {
   const [maxPoints, setMaxPoints] = useState("");
   const [matchOnly, setMatchOnly] = useState(false);
   const [liked, setLiked] = useState<Set<number>>(new Set());
+  const [proposingItem, setProposingItem] = useState<{ name: string; points: number; owner: string } | null>(null);
 
   function toggleLike(id: number) {
     setLiked((prev) => {
@@ -165,22 +168,27 @@ export default function Search() {
                     </svg>
                   </button>
 
-                  {/* Image */}
-                  <div className="aspect-square bg-[#EDE8DF] flex items-center justify-center">
+                  {/* Image — clickable */}
+                  <Link href={`/items/${item.id}`} className="block aspect-square bg-[#EDE8DF] flex items-center justify-center">
                     <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-8 h-8">
                       <rect x="3" y="3" width="18" height="18" rx="2" />
                       <circle cx="8.5" cy="8.5" r="1.5" />
                       <path d="m21 15-5-5L5 21" />
                     </svg>
-                  </div>
+                  </Link>
 
                   {/* Info */}
                   <div className="p-3">
-                    <p className="font-medium text-[#4A3728] truncate text-sm">{item.name}</p>
+                    <Link href={`/items/${item.id}`} className="block">
+                      <p className="font-medium text-[#4A3728] truncate text-sm hover:underline">{item.name}</p>
+                    </Link>
                     <p className="text-xs text-[#8B7355]">{item.owner} · {item.condition}</p>
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
-                      <button className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors">
+                      <button
+                        onClick={() => setProposingItem({ name: item.name, points: item.points, owner: item.owner })}
+                        className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
+                      >
                         Propose swap
                       </button>
                     </div>
@@ -193,6 +201,11 @@ export default function Search() {
         </div>
 
       </main>
+
+      {proposingItem && (
+        <ProposeSwapModal item={proposingItem} onClose={() => setProposingItem(null)} />
+      )}
+
     </div>
   );
 }

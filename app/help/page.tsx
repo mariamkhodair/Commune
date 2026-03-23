@@ -10,7 +10,7 @@ const faqs = [
   },
   {
     question: "How does swapping work?",
-    answer: "Find an item you want in Search, then propose a swap. The other member will see your offer and can accept or decline. Once accepted, you coordinate the handoff and both items are marked as swapped.",
+    answer: "Find an item you want in Search, then propose a swap. For a swap to be a true match, your offer must include at least one item from the other member's Stuff I Want list — and the item you're requesting must satisfy something on yours. The other member will review your proposal and can accept or decline. Once accepted, you coordinate the handoff and both items are marked as swapped.",
   },
   {
     question: "What if the points value assigned to my item doesn't feel fair?",

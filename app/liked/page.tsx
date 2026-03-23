@@ -44,18 +44,20 @@ export default function LikedStuff() {
                   </svg>
                 </button>
 
-                {/* Image */}
-                <div className="aspect-square bg-[#EDE8DF] flex items-center justify-center">
+                {/* Image — clickable */}
+                <Link href={`/items/${item.id}`} className="block aspect-square bg-[#EDE8DF] flex items-center justify-center">
                   <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-8 h-8">
                     <rect x="3" y="3" width="18" height="18" rx="2" />
                     <circle cx="8.5" cy="8.5" r="1.5" />
                     <path d="m21 15-5-5L5 21" />
                   </svg>
-                </div>
+                </Link>
 
                 {/* Info */}
                 <div className="p-3">
-                  <p className="font-medium text-[#4A3728] truncate text-sm">{item.name}</p>
+                  <Link href={`/items/${item.id}`} className="block">
+                    <p className="font-medium text-[#4A3728] truncate text-sm hover:underline">{item.name}</p>
+                  </Link>
                   <p className="text-xs text-[#8B7355]">{item.owner} · {item.condition}</p>
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
