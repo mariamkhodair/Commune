@@ -21,6 +21,31 @@ export type SwapTargetItem = {
   owner: string;
 };
 
+// Finds the subset of items whose points total is closest to the target
+function suggestBundle(target: number, items: typeof myItems): Set<number> {
+  const n = items.length;
+  let bestDiff = Infinity;
+  let bestSubset: number[] = [];
+
+  for (let mask = 1; mask < (1 << n); mask++) {
+    const subset: number[] = [];
+    let total = 0;
+    for (let i = 0; i < n; i++) {
+      if (mask & (1 << i)) {
+        subset.push(items[i].id);
+        total += items[i].points;
+      }
+    }
+    const diff = Math.abs(total - target);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestSubset = subset;
+    }
+  }
+
+  return new Set(bestSubset);
+}
+
 export default function ProposeSwapModal({
   items,
   onClose,
@@ -28,7 +53,8 @@ export default function ProposeSwapModal({
   items: SwapTargetItem[];
   onClose: () => void;
 }) {
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const theirTotalForSuggestion = items.reduce((sum, i) => sum + i.points, 0);
+  const [selected, setSelected] = useState<Set<number>>(() => suggestBundle(theirTotalForSuggestion, myItems));
   const [submitted, setSubmitted] = useState(false);
 
   function toggleItem(id: number) {
@@ -107,6 +133,25 @@ export default function ProposeSwapModal({
             <span className="font-medium">{ownerName}</span> is looking for:{" "}
             <span className="font-medium text-[#4A3728]">{theirWantedCategories.join(", ")}</span>. Items marked 🤝🏽 match what they want.
           </p>
+        </div>
+
+        {/* AI suggestion banner */}
+        <div className="flex items-start gap-2 bg-[#D8E4D0] rounded-xl px-4 py-3 mb-4">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#4A6640" strokeWidth="2" strokeLinecap="round" className="w-4 h-4 shrink-0 mt-0.5">
+            <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
+          </svg>
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-[#4A6640] mb-0.5">AI suggested bundle</p>
+            <p className="text-xs text-[#4A6640] leading-relaxed">
+              We've pre-selected the combination of your items closest in value to {ownerName}'s listing. You can adjust the selection below.
+            </p>
+          </div>
+          <button
+            onClick={() => setSelected(suggestBundle(theirTotal, myItems))}
+            className="text-xs text-[#4A6640] font-semibold underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0 mt-0.5"
+          >
+            Reset
+          </button>
         </div>
 
         {/* Your items */}

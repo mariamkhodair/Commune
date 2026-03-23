@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     question: "Can I swap multiple items at once?",
-    answer: "Yes — this is called a bundle swap. If one member's item is worth more than any single item you have, you can offer multiple items whose points add up to the same value. To propose a bundle swap, go to a member's profile page and tap 'Select items'. Choose all the items you're interested in, then tap 'Propose Bundle Swap'. From there you can select multiple items from your own listings to match the total points value. The same matching rule applies — at least one item on each side must satisfy something on the other member's Stuff I Want list.",
+    answer: "Yes — this is called a bundle swap. If one member's item is worth more than any single item you have, you can offer multiple items whose points add up to the same value. To propose a bundle swap, go to a member's profile page and tap 'Select items'. Choose all the items you're interested in, then tap 'Propose Bundle Swap'. When the swap proposal opens, Commune will automatically suggest the best combination of your items to match the total points value as closely as possible. You can adjust the selection if you prefer. The same matching rule applies — at least one item on each side must satisfy something on the other member's Stuff I Want list.",
   },
   {
     question: "What if the points value assigned to my item doesn't feel fair?",
