@@ -15,6 +15,16 @@ const categories = [
 
 const conditions = ["New", "Like New", "Good", "Fair"];
 
+const brandsByCategory: Record<string, string[]> = {
+  "Apparel": ["Adidas", "Bershka", "Calvin Klein", "H&M", "Levi's", "Mango", "Massimo Dutti", "Nike", "Pull&Bear", "Puma", "Ralph Lauren", "Tommy Hilfiger", "Zara"],
+  "Electronics": ["Apple", "Asus", "Bose", "Canon", "Dell", "HP", "Huawei", "JBL", "Lenovo", "LG", "Nikon", "Samsung", "Sony", "Xiaomi"],
+  "Books": ["AUC Press", "Dar El Shorouk", "HarperCollins", "Penguin", "Random House", "Simon & Schuster", "Oxford University Press"],
+  "Cosmetics": ["Benefit", "Charlotte Tilbury", "Chanel", "Clinique", "Dior", "Fenty Beauty", "Huda Beauty", "L'Oréal", "MAC", "Maybelline", "NARS", "NYX", "Urban Decay"],
+  "Furniture & Home Decor": ["IKEA", "H&M Home", "Pottery Barn", "West Elm", "Zara Home"],
+  "Stationery & Art Supplies": ["Copic", "Faber-Castell", "Moleskine", "Muji", "Pilot", "Prismacolor", "Staedtler", "Winsor & Newton"],
+  "Miscellaneous": [],
+};
+
 type Step = "form" | "preview";
 
 const MIN_PHOTOS = 3;
@@ -31,12 +41,19 @@ export default function NewItem() {
   const [form, setForm] = useState({
     name: "",
     category: "",
+    brand: "",
+    customBrand: "",
     condition: "",
     description: "",
   });
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "category") {
+      setForm({ ...form, category: value, brand: "", customBrand: "" });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   }
 
   function handleFiles(files: FileList | File[]) {
@@ -176,6 +193,35 @@ export default function NewItem() {
               </select>
             </div>
 
+            {/* Brand */}
+            {form.category && (
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-[#6B5040]">Brand <span className="text-[#A09080]">(optional)</span></label>
+                <select
+                  name="brand"
+                  value={form.brand}
+                  onChange={handleChange}
+                  className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] focus:outline-none focus:border-[#4A3728] transition-colors appearance-none"
+                >
+                  <option value="">Select a brand</option>
+                  {(brandsByCategory[form.category] ?? []).map((b) => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                  <option value="Other">Other</option>
+                </select>
+                {form.brand === "Other" && (
+                  <input
+                    name="customBrand"
+                    type="text"
+                    placeholder="Enter brand name"
+                    value={form.customBrand}
+                    onChange={handleChange}
+                    className="mt-2 rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
+                  />
+                )}
+              </div>
+            )}
+
             {/* Condition */}
             <div className="flex flex-col gap-1">
               <label className="text-sm text-[#6B5040]">Condition</label>
@@ -305,6 +351,12 @@ export default function NewItem() {
                 <span className="text-[#8B7355]">Category</span>
                 <span className="text-[#4A3728] font-medium">{form.category}</span>
               </div>
+              {(form.brand && form.brand !== "Other" || form.customBrand) && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#8B7355]">Brand</span>
+                  <span className="text-[#4A3728] font-medium">{form.brand === "Other" ? form.customBrand : form.brand}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-[#8B7355]">Condition</span>
                 <span className="text-[#4A3728] font-medium">{form.condition}</span>
