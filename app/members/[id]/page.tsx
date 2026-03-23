@@ -54,10 +54,28 @@ const placeholderMembers: Record<string, { name: string; joined: string; rating:
   ]},
 };
 
+const reportReasons = [
+  "Misrepresented item condition",
+  "Inappropriate behaviour",
+  "No-show / didn't complete swap",
+  "Fake listing",
+  "Harassment",
+  "Other",
+];
+
 export default function MemberProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [liked, setLiked] = useState<Set<number>>(new Set());
+  const [showReport, setShowReport] = useState(false);
+  const [reportForm, setReportForm] = useState({ reason: "", details: "" });
+  const [reportSubmitted, setReportSubmitted] = useState(false);
   const member = placeholderMembers[id];
+
+  function handleReportSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    // TODO: send report to commune.eg@gmail.com via backend
+    setReportSubmitted(true);
+  }
 
   function toggleLike(id: number) {
     setLiked((prev) => {
@@ -104,15 +122,26 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
               <p className="text-xs text-[#A09080]">Member since {member.joined} · {member.ratingCount} rating{member.ratingCount !== 1 ? "s" : ""}</p>
             </div>
           </div>
-          <a
-            href={`/messages/${id}`}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#4A3728] text-[#F5F0E8] text-sm font-medium hover:bg-[#6B5040] transition-colors"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            Message
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href={`/messages/${id}`}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#4A3728] text-[#F5F0E8] text-sm font-medium hover:bg-[#6B5040] transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              Message
+            </a>
+            <button
+              onClick={() => { setShowReport(true); setReportSubmitted(false); setReportForm({ reason: "", details: "" }); }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#D9CFC4] text-[#A09080] text-sm font-medium hover:border-[#A0624A] hover:text-[#A0624A] transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" />
+              </svg>
+              Report
+            </button>
+          </div>
         </div>
 
         {/* Their Stuff */}
@@ -165,6 +194,72 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
         )}
 
       </main>
+
+      {/* Report modal */}
+      {showReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setShowReport(false)} />
+          <div className="relative w-full max-w-sm bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg">
+
+            <button
+              onClick={() => setShowReport(false)}
+              className="absolute top-4 right-4 w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-[#8B7355] hover:bg-[#D9CFC4] transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+
+            {reportSubmitted ? (
+              <div className="text-center py-4">
+                <p className="text-lg font-medium text-[#4A3728] mb-2">Report submitted</p>
+                <p className="text-sm text-[#6B5040] leading-relaxed">Thank you. Our team will review this and follow up if needed. Reports are kept confidential.</p>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-[#4A3728] mb-1">Report {member.name}</h3>
+                <p className="text-xs text-[#8B7355] mb-5">Your report will be sent to our team at commune.eg@gmail.com and reviewed confidentially.</p>
+
+                <form onSubmit={handleReportSubmit} className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm text-[#6B5040]">Reason</label>
+                    <select
+                      value={reportForm.reason}
+                      onChange={(e) => setReportForm({ ...reportForm, reason: e.target.value })}
+                      required
+                      className="rounded-xl border border-[#D9CFC4] bg-white px-4 py-3 text-[#4A3728] focus:outline-none focus:border-[#4A3728] transition-colors appearance-none"
+                    >
+                      <option value="" disabled>Select a reason</option>
+                      {reportReasons.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm text-[#6B5040]">Details <span className="text-[#A09080]">(optional)</span></label>
+                    <textarea
+                      value={reportForm.details}
+                      onChange={(e) => setReportForm({ ...reportForm, details: e.target.value })}
+                      placeholder="Describe what happened..."
+                      rows={4}
+                      className="rounded-xl border border-[#D9CFC4] bg-white px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors resize-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={!reportForm.reason}
+                    className="w-full rounded-full bg-[#A0624A] text-white py-3 font-semibold hover:bg-[#8B4A3A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Submit Report
+                  </button>
+                </form>
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

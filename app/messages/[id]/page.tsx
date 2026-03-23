@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useRef } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 
@@ -26,7 +26,16 @@ const placeholderChats: Record<string, { name: string; messages: { id: number; f
 export default function Chat({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [message, setMessage] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const chat = placeholderChats[id];
+
+  function handleImage(file: File) {
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (e) => setImagePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  }
 
   if (!chat) {
     return (
@@ -72,18 +81,48 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
 
         {/* Input */}
         <div className="px-8 py-5 border-t border-[#D9CFC4] bg-white/60 backdrop-blur-sm shrink-0">
+
+          {/* Image preview */}
+          {imagePreview && (
+            <div className="relative inline-block mb-3">
+              <img src={imagePreview} alt="Upload preview" className="h-20 rounded-xl object-cover border border-[#D9CFC4]" />
+              <button
+                onClick={() => setImagePreview(null)}
+                className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#4A3728] text-white flex items-center justify-center"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-2.5 h-2.5">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
+            {/* Photo button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-11 h-11 rounded-full border border-[#D9CFC4] bg-white/60 flex items-center justify-center text-[#8B7355] hover:border-[#4A3728] hover:text-[#4A3728] transition-colors shrink-0"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-5 h-5">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="m21 15-5-5L5 21" />
+              </svg>
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleImage(e.target.files[0]); }} />
+
             <input
               type="text"
               placeholder="Type a message..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && message.trim()) setMessage(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && (message.trim() || imagePreview)) { setMessage(""); setImagePreview(null); } }}
               className="flex-1 rounded-full border border-[#D9CFC4] bg-[#FAF7F2] px-5 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
             />
             <button
-              onClick={() => setMessage("")}
-              disabled={!message.trim()}
+              onClick={() => { setMessage(""); setImagePreview(null); }}
+              disabled={!message.trim() && !imagePreview}
               className="w-11 h-11 rounded-full bg-[#4A3728] text-[#F5F0E8] flex items-center justify-center hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
