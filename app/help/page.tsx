@@ -13,8 +13,8 @@ const faqs = [
     answer: "Find an item you want in Search, then propose a swap. The other user will see your offer and can accept or decline. Once accepted, you coordinate the handoff and both items are marked as swapped.",
   },
   {
-    question: "What if the points values don't feel fair?",
-    answer: "Points are estimated automatically, but if you feel an item has been under or overvalued, you can reach out to us and we'll review it manually.",
+    question: "What if the points value assigned to my item doesn't feel fair?",
+    answer: "You're in control. When listing an item you can either let our AI suggest a points value based on the current Egyptian market price, or set your own value manually. If you go with AI and the result doesn't feel right, simply switch to 'Set My Own' and enter the value you think is fair.",
   },
   {
     question: "Who can use Commune?",
