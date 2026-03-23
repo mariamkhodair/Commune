@@ -6,7 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
 
 const categories = [
-  "All",
+  "All Stuff",
   "Apparel",
   "Electronics",
   "Books",
@@ -31,7 +31,7 @@ const placeholderResults = [
 
 export default function Search() {
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("All");
+  const [category, setCategory] = useState("All Stuff");
   const [condition, setCondition] = useState("Any");
   const [minPoints, setMinPoints] = useState("");
   const [maxPoints, setMaxPoints] = useState("");
@@ -49,7 +49,7 @@ export default function Search() {
 
   const filtered = placeholderResults.filter((item) => {
     if (query && !item.name.toLowerCase().includes(query.toLowerCase())) return false;
-    if (category !== "All" && item.category !== category) return false;
+    if (category !== "All Stuff" && item.category !== category) return false;
     if (condition !== "Any" && item.condition !== condition) return false;
     if (minPoints && item.points < parseInt(minPoints)) return false;
     if (maxPoints && item.points > parseInt(maxPoints)) return false;
