@@ -6,11 +6,11 @@ import Sidebar from "@/components/Sidebar";
 const faqs = [
   {
     question: "How does the points system work?",
-    answer: "When you list an item, our AI analyses it and assigns a points value based on its current market price in Egypt. You use those points to swap for items of similar value from other users — no money changes hands.",
+    answer: "When you list an item, our AI analyses it and assigns a points value based on its current market price in Egypt. You use those points to swap for items of similar value from other members — no money changes hands.",
   },
   {
     question: "How does swapping work?",
-    answer: "Find an item you want in Search, then propose a swap. The other user will see your offer and can accept or decline. Once accepted, you coordinate the handoff and both items are marked as swapped.",
+    answer: "Find an item you want in Search, then propose a swap. The other member will see your offer and can accept or decline. Once accepted, you coordinate the handoff and both items are marked as swapped.",
   },
   {
     question: "What if the points value assigned to my item doesn't feel fair?",

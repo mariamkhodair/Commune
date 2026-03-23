@@ -68,6 +68,45 @@ function ProgressBar({ status }: { status: SwapStatus }) {
   );
 }
 
+function RatingPrompt({ name }: { name: string }) {
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+
+  if (submitted) return (
+    <p className="text-xs text-[#7A9E6E] mt-4">Thanks for rating {name}!</p>
+  );
+
+  return (
+    <div className="mt-4 pt-4 border-t border-[#EDE8DF]">
+      <p className="text-xs text-[#8B7355] mb-2">How was your swap with {name}?</p>
+      <div className="flex items-center gap-1">
+        {[1,2,3,4,5].map((s) => (
+          <button
+            key={s}
+            onClick={() => setRating(s)}
+            onMouseEnter={() => setHover(s)}
+            onMouseLeave={() => setHover(0)}
+            className="transition-transform hover:scale-110"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill={s <= (hover || rating) ? "#C4842A" : "none"} stroke="#C4842A" strokeWidth="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          </button>
+        ))}
+        {rating > 0 && (
+          <button
+            onClick={() => setSubmitted(true)}
+            className="ml-3 text-xs px-3 py-1 rounded-full bg-[#4A3728] text-[#F5F0E8] hover:bg-[#6B5040] transition-colors"
+          >
+            Submit
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function MySwaps() {
   const [activeTab, setActiveTab] = useState<SwapStatus | "All">("All");
 
@@ -160,6 +199,24 @@ export default function MySwaps() {
                       Decline
                     </button>
                   </div>
+                )}
+
+                {/* Chat button for active swaps */}
+                {(swap.status === "Accepted" || swap.status === "In Progress" || swap.status === "Proposed") && (
+                  <a
+                    href="/messages/1"
+                    className="mt-3 flex items-center justify-center gap-2 w-full rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    Message {swap.otherUser}
+                  </a>
+                )}
+
+                {/* Rating prompt for completed swaps */}
+                {swap.status === "Completed" && (
+                  <RatingPrompt name={swap.otherUser} />
                 )}
 
               </div>

@@ -5,7 +5,7 @@ import Sidebar from "@/components/Sidebar";
 
 // Placeholder — will be replaced with Supabase data
 const placeholderLikedMembers = [
-  { id: 2, name: "Karim A.", itemCount: 14, joined: "Mar 2024" },
+  { id: 2, name: "Karim A.", itemCount: 14, joined: "Mar 2024", rating: 4.5 },
   { id: 5, name: "Dina H.", itemCount: 7, joined: "Apr 2024" },
 ];
 

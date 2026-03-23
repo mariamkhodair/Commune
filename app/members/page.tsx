@@ -6,13 +6,27 @@ import Sidebar from "@/components/Sidebar";
 
 // Placeholder — will be replaced with Supabase data
 const placeholderMembers = [
-  { id: 1, name: "Sara M.", itemCount: 8, joined: "Jan 2024" },
-  { id: 2, name: "Karim A.", itemCount: 14, joined: "Mar 2024" },
-  { id: 3, name: "Nour T.", itemCount: 5, joined: "Feb 2024" },
-  { id: 4, name: "Ahmed R.", itemCount: 11, joined: "Dec 2023" },
-  { id: 5, name: "Dina H.", itemCount: 7, joined: "Apr 2024" },
-  { id: 6, name: "Omar S.", itemCount: 3, joined: "May 2024" },
+  { id: 1, name: "Sara M.", itemCount: 8, joined: "Jan 2024", rating: 4.8, ratingCount: 12 },
+  { id: 2, name: "Karim A.", itemCount: 14, joined: "Mar 2024", rating: 4.5, ratingCount: 9 },
+  { id: 3, name: "Nour T.", itemCount: 5, joined: "Feb 2024", rating: 5.0, ratingCount: 4 },
+  { id: 4, name: "Ahmed R.", itemCount: 11, joined: "Dec 2023", rating: 4.2, ratingCount: 17 },
+  { id: 5, name: "Dina H.", itemCount: 7, joined: "Apr 2024", rating: 4.9, ratingCount: 7 },
+  { id: 6, name: "Omar S.", itemCount: 3, joined: "May 2024", rating: null, ratingCount: 0 },
 ];
+
+function Stars({ rating }: { rating: number | null }) {
+  if (rating === null) return <p className="text-xs text-[#C4B9AA]">No ratings yet</p>;
+  return (
+    <div className="flex items-center gap-1">
+      {[1,2,3,4,5].map((s) => (
+        <svg key={s} viewBox="0 0 24 24" className="w-3 h-3" fill={s <= Math.round(rating) ? "#C4842A" : "none"} stroke="#C4842A" strokeWidth="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      ))}
+      <span className="text-xs text-[#8B7355] ml-0.5">{rating.toFixed(1)}</span>
+    </div>
+  );
+}
 
 export default function Members() {
   const [query, setQuery] = useState("");
@@ -83,9 +97,10 @@ export default function Members() {
                   {member.name.charAt(0)}
                 </div>
 
-                <div>
+                <div className="flex flex-col items-center gap-1">
                   <p className="font-medium text-[#4A3728]">{member.name}</p>
-                  <p className="text-xs text-[#8B7355] mt-0.5">{member.itemCount} items listed</p>
+                  <Stars rating={member.rating} />
+                  <p className="text-xs text-[#8B7355]">{member.itemCount} items listed</p>
                   <p className="text-xs text-[#A09080]">Member since {member.joined}</p>
                 </div>
 

@@ -10,6 +10,23 @@ const statusStyles: Record<string, string> = {
   Swapped: "bg-[#DDD8C8] text-[#6B5040]",
 };
 
+// Placeholder — will be replaced with real data from Supabase
+const myRating = { score: 4.7, count: 10 };
+
+function Stars({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1,2,3,4,5].map((s) => (
+        <svg key={s} viewBox="0 0 24 24" className="w-3.5 h-3.5" fill={s <= Math.round(rating) ? "#C4842A" : "none"} stroke="#C4842A" strokeWidth="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      ))}
+      <span className="text-xs text-[#8B7355] ml-0.5">{rating.toFixed(1)}</span>
+      <span className="text-xs text-[#A09080]">({myRating.count} ratings)</span>
+    </div>
+  );
+}
+
 // Placeholder items — will be replaced with real data from Supabase
 const placeholderItems = [
   { id: 1, name: "Vintage Denim Jacket", category: "Apparel", points: 320, status: "Available", image: null },
@@ -31,7 +48,8 @@ export default function MyStuff() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">My Stuff</h1>
-            <p className="text-[#8B7355] mt-1">{placeholderItems.length} items listed</p>
+            <p className="text-[#8B7355] mt-1 mb-1">{placeholderItems.length} items listed</p>
+            <Stars rating={myRating.score} />
           </div>
           <Link
             href="/my-stuff/new"
