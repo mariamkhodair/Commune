@@ -23,6 +23,8 @@ export default function NewItem() {
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [points, setPoints] = useState<number | null>(null);
+  const [pointsMode, setPointsMode] = useState<"ai" | "manual">("ai");
+  const [manualPoints, setManualPoints] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -56,6 +58,11 @@ export default function NewItem() {
     await new Promise((r) => setTimeout(r, 1800)); // placeholder delay
     setPoints(340); // placeholder points value
     setLoading(false);
+    setStep("preview");
+  }
+
+  function handleManualSubmit() {
+    setPoints(parseInt(manualPoints));
     setStep("preview");
   }
 
@@ -175,14 +182,56 @@ export default function NewItem() {
               />
             </div>
 
-            {/* Analyse button */}
-            <button
-              onClick={handleAnalyse}
-              disabled={!formComplete || loading}
-              className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3.5 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {loading ? "Analysing your item…" : "Analyse & Get Points Value"}
-            </button>
+            {/* Points value section */}
+            <div className="flex flex-col gap-3">
+              <label className="text-sm text-[#6B5040]">Points Value</label>
+
+              {/* Toggle */}
+              <div className="flex rounded-xl border border-[#D9CFC4] overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setPointsMode("ai")}
+                  className={`flex-1 py-2.5 text-sm font-medium transition-colors ${pointsMode === "ai" ? "bg-[#4A3728] text-[#F5F0E8]" : "bg-white/50 text-[#6B5040] hover:bg-[#FAF7F2]"}`}
+                >
+                  AI Analysis
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPointsMode("manual")}
+                  className={`flex-1 py-2.5 text-sm font-medium transition-colors ${pointsMode === "manual" ? "bg-[#4A3728] text-[#F5F0E8]" : "bg-white/50 text-[#6B5040] hover:bg-[#FAF7F2]"}`}
+                >
+                  Set My Own
+                </button>
+              </div>
+
+              {pointsMode === "ai" ? (
+                <button
+                  onClick={handleAnalyse}
+                  disabled={!formComplete || loading}
+                  className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3.5 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Analysing your item…" : "Analyse & Get Points Value"}
+                </button>
+              ) : (
+                <div className="flex gap-3">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Enter points value"
+                    value={manualPoints}
+                    onChange={(e) => setManualPoints(e.target.value)}
+                    className="flex-1 rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
+                  />
+                  <button
+                    onClick={handleManualSubmit}
+                    disabled={!formComplete || !manualPoints || parseInt(manualPoints) < 1}
+                    className="rounded-full bg-[#4A3728] text-[#F5F0E8] px-6 py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Continue
+                  </button>
+                </div>
+              )}
+            </div>
 
           </div>
         )}
@@ -203,7 +252,7 @@ export default function NewItem() {
               <div>
                 <p className="text-sm text-[#8B7355] mb-1">Estimated Points Value</p>
                 <p className="text-4xl font-bold text-[#4A3728]">{points} <span className="text-xl font-normal text-[#8B7355]">pts</span></p>
-                <p className="text-xs text-[#A09080] mt-1">Based on current Egyptian market value</p>
+                <p className="text-xs text-[#A09080] mt-1">{pointsMode === "ai" ? "Based on current Egyptian market value" : "Set by you"}</p>
               </div>
               <svg viewBox="0 0 24 24" fill="none" stroke="#7A9E6E" strokeWidth="1.5" className="w-12 h-12 opacity-60">
                 <circle cx="12" cy="12" r="10" />
