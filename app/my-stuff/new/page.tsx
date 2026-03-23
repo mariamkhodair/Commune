@@ -17,10 +17,11 @@ const conditions = ["New", "Like New", "Good", "Fair"];
 
 type Step = "form" | "preview";
 
+const MIN_PHOTOS = 3;
+
 export default function NewItem() {
   const [step, setStep] = useState<Step>("form");
-  const [photo, setPhoto] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [points, setPoints] = useState<number | null>(null);
   const [pointsMode, setPointsMode] = useState<"ai" | "manual">("ai");
@@ -38,18 +39,20 @@ export default function NewItem() {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  function handleFile(file: File) {
-    if (!file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = (e) => setPhoto(e.target?.result as string);
-    reader.readAsDataURL(file);
+  function handleFiles(files: FileList | File[]) {
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith("image/")) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setPhotos((prev) => [...prev, result]);
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+  function removePhoto(index: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleAnalyse() {
@@ -61,12 +64,17 @@ export default function NewItem() {
     setStep("preview");
   }
 
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  }
+
   function handleManualSubmit() {
     setPoints(parseInt(manualPoints));
     setStep("preview");
   }
 
-  const formComplete = photo && form.name && form.category && form.condition && form.description;
+  const formComplete = photos.length >= MIN_PHOTOS && form.name && form.category && form.condition && form.description;
 
   return (
     <div className="min-h-screen">
@@ -91,38 +99,54 @@ export default function NewItem() {
 
             {/* Photo upload */}
             <div>
-              <label className="text-sm text-[#6B5040] block mb-2">Photo</label>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                onDrop={handleDrop}
-                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                onDragLeave={() => setDragging(false)}
-                className={`relative w-full aspect-square max-h-72 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors overflow-hidden ${dragging ? "border-[#4A3728] bg-[#EDE8DF]" : "border-[#D9CFC4] bg-white/50 hover:border-[#4A3728] hover:bg-[#FAF7F2]"}`}
-              >
-                {photo ? (
-                  <img src={photo} alt="Item preview" className="w-full h-full object-cover" />
-                ) : (
-                  <>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-10 h-10 mb-3">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                    <p className="text-sm text-[#8B7355]">Drop a photo or click to upload</p>
-                  </>
-                )}
-                {photo && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setPhoto(null); }}
-                    className="absolute top-3 right-3 w-7 h-7 rounded-full bg-[#4A3728]/70 text-white flex items-center justify-center hover:bg-[#4A3728] transition-colors"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5">
-                      <path d="M18 6 6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm text-[#6B5040]">
+                  Photos <span className="text-[#A0624A] font-medium">minimum 3 required</span>
+                </label>
+                <span className="text-xs text-[#A09080]">{photos.length} / 3{photos.length > 3 ? `+${photos.length - 3}` : ""} added</span>
               </div>
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
+
+              <div className="grid grid-cols-3 gap-2">
+                {photos.map((src, i) => (
+                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-[#EDE8DF]">
+                    <img src={src} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                    {i === 0 && (
+                      <span className="absolute bottom-1 left-1 text-[10px] bg-[#4A3728]/70 text-white px-1.5 py-0.5 rounded-full">Cover</span>
+                    )}
+                    <button
+                      onClick={() => removePhoto(i)}
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#4A3728]/70 text-white flex items-center justify-center hover:bg-[#4A3728] transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3 h-3">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+
+                {/* Add photo slot */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="aspect-square rounded-xl border-2 border-dashed border-[#D9CFC4] bg-white/50 hover:border-[#4A3728] hover:bg-[#FAF7F2] flex flex-col items-center justify-center cursor-pointer transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="2" strokeLinecap="round" className="w-6 h-6 mb-1">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  <p className="text-xs text-[#A09080]">{photos.length < MIN_PHOTOS ? `${MIN_PHOTOS - photos.length} more needed` : "Add more"}</p>
+                </div>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ""; }}
+              />
+              <p className="text-xs text-[#A09080] mt-2">First photo will be used as the cover. Drag & drop or click the + to add photos.</p>
             </div>
 
             {/* Item name */}
@@ -240,10 +264,21 @@ export default function NewItem() {
         {step === "preview" && (
           <div className="flex flex-col gap-6">
 
-            {/* Photo */}
-            {photo && (
-              <div className="w-full aspect-square max-h-72 rounded-2xl overflow-hidden">
-                <img src={photo} alt="Item" className="w-full h-full object-cover" />
+            {/* Photos */}
+            {photos.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <div className="w-full aspect-video rounded-2xl overflow-hidden">
+                  <img src={photos[0]} alt="Cover" className="w-full h-full object-cover" />
+                </div>
+                {photos.length > 1 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {photos.slice(1).map((src, i) => (
+                      <div key={i} className="aspect-square rounded-xl overflow-hidden">
+                        <img src={src} alt={`Photo ${i + 2}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
