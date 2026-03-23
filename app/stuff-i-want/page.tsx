@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/useUser";
 
 const categories = [
   "Apparel",
@@ -17,11 +19,7 @@ const categories = [
 
 const conditions = ["New", "Like New", "Good", "Fair", "Any"];
 
-// Placeholder — will be replaced with Supabase data
-const placeholderWanted = [
-  { id: 1, name: "Mechanical Keyboard", category: "Electronics", condition: "Like New", notes: "Preferably TKL layout" },
-  { id: 2, name: "Linen Blazer", category: "Apparel", condition: "Any", notes: "Size M, neutral colour" },
-];
+type WantedItem = { id: string; name: string; category: string | null; condition: string | null; notes: string | null };
 
 // Placeholder AI matches — will be replaced with real matching logic via Supabase
 const placeholderMatches = [
@@ -45,21 +43,57 @@ const placeholderMatches = [
 
 export default function StuffIWant() {
   const router = useRouter();
+  const { userId } = useUser();
+  const [wanted, setWanted] = useState<WantedItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", category: "", condition: "", notes: "" });
+  const [saving, setSaving] = useState(false);
   const [matching, setMatching] = useState(false);
   const [showMatchResults, setShowMatchResults] = useState(false);
   const [selectedMatches, setSelectedMatches] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchWanted();
+  }, [userId]);
+
+  async function fetchWanted() {
+    setLoading(true);
+    const { data } = await supabase
+      .from("wanted_items")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    setWanted(data ?? []);
+    setLoading(false);
+  }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: save to Supabase
-    setShowForm(false);
-    setForm({ name: "", category: "", condition: "", notes: "" });
+    if (!userId) return;
+    setSaving(true);
+    const { data, error } = await supabase.from("wanted_items").insert({
+      user_id: userId,
+      name: form.name,
+      category: form.category || null,
+      notes: form.notes || null,
+    }).select().single();
+    setSaving(false);
+    if (!error && data) {
+      setWanted((prev) => [data, ...prev]);
+      setShowForm(false);
+      setForm({ name: "", category: "", condition: "", notes: "" });
+    }
+  }
+
+  async function deleteItem(id: string) {
+    setWanted((prev) => prev.filter((i) => i.id !== id));
+    await supabase.from("wanted_items").delete().eq("id", id).eq("user_id", userId);
   }
 
   const formComplete = form.name && form.category && form.condition;
@@ -77,10 +111,7 @@ export default function StuffIWant() {
             <button
               onClick={() => {
                 setMatching(true);
-                setTimeout(() => {
-                  setMatching(false);
-                  setShowMatchResults(true);
-                }, 2000);
+                setTimeout(() => { setMatching(false); setShowMatchResults(true); }, 2000);
               }}
               disabled={matching}
               className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#4A3728] text-[#4A3728] font-medium hover:bg-[#4A3728] hover:text-[#F5F0E8] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -93,10 +124,7 @@ export default function StuffIWant() {
                   Matching…
                 </>
               ) : (
-                <>
-                  <span>🤝🏽</span>
-                  Match Me
-                </>
+                <><span>🤝🏽</span> Match Me</>
               )}
             </button>
             <button
@@ -143,7 +171,6 @@ export default function StuffIWant() {
                     {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-
                 <div className="flex flex-col gap-1">
                   <label className="text-sm text-[#6B5040]">Condition</label>
                   <select
@@ -173,10 +200,10 @@ export default function StuffIWant() {
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  disabled={!formComplete}
+                  disabled={!formComplete || saving}
                   className="flex-1 rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Save
+                  {saving ? "Saving…" : "Save"}
                 </button>
                 <button
                   type="button"
@@ -192,7 +219,11 @@ export default function StuffIWant() {
         )}
 
         {/* Wanted items list */}
-        {placeholderWanted.length === 0 && !showForm ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-32">
+            <div className="w-6 h-6 border-2 border-[#4A3728] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : wanted.length === 0 && !showForm ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">Nothing on your list yet</p>
             <p className="text-[#A09080] mb-6">Add the things you're looking for and we'll find your match.</p>
@@ -205,14 +236,20 @@ export default function StuffIWant() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {placeholderWanted.map((item) => (
+            {wanted.map((item) => (
               <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-4 flex items-center justify-between shadow-sm">
                 <div>
                   <p className="font-medium text-[#4A3728]">{item.name}</p>
-                  <p className="text-sm text-[#8B7355]">{item.category} · {item.condition}</p>
+                  <p className="text-sm text-[#8B7355]">
+                    {[item.category, item.condition].filter(Boolean).join(" · ")}
+                  </p>
                   {item.notes && <p className="text-sm text-[#A09080] mt-1">{item.notes}</p>}
                 </div>
-                <button className="text-[#C4B9AA] hover:text-[#A0624A] transition-colors ml-4">
+                <button
+                  onClick={() => deleteItem(item.id)}
+                  className="text-[#C4B9AA] hover:text-[#A0624A] transition-colors ml-4 shrink-0"
+                  title="Delete"
+                >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-5 h-5">
                     <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
                   </svg>
@@ -308,11 +345,7 @@ export default function StuffIWant() {
             </div>
 
             <button
-              onClick={() => {
-                setShowMatchResults(false);
-                setSelectedMatches(new Set());
-                router.push("/my-swaps");
-              }}
+              onClick={() => { setShowMatchResults(false); setSelectedMatches(new Set()); router.push("/my-swaps"); }}
               disabled={selectedMatches.size === 0}
               className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >

@@ -33,6 +33,7 @@ export default function MyStuff() {
   const [items, setItems] = useState<ItemWithLikes[]>([]);
   const [loading, setLoading] = useState(true);
   const [likersModal, setLikersModal] = useState<{ itemName: string; likedBy: { id: string; name: string }[] } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -74,6 +75,12 @@ export default function MyStuff() {
 
     setItems(itemsWithLikes);
     setLoading(false);
+  }
+
+  async function deleteItem(id: string) {
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    await supabase.from("items").delete().eq("id", id).eq("owner_id", userId!);
+    setConfirmDelete(null);
   }
 
   const rating = profile && profile.rating_count > 0
@@ -129,7 +136,16 @@ export default function MyStuff() {
         {!loading && !userLoading && items.length > 0 && (
           <div className="grid grid-cols-4 gap-3">
             {items.map((item) => (
-              <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
+                <button
+                  onClick={() => setConfirmDelete(item.id)}
+                  title="Delete item"
+                  className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/80 flex items-center justify-center text-[#C4B9AA] hover:text-[#A0624A] hover:bg-white transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                    <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+                  </svg>
+                </button>
                 {/* Image area */}
                 <Link href={`/items/${item.id}`} className="block aspect-square bg-[#EDE8DF] flex items-center justify-center overflow-hidden">
                   {item.photos[0] ? (
@@ -167,6 +183,31 @@ export default function MyStuff() {
           </div>
         )}
       </main>
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+          <div className="relative w-full max-w-xs bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg text-center">
+            <p className="text-base font-semibold text-[#4A3728] mb-2">Delete this item?</p>
+            <p className="text-sm text-[#8B7355] mb-6">This can't be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-2.5 rounded-full border border-[#D9CFC4] text-[#6B5040] text-sm hover:bg-[#EDE8DF] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteItem(confirmDelete)}
+                className="flex-1 py-2.5 rounded-full bg-[#A0624A] text-white text-sm hover:bg-[#8B4D38] transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Likers modal */}
       {likersModal && (
