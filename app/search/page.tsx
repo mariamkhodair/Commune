@@ -34,6 +34,15 @@ export default function Search() {
   const [minPoints, setMinPoints] = useState("");
   const [maxPoints, setMaxPoints] = useState("");
   const [matchOnly, setMatchOnly] = useState(false);
+  const [liked, setLiked] = useState<Set<number>>(new Set());
+
+  function toggleLike(id: number) {
+    setLiked((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
 
   const filtered = placeholderResults.filter((item) => {
     if (query && !item.name.toLowerCase().includes(query.toLowerCase())) return false;
@@ -141,12 +150,20 @@ export default function Search() {
                   {/* Match badge */}
                   {item.match && (
                     <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-[#4A3728] text-[#F5F0E8] text-xs font-medium px-2.5 py-1 rounded-full">
-                      <svg viewBox="0 0 24 24" fill="#F5F0E8" className="w-3 h-3">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                      </svg>
+                      <span>🤝🏽</span>
                       Match
                     </div>
                   )}
+
+                  {/* Like button */}
+                  <button
+                    onClick={() => toggleLike(item.id)}
+                    className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/80 flex items-center justify-center hover:bg-white transition-colors"
+                  >
+                    <svg viewBox="0 0 24 24" fill={liked.has(item.id) ? "#A0624A" : "none"} stroke="#A0624A" strokeWidth="2" className="w-4 h-4">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                  </button>
 
                   {/* Image */}
                   <div className="aspect-square bg-[#EDE8DF] flex items-center justify-center">
