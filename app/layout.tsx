@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Mitr, Permanent_Marker } from "next/font/google";
+import { Mitr, Permanent_Marker, Jost } from "next/font/google";
 import "./globals.css";
 
 const mitr = Mitr({
@@ -12,6 +12,12 @@ const permanentMarker = Permanent_Marker({
   variable: "--font-permanent-marker",
   subsets: ["latin"],
   weight: "400",
+});
+
+const jost = Jost({
+  variable: "--font-jost",
+  subsets: ["latin"],
+  weight: ["300", "400"],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${mitr.variable} ${permanentMarker.variable} h-full antialiased`}
+      className={`${mitr.variable} ${permanentMarker.variable} ${jost.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-[family-name:var(--font-mitr)]">{children}</body>
     </html>

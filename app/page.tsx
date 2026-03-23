@@ -81,7 +81,7 @@ export default function Home() {
         <h2 className="text-5xl font-bold text-[#4A3728] leading-tight max-w-2xl mb-8">
           Everything you need is already out there.
         </h2>
-        <p className="text-lg text-[#6B5040] max-w-xl leading-relaxed mb-12">
+        <p className="text-xl text-[#6B5040] max-w-xl leading-relaxed mb-12 font-[family-name:var(--font-jost)] font-light">
           We all have more than we need — and someone else needs exactly what we have.
           Commune is a platform built on that simple truth. By swapping what we own
           instead of buying new, we reduce waste, ease financial pressure, and strengthen

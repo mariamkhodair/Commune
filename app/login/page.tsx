@@ -2,21 +2,37 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function Login() {
+  const router = useRouter();
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError("");
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: connect to Supabase
-    console.log("Login submitted:", form);
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    });
+    setLoading(false);
+
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push("/dashboard");
+    }
   }
 
   return (
@@ -87,6 +103,12 @@ export default function Login() {
         <h2 className="text-2xl font-semibold text-[#4A3728] mb-2">Welcome back</h2>
         <p className="text-sm text-[#8B7355] mb-8">Log in to continue swapping.</p>
 
+        {error && (
+          <div className="mb-6 rounded-xl bg-[#A0624A]/15 border border-[#A0624A] px-4 py-3 text-sm text-[#4A3728]">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
           {/* Email */}
@@ -123,9 +145,10 @@ export default function Login() {
           {/* Submit */}
           <button
             type="submit"
-            className="mt-2 w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors"
+            disabled={loading}
+            className="mt-2 w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Log In
+            {loading ? "Logging in..." : "Log In"}
           </button>
 
         </form>

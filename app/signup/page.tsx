@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 export default function SignUp() {
   const [form, setForm] = useState({
@@ -12,24 +13,41 @@ export default function SignUp() {
   });
 
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
     setError("");
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // Validate Egyptian phone number: 10 digits starting with 10, 11, 12, or 15
     const phoneRegex = /^(10|11|12|15)\d{8}$/;
     if (!phoneRegex.test(form.phone)) {
       setError("Please enter a valid Egyptian mobile number (e.g. 1012345678)");
       return;
     }
 
-    // TODO: connect to Supabase
-    console.log("Form submitted:", form);
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: {
+          full_name: form.name,
+          phone: `+20${form.phone}`,
+        },
+      },
+    });
+    setLoading(false);
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccess(true);
+    }
   }
 
   return (
@@ -100,6 +118,12 @@ export default function SignUp() {
         <h2 className="text-2xl font-semibold text-[#4A3728] mb-2">Create your account</h2>
         <p className="text-sm text-[#8B7355] mb-8">Join the community and start swapping.</p>
 
+        {success && (
+          <div className="mb-6 rounded-xl bg-[#7A9E6E]/20 border border-[#7A9E6E] px-4 py-3 text-sm text-[#4A3728]">
+            Account created! Check your email to confirm your address.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
           {/* Name */}
@@ -167,9 +191,10 @@ export default function SignUp() {
           {/* Submit */}
           <button
             type="submit"
-            className="mt-2 w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors"
+            disabled={loading || success}
+            className="mt-2 w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Join Commune
+            {loading ? "Creating account..." : "Join Commune"}
           </button>
 
         </form>
