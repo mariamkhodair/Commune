@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 
 const categories = [
@@ -21,9 +22,33 @@ const placeholderWanted = [
   { id: 2, name: "Linen Blazer", category: "Apparel", condition: "Any", notes: "Size M, neutral colour" },
 ];
 
+// Placeholder AI matches — will be replaced with real matching logic via Supabase
+const placeholderMatches = [
+  {
+    id: 101,
+    member: "Karim A.",
+    memberId: "2",
+    theirItem: { name: "Mechanical Keyboard (TKL)", category: "Electronics", points: 800, condition: "Good" },
+    yourItems: [{ name: "Canon EOS Camera", points: 850 }],
+    pointsDiff: 50,
+  },
+  {
+    id: 102,
+    member: "Sara M.",
+    memberId: "1",
+    theirItem: { name: "Vintage Levi's Jacket", category: "Apparel", points: 420, condition: "Good" },
+    yourItems: [{ name: "Vintage Denim Jacket", points: 320 }, { name: "The Alchemist", points: 80 }],
+    pointsDiff: 20,
+  },
+];
+
 export default function StuffIWant() {
+  const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", category: "", condition: "", notes: "" });
+  const [matching, setMatching] = useState(false);
+  const [showMatchResults, setShowMatchResults] = useState(false);
+  const [selectedMatches, setSelectedMatches] = useState<Set<number>>(new Set());
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -47,15 +72,42 @@ export default function StuffIWant() {
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">Stuff I Want</h1>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#4A3728] text-[#F5F0E8] font-medium hover:bg-[#6B5040] transition-colors"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-4 h-4">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Add Item
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setMatching(true);
+                setTimeout(() => {
+                  setMatching(false);
+                  setShowMatchResults(true);
+                }, 2000);
+              }}
+              disabled={matching}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#4A3728] text-[#4A3728] font-medium hover:bg-[#4A3728] hover:text-[#F5F0E8] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {matching ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
+                  </svg>
+                  Matching…
+                </>
+              ) : (
+                <>
+                  <span>🤝🏽</span>
+                  Match Me
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#4A3728] text-[#F5F0E8] font-medium hover:bg-[#6B5040] transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-4 h-4">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Add Item
+            </button>
+          </div>
         </div>
         <p className="text-[#8B7355] mb-8">Tell us what you're looking for and we'll match you with someone who has it — and wants what you have.</p>
 
@@ -170,6 +222,116 @@ export default function StuffIWant() {
         )}
 
       </main>
+
+      {/* Match results modal */}
+      {showMatchResults && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setShowMatchResults(false)} />
+          <div className="relative w-full max-w-lg bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg max-h-[90vh] overflow-y-auto">
+
+            <button
+              onClick={() => setShowMatchResults(false)}
+              className="absolute top-4 right-4 w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-[#8B7355] hover:bg-[#D9CFC4] transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xl">🤝🏽</span>
+              <h3 className="text-lg font-semibold text-[#4A3728]">Matches Found</h3>
+            </div>
+            <p className="text-xs text-[#8B7355] mb-6">
+              We found {placeholderMatches.length} potential matches based on your want list. Select the ones you'd like to propose.
+            </p>
+
+            <div className="flex flex-col gap-4 mb-6">
+              {placeholderMatches.map((match) => {
+                const isSelected = selectedMatches.has(match.id);
+                return (
+                  <button
+                    key={match.id}
+                    onClick={() => setSelectedMatches((prev) => {
+                      const next = new Set(prev);
+                      next.has(match.id) ? next.delete(match.id) : next.add(match.id);
+                      return next;
+                    })}
+                    className={`w-full text-left bg-white/70 rounded-2xl border-2 overflow-hidden transition-colors ${isSelected ? "border-[#4A3728]" : "border-[#D9CFC4] hover:border-[#A09080]"}`}
+                  >
+                    <div className="px-5 py-3 border-b border-[#EDE8DF] flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-[#4A3728] flex items-center justify-center text-[#F5F0E8] text-xs font-[family-name:var(--font-permanent-marker)]">
+                          {match.member[0]}
+                        </div>
+                        <span className="text-sm font-medium text-[#4A3728]">{match.member}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${match.pointsDiff <= 50 ? "bg-[#D8E4D0] text-[#4A6640]" : "bg-[#EDE8DF] text-[#6B5040]"}`}>
+                          {match.pointsDiff === 0 ? "Exact match" : `±${match.pointsDiff} pts`}
+                        </span>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "border-[#4A3728] bg-[#4A3728]" : "border-[#D9CFC4]"}`}>
+                          {isSelected && (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" className="w-3 h-3">
+                              <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="px-5 py-4 flex gap-4">
+                      <div className="flex-1">
+                        <p className="text-xs text-[#A09080] mb-1">They offer</p>
+                        <p className="text-sm font-medium text-[#4A3728]">{match.theirItem.name}</p>
+                        <p className="text-xs text-[#8B7355]">{match.theirItem.category} · {match.theirItem.condition}</p>
+                        <p className="text-xs font-semibold text-[#4A3728] mt-1">{match.theirItem.points} pts</p>
+                      </div>
+                      <div className="flex items-center text-[#C4B9AA]">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
+                          <path d="M8 3L4 7l4 4M16 3l4 4-4 4M4 7h16M4 17h16M8 13l-4 4 4 4M16 13l4 4-4 4" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 text-right">
+                        <p className="text-xs text-[#A09080] mb-1">You offer</p>
+                        {match.yourItems.map((yi, i) => (
+                          <div key={i}>
+                            <p className="text-sm font-medium text-[#4A3728]">{yi.name}</p>
+                            <p className="text-xs font-semibold text-[#4A3728]">{yi.points} pts</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => {
+                setShowMatchResults(false);
+                setSelectedMatches(new Set());
+                router.push("/my-swaps");
+              }}
+              disabled={selectedMatches.size === 0}
+              className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {selectedMatches.size === 0
+                ? "Select a match to propose"
+                : selectedMatches.size === placeholderMatches.length
+                ? "Send All Proposals"
+                : `Send ${selectedMatches.size} Proposal${selectedMatches.size > 1 ? "s" : ""}`}
+            </button>
+            <button
+              onClick={() => setShowMatchResults(false)}
+              className="w-full mt-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-3 font-medium hover:border-[#4A3728] transition-colors"
+            >
+              Review Later
+            </button>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
