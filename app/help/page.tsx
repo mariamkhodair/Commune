@@ -29,8 +29,12 @@ const faqs = [
     answer: "You can cancel at any time from your account settings. Your access continues until the end of your current billing period.",
   },
   {
+    question: "What if my rating drops below 3 stars?",
+    answer: "Members with a rating below 3 stars will be matched less frequently — our system prioritises pairing people with strong community reputations. Think of your rating the way you'd think of your reputation in any community: it's worth looking after. That said, honesty is always better than a bad surprise. If your item is in Fair condition, list it as Fair — members who want it will find you, and you'll get a fair rating for it. There's no shame in being straightforward.",
+  },
+  {
     question: "What happens if an item isn't as described?",
-    answer: "We take misrepresentation seriously. If you receive an item that doesn't match its listing, contact us immediately and we'll step in to resolve it.",
+    answer: "We take misrepresentation seriously. If you receive an item that doesn't match its listing, contact us immediately and we'll step in to resolve it. Make sure to use the rating system — and feel free to report the person if needed.",
   },
 ];
 
