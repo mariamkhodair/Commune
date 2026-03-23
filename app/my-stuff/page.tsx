@@ -29,12 +29,16 @@ function Stars({ rating }: { rating: number }) {
 
 // Placeholder items — will be replaced with real data from Supabase
 const placeholderItems = [
-  { id: 1, name: "Vintage Denim Jacket", category: "Apparel", points: 320, status: "Available", image: null },
-  { id: 2, name: "Canon EOS Camera", category: "Electronics", points: 850, status: "In a Swap", image: null },
-  { id: 3, name: "The Alchemist", category: "Books", points: 80, status: "Swapped", image: null },
+  { id: 1, name: "Vintage Denim Jacket", category: "Apparel", points: 320, status: "Available", image: null,
+    likedBy: [{ id: 2, name: "Karim A." }, { id: 5, name: "Dina H." }] },
+  { id: 2, name: "Canon EOS Camera", category: "Electronics", points: 850, status: "In a Swap", image: null,
+    likedBy: [{ id: 1, name: "Sara M." }] },
+  { id: 3, name: "The Alchemist", category: "Books", points: 80, status: "Swapped", image: null,
+    likedBy: [] },
 ];
 
 export default function MyStuff() {
+  const [likersModal, setLikersModal] = useState<{ itemName: string; likedBy: { id: number; name: string }[] } | null>(null);
 
   return (
     <div className="min-h-screen flex">
@@ -97,6 +101,15 @@ export default function MyStuff() {
                         {item.status}
                       </span>
                     </div>
+                    <button
+                      onClick={() => setLikersModal({ itemName: item.name, likedBy: item.likedBy })}
+                      className="flex items-center gap-1 mt-2 text-xs text-[#A09080] hover:text-[#A0624A] transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" fill={item.likedBy.length > 0 ? "#A0624A" : "none"} stroke="#A0624A" strokeWidth="2" className="w-3.5 h-3.5">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
+                      {item.likedBy.length === 0 ? "No likes yet" : `${item.likedBy.length} ${item.likedBy.length === 1 ? "like" : "likes"}`}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -104,6 +117,51 @@ export default function MyStuff() {
           </div>
         )}
       </main>
+
+      {/* Likers modal */}
+      {likersModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setLikersModal(null)} />
+          <div className="relative w-full max-w-sm bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg">
+            <button
+              onClick={() => setLikersModal(null)}
+              className="absolute top-4 right-4 w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-[#8B7355] hover:bg-[#D9CFC4] transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="flex items-center gap-2 mb-1">
+              <svg viewBox="0 0 24 24" fill="#A0624A" stroke="#A0624A" strokeWidth="2" className="w-4 h-4">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+              <h3 className="text-base font-semibold text-[#4A3728]">Liked by</h3>
+            </div>
+            <p className="text-xs text-[#8B7355] mb-5 truncate">{likersModal.itemName}</p>
+
+            {likersModal.likedBy.length === 0 ? (
+              <p className="text-sm text-[#A09080] text-center py-4">No one has liked this item yet.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {likersModal.likedBy.map((member) => (
+                  <Link
+                    key={member.id}
+                    href={`/members/${member.id}`}
+                    onClick={() => setLikersModal(null)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 border border-[#EDE8DF] hover:border-[#4A3728] transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#EDE8DF] flex items-center justify-center text-sm font-medium text-[#4A3728] font-[family-name:var(--font-permanent-marker)] shrink-0">
+                      {member.name.charAt(0)}
+                    </div>
+                    <p className="text-sm font-medium text-[#4A3728]">{member.name}</p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );
