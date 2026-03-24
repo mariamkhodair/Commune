@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -60,15 +60,22 @@ export default function More() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
 
         {/* Profile header */}
-        <View className="px-5 pt-6 pb-6 items-center">
-          <View className="w-16 h-16 rounded-full bg-[#4A3728] items-center justify-center mb-3">
-            <Text className="text-[#FAF7F2] text-2xl font-bold">{profile?.name?.charAt(0) ?? "?"}</Text>
+        <TouchableOpacity onPress={() => router.push("/profile" as any)} className="px-5 pt-6 pb-6 items-center">
+          <View className="w-16 h-16 rounded-full bg-[#EDE8DF] items-center justify-center mb-3 overflow-hidden">
+            {profile?.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={{ width: 64, height: 64 }} />
+            ) : (
+              <Text className="text-[#4A3728] text-2xl font-bold">{profile?.name?.charAt(0) ?? "?"}</Text>
+            )}
           </View>
-          <Text className="text-lg font-semibold text-[#4A3728]">{profile?.name ?? "Loading..."}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Text className="text-lg font-semibold text-[#4A3728]">{profile?.name ?? "Loading..."}</Text>
+            <Ionicons name="pencil-outline" size={14} color="#8B7355" />
+          </View>
           {profile?.area ? (
             <Text className="text-sm text-[#8B7355]">{profile.area}, {profile.city}</Text>
           ) : null}
-        </View>
+        </TouchableOpacity>
 
         {/* Sections */}
         {SECTIONS.map(({ heading, items }) => (
