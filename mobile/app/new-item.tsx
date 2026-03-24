@@ -130,7 +130,7 @@ export default function NewItem() {
     <SafeAreaView className="flex-1">
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View className="px-5 pt-4 pb-3 flex-row items-center gap-3">
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
             <Ionicons name="arrow-back" size={18} color="#4A3728" />
           </TouchableOpacity>
           <Text className="text-2xl font-light text-[#4A3728]">List an Item</Text>

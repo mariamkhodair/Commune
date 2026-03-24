@@ -77,7 +77,7 @@ export default function MemberProfile() {
     <SafeAreaView className="flex-1">
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Back */}
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center gap-1 px-5 pt-4 pb-2">
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }} className="flex-row items-center gap-1 px-5 pt-4 pb-2">
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
           <Text className="text-sm text-[#4A3728]">Back</Text>
         </TouchableOpacity>

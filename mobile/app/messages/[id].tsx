@@ -59,7 +59,7 @@ export default function MessageThread() {
     <SafeAreaView className="flex-1">
       {/* Header */}
       <View className="flex-row items-center gap-3 px-5 py-3 border-b border-[#EDE8DF]">
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
         </TouchableOpacity>
         <View className="w-9 h-9 rounded-full bg-[#EDE8DF] items-center justify-center">

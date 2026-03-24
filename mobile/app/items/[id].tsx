@@ -84,6 +84,7 @@ export default function ItemDetail() {
           {/* Back + like buttons */}
           <TouchableOpacity
             onPress={() => router.back()}
+            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
             className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/80 items-center justify-center"
           >
             <Ionicons name="arrow-back" size={18} color="#4A3728" />

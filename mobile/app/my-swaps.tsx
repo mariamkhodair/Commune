@@ -179,7 +179,7 @@ export default function MySwaps() {
     <SafeAreaView style={{ flex: 1 }}>
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
         </TouchableOpacity>
         <View>
