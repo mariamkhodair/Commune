@@ -123,8 +123,8 @@ export default function ProposeSwapModal({
     }
 
     const swapItems = [
-      ...selectedItems.map((i) => ({ swap_id: swapData.id, item_id: i.id })),
-      ...items.map((i) => ({ swap_id: swapData.id, item_id: i.id })),
+      ...selectedItems.map((i) => ({ swap_id: swapData.id, item_id: i.id, side: "proposer" })),
+      ...items.map((i) => ({ swap_id: swapData.id, item_id: i.id, side: "receiver" })),
     ];
     await supabase.from("swap_items").insert(swapItems);
 

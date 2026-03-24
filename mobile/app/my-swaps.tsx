@@ -117,7 +117,7 @@ export default function MySwaps() {
     setLoading(true);
     const { data } = await supabase
       .from("swaps")
-      .select("id, proposer_id, receiver_id, status, swap_items(item_id)")
+      .select("id, proposer_id, receiver_id, status, swap_items(item_id, side)")
       .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
       .order("created_at", { ascending: false });
 
@@ -128,12 +128,15 @@ export default function MySwaps() {
         const otherId = isProposer ? s.receiver_id : s.proposer_id;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const itemIds: string[] = (s.swap_items ?? []).map((si: any) => si.item_id).filter(Boolean);
+        const swapItems: any[] = s.swap_items ?? [];
+        const proposerIds: string[] = swapItems.filter((si) => si.side === "proposer").map((si) => si.item_id).filter(Boolean);
+        const receiverIds: string[] = swapItems.filter((si) => si.side === "receiver").map((si) => si.item_id).filter(Boolean);
+        const allItemIds = [...proposerIds, ...receiverIds];
 
         const [{ data: p }, { data: itemsData }, { data: conv }] = await Promise.all([
           supabase.from("profiles").select("name").eq("id", otherId).single(),
-          itemIds.length > 0
-            ? supabase.from("items").select("id, name, points, owner_id").in("id", itemIds)
+          allItemIds.length > 0
+            ? supabase.from("items").select("id, name, points").in("id", allItemIds)
             : Promise.resolve({ data: [] }),
           supabase
             .from("conversations")
@@ -143,13 +146,9 @@ export default function MySwaps() {
         ]);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const allItemData: any[] = itemsData ?? [];
-        const proposerItems: SwapItem[] = allItemData
-          .filter((item) => item.owner_id === s.proposer_id)
-          .map((item) => ({ name: item.name, points: item.points ?? 0 }));
-        const receiverItems: SwapItem[] = allItemData
-          .filter((item) => item.owner_id === s.receiver_id)
-          .map((item) => ({ name: item.name, points: item.points ?? 0 }));
+        const itemMap: Record<string, any> = Object.fromEntries((itemsData ?? []).map((item) => [item.id, item]));
+        const proposerItems: SwapItem[] = proposerIds.map((id) => ({ name: itemMap[id]?.name ?? "Unknown", points: itemMap[id]?.points ?? 0 }));
+        const receiverItems: SwapItem[] = receiverIds.map((id) => ({ name: itemMap[id]?.name ?? "Unknown", points: itemMap[id]?.points ?? 0 }));
 
         return {
           id: s.id,
