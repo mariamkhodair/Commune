@@ -41,7 +41,7 @@ Based on the current Egyptian secondhand market, suggest a fair points value for
     }
 
     return NextResponse.json({ points });
-  } catch (err) {
-    return NextResponse.json({ error: "AI analysis failed" }, { status: 500 });
+  } catch (err: any) {
+    return NextResponse.json({ error: "AI analysis failed", detail: err?.message ?? String(err) }, { status: 500 });
   }
 }
