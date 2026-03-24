@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
 import { supabase } from "@/lib/supabase";
@@ -52,6 +53,7 @@ function Stars({ rating }: { rating: number | null }) {
 export default function MemberProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { userId } = useUser();
+  const router = useRouter();
 
   const [member, setMember] = useState<MemberData | null>(null);
   const [items, setItems] = useState<MemberItem[]>([]);
@@ -117,6 +119,50 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
     setProposingItems(chosen);
   }
 
+  async function openChat() {
+    if (!userId) return;
+
+    // Try both orderings separately — more reliable than nested or/and filter
+    const { data: a, error: e1 } = await supabase
+      .from("conversations").select("id")
+      .eq("member1_id", userId).eq("member2_id", id).maybeSingle();
+    if (e1) console.error("openChat e1:", e1);
+
+    const { data: b, error: e2 } = !a ? await supabase
+      .from("conversations").select("id")
+      .eq("member1_id", id).eq("member2_id", userId).maybeSingle()
+      : { data: null, error: null };
+    if (e2) console.error("openChat e2:", e2);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let convId: string | null = (a as any)?.id ?? (b as any)?.id ?? null;
+    console.log("openChat existing convId:", convId, "userId:", userId, "memberId:", id);
+
+    if (!convId) {
+      const { data: newConv, error: e3 } = await supabase
+        .from("conversations")
+        .insert({ member1_id: userId, member2_id: id })
+        .select("id")
+        .single();
+      if (e3) console.error("openChat insert error:", e3);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      convId = (newConv as any)?.id ?? null;
+      console.log("openChat new convId:", convId);
+    }
+
+    // If insert also failed (e.g. race condition), try finding again
+    if (!convId) {
+      const { data: retry } = await supabase
+        .from("conversations").select("id")
+        .eq("member1_id", id).eq("member2_id", userId).maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      convId = (retry as any)?.id ?? null;
+    }
+
+    if (convId) router.push(`/messages/${convId}`);
+    else console.error("openChat: could not get convId, not navigating");
+  }
+
   function handleReportSubmit(e: React.FormEvent) {
     e.preventDefault();
     setReportSubmitted(true);
@@ -173,15 +219,15 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href={`/messages/${id}`}
+            <button
+              onClick={openChat}
               className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#4A3728] text-[#F5F0E8] text-sm font-medium hover:bg-[#6B5040] transition-colors"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
               Message
-            </a>
+            </button>
             <button
               onClick={() => { setShowReport(true); setReportSubmitted(false); setReportForm({ reason: "", details: "" }); }}
               className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#D9CFC4] text-[#A09080] text-sm font-medium hover:border-[#A0624A] hover:text-[#A0624A] transition-colors"
