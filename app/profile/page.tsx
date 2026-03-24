@@ -32,22 +32,36 @@ export default function ProfilePage() {
     if (!raw || !userId) return;
     setUploading(true);
 
-    // Convert to JPEG via Canvas so any format (HEIC, TIFF, etc.) works correctly
-    let file: Blob = raw;
-    try {
-      const bitmap = await createImageBitmap(raw);
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
-      file = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b!), "image/jpeg", 0.9));
-    } catch { /* fall through with original file */ }
+    // Convert to JPEG via img+canvas (works for JPEG, PNG, WebP, HEIC on Safari, etc.)
+    const jpeg = await new Promise<Blob | null>((resolve) => {
+      const url = URL.createObjectURL(raw);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const scale = Math.min(1, 1200 / img.naturalWidth);
+        const w = Math.round(img.naturalWidth * scale);
+        const h = Math.round(img.naturalHeight * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d")?.drawImage(img, 0, 0, w, h);
+        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.9);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+
+    if (!jpeg) {
+      alert("That image format isn't supported. Please use JPEG or PNG.");
+      setUploading(false);
+      return;
+    }
 
     const path = `${userId}.jpg`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(path, file, { upsert: true, contentType: "image/jpeg" });
+      .upload(path, jpeg, { upsert: true, contentType: "image/jpeg" });
 
     if (uploadError) {
       console.error("Avatar upload error:", uploadError);
