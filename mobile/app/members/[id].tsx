@@ -47,6 +47,40 @@ export default function MemberProfile() {
     setLoading(false);
   }
 
+  async function openChat() {
+    if (!userId) return;
+    const memberId = Array.isArray(id) ? id[0] : id;
+
+    const { data: a } = await supabase
+      .from("conversations").select("id")
+      .eq("member1_id", userId).eq("member2_id", memberId).maybeSingle();
+    const { data: b } = !a ? await supabase
+      .from("conversations").select("id")
+      .eq("member1_id", memberId).eq("member2_id", userId).maybeSingle()
+      : { data: null };
+
+    let convId: string | null = (a as any)?.id ?? (b as any)?.id ?? null;
+
+    if (!convId) {
+      const { data: newConv } = await supabase
+        .from("conversations")
+        .insert({ member1_id: userId, member2_id: memberId })
+        .select("id")
+        .single();
+      convId = (newConv as any)?.id ?? null;
+    }
+
+    // Retry find in case of race condition / unique constraint
+    if (!convId) {
+      const { data: retry } = await supabase
+        .from("conversations").select("id")
+        .eq("member1_id", memberId).eq("member2_id", userId).maybeSingle();
+      convId = (retry as any)?.id ?? null;
+    }
+
+    if (convId) router.push(`/messages/${convId}` as any);
+  }
+
   async function toggleFollow() {
     setFollowed((f) => !f);
     if (followed) {
@@ -98,17 +132,24 @@ export default function MemberProfile() {
               </View>
             )}
             {id !== userId && (
-              <TouchableOpacity
-                onPress={toggleFollow}
-                className={`flex-row items-center gap-2 mt-4 px-5 py-2.5 rounded-full border ${
-                  followed ? "bg-[#4A3728] border-[#4A3728]" : "bg-white border-[#D9CFC4]"
-                }`}
-              >
-                <Ionicons name={followed ? "heart" : "heart-outline"} size={16} color={followed ? "#FAF7F2" : "#A0624A"} />
-                <Text className={`text-sm font-medium ${followed ? "text-[#FAF7F2]" : "text-[#6B5040]"}`}>
-                  {followed ? "Following" : "Follow"}
-                </Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+                <TouchableOpacity
+                  onPress={openChat}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 999, backgroundColor: "#4A3728" }}
+                >
+                  <Ionicons name="chatbubble-outline" size={15} color="#FAF7F2" />
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: "#FAF7F2" }}>Message</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={toggleFollow}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 999, borderWidth: 1, borderColor: followed ? "#4A3728" : "#D9CFC4", backgroundColor: followed ? "#4A3728" : "white" }}
+                >
+                  <Ionicons name={followed ? "heart" : "heart-outline"} size={15} color={followed ? "#FAF7F2" : "#A0624A"} />
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: followed ? "#FAF7F2" : "#6B5040" }}>
+                    {followed ? "Following" : "Follow"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         )}

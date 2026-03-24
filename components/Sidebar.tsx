@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useUnread } from "@/lib/unreadContext";
 
 const sidebarItems = [
   {
@@ -121,11 +122,11 @@ const sidebarItems = [
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
   const [proposedCount, setProposedCount] = useState(0);
-  const [unreadMessages, setUnreadMessages] = useState(0);
   const [newScheduled, setNewScheduled] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
   const { userId, profile } = useUser();
+  const { unreadMessages, clearAllMessages } = useUnread();
 
   useEffect(() => {
     if (!userId) return;
@@ -135,18 +136,6 @@ export default function Sidebar() {
       .eq("receiver_id", userId)
       .eq("status", "Proposed")
       .then(({ count }) => setProposedCount(count ?? 0));
-  }, [userId]);
-
-  // Unread messages count
-  useEffect(() => {
-    if (!userId) return;
-    const lastSeen = localStorage.getItem("msg_last_seen") ?? new Date(0).toISOString();
-    supabase
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .neq("sender_id", userId)
-      .gt("created_at", lastSeen)
-      .then(({ count }) => setUnreadMessages(count ?? 0));
   }, [userId]);
 
   // New scheduled swaps count
@@ -172,8 +161,7 @@ export default function Sidebar() {
   // Clear badges when visiting the relevant pages
   useEffect(() => {
     if (pathname.startsWith("/messages")) {
-      localStorage.setItem("msg_last_seen", new Date().toISOString());
-      setUnreadMessages(0);
+      clearAllMessages();
     }
     if (pathname === "/scheduled-swaps") {
       localStorage.setItem("sched_last_seen", new Date().toISOString());

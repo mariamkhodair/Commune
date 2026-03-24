@@ -5,13 +5,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useUnread } from "@/lib/unreadContext";
 
-type Message = { id: string; body: string; sender_id: string; created_at: string };
+type Message = { id: string; content: string; sender_id: string; created_at: string };
 
 export default function MessageThread() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string }>();
+  const convId = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
   const { userId } = useUser();
+  const { markConversationRead } = useUnread();
   const [messages, setMessages] = useState<Message[]>([]);
   const [otherName, setOtherName] = useState("");
   const [body, setBody] = useState("");
@@ -19,40 +22,71 @@ export default function MessageThread() {
   const listRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    if (!id || !userId) return;
+    if (!convId || !userId) return;
+    markConversationRead(convId);
     fetchThread();
 
     const channel = supabase
-      .channel(`messages:${id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` },
-        (payload) => setMessages((prev) => [...prev, payload.new as Message])
+      .channel(`messages:${convId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${convId}` },
+        (payload) => {
+          const incoming = payload.new as Message;
+          // Only add if not already present (avoids duplication with optimistic update)
+          setMessages((prev) => prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]);
+        }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [id, userId]);
+  }, [convId, userId]);
 
   async function fetchThread() {
-    const { data: convo } = await supabase.from("conversations").select("participant_1, participant_2").eq("id", id).single();
+    const { data: convo } = await supabase.from("conversations").select("member1_id, member2_id").eq("id", convId).single();
     if (convo) {
-      const otherId = convo.participant_1 === userId ? convo.participant_2 : convo.participant_1;
+      const otherId = convo.member1_id === userId ? convo.member2_id : convo.member1_id;
       const { data: p } = await supabase.from("profiles").select("name").eq("id", otherId).single();
       setOtherName(p?.name ?? "Unknown");
     }
     const { data: msgs } = await supabase
       .from("messages")
       .select("*")
-      .eq("conversation_id", id)
+      .eq("conversation_id", convId)
       .order("created_at", { ascending: true });
     setMessages(msgs ?? []);
     setLoading(false);
   }
 
   async function sendMessage() {
-    if (!body.trim()) return;
+    if (!body.trim() || !userId || !convId) return;
     const text = body.trim();
     setBody("");
-    await supabase.from("messages").insert({ conversation_id: id, sender_id: userId!, body: text });
+
+    // Optimistic update — show immediately without waiting for realtime
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: Message = {
+      id: tempId,
+      content: text,
+      sender_id: userId,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimistic]);
+
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({ conversation_id: convId, sender_id: userId, content: text })
+      .select("id, content, sender_id, created_at")
+      .single();
+
+    if (error) {
+      console.error("sendMessage error:", error);
+      // Revert optimistic update on failure
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+    } else if (data) {
+      // Replace temp message with real one from DB
+      setMessages((prev) => prev.map((m) => m.id === tempId ? data as Message : m));
+      // Keep conversation last_message in sync for the messages list
+      supabase.from("conversations").update({ last_message: text, last_message_at: (data as Message).created_at }).eq("id", convId);
+    }
   }
 
   return (
@@ -83,7 +117,7 @@ export default function MessageThread() {
             return (
               <View className={`max-w-[75%] ${mine ? "self-end" : "self-start"}`}>
                 <View className={`px-4 py-2.5 rounded-2xl ${mine ? "bg-[#4A3728]" : "bg-white border border-[#EDE8DF]"}`}>
-                  <Text className={`text-sm ${mine ? "text-[#FAF7F2]" : "text-[#4A3728]"}`}>{item.body}</Text>
+                  <Text className={`text-sm ${mine ? "text-[#FAF7F2]" : "text-[#4A3728]"}`}>{item.content}</Text>
                 </View>
                 <Text className={`text-xs text-[#A09080] mt-0.5 ${mine ? "text-right" : "text-left"}`}>
                   {new Date(item.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}

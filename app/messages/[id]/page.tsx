@@ -5,12 +5,14 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useUnread } from "@/lib/unreadContext";
 
 type Message = { id: string; content: string; sender_id: string; created_at: string };
 
 export default function Chat({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { userId } = useUser();
+  const { markConversationRead } = useUnread();
   const [messages, setMessages] = useState<Message[]>([]);
   const [otherName, setOtherName] = useState("");
   const [otherId, setOtherId] = useState("");
@@ -20,6 +22,7 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
 
   useEffect(() => {
     if (!id || !userId) return;
+    markConversationRead(id);
     fetchThread();
 
     const channel = supabase

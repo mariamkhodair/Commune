@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Svg, { Path } from "react-native-svg";
 import { supabase } from "@/lib/supabase";
+import { UnreadProvider } from "@/lib/unreadContext";
 
 const { width: W, height: H } = Dimensions.get("window");
 const S = Math.min(W, H) * 0.38; // leaf corner size
@@ -61,10 +62,12 @@ export default function RootLayout() {
   }, [session, segments]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
-      <StatusBar style="dark" backgroundColor="transparent" translucent />
-      <Stack screenOptions={{ headerShown: false }} />
-      <LeafBackground />
-    </View>
+    <UnreadProvider>
+      <View style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
+        <StatusBar style="dark" backgroundColor="transparent" translucent />
+        <Stack screenOptions={{ headerShown: false }} />
+        <LeafBackground />
+      </View>
+    </UnreadProvider>
   );
 }

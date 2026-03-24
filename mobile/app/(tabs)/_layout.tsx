@@ -1,9 +1,6 @@
-import { useEffect, useState } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { supabase } from "@/lib/supabase";
-import { useUser } from "@/lib/useUser";
+import { useUnread } from "@/lib/unreadContext";
 
 function TabIcon({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focused: boolean }) {
   return (
@@ -16,21 +13,7 @@ function TabIcon({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focu
 }
 
 export default function TabLayout() {
-  const { userId } = useUser();
-  const [unreadMessages, setUnreadMessages] = useState(0);
-
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      const lastSeen = (await AsyncStorage.getItem("msg_last_seen")) ?? new Date(0).toISOString();
-      const { count } = await supabase
-        .from("messages")
-        .select("id", { count: "exact", head: true })
-        .neq("sender_id", userId)
-        .gt("created_at", lastSeen);
-      setUnreadMessages(count ?? 0);
-    })();
-  }, [userId]);
+  const { unreadMessages } = useUnread();
 
   return (
     <Tabs

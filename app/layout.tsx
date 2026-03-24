@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Mitr, Permanent_Marker, Jost } from "next/font/google";
 import "./globals.css";
+import Providers from "./providers";
 
 const mitr = Mitr({
   variable: "--font-mitr",
@@ -58,7 +59,7 @@ export default function RootLayout({
             <path d="M200,60 Q160,110 110,100 Q140,70 180,50 Z" fill="#5C7A4E" opacity="0.13" />
           </svg>
         </div>
-        <div className="relative z-10 flex flex-col min-h-full">{children}</div>
+        <div className="relative z-10 flex flex-col min-h-full"><Providers>{children}</Providers></div>
       </body>
     </html>
   );

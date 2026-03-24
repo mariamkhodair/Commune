@@ -4,15 +4,16 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useUnread } from "@/lib/unreadContext";
 
 type Convo = { id: string; otherId: string; otherName: string; lastMessage: string; lastAt: string };
 
 export default function Messages() {
   const router = useRouter();
   const { userId } = useUser();
+  const { clearAllMessages } = useUnread();
   const [convos, setConvos] = useState<Convo[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,7 +21,7 @@ export default function Messages() {
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
-      AsyncStorage.setItem("msg_last_seen", new Date().toISOString());
+      clearAllMessages();
       fetchConvos();
     }, [userId])
   );
