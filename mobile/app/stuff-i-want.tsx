@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Modal, Alert } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, ScrollView, Modal } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
-type WantedItem = { id: string; name: string; description: string; created_at: string };
+const CATEGORIES = ["Apparel", "Electronics", "Books", "Cosmetics", "Furniture & Home Decor", "Stationery & Art Supplies", "Miscellaneous"];
+const CONDITIONS = ["New", "Like New", "Good", "Fair", "Any"];
+
+type WantedItem = { id: string; name: string; category: string | null; condition: string | null; notes: string | null };
 
 export default function StuffIWant() {
   const router = useRouter();
@@ -15,7 +18,9 @@ export default function StuffIWant() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [condition, setCondition] = useState("");
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -34,18 +39,29 @@ export default function StuffIWant() {
     setLoading(false);
   }
 
+  function resetForm() {
+    setName(""); setCategory(""); setCondition(""); setNotes("");
+  }
+
   async function handleAdd() {
     if (!name.trim()) return;
     setSaving(true);
     const { data, error } = await supabase
       .from("wanted_items")
-      .insert({ user_id: userId!, name: name.trim(), description: description.trim() || null })
+      .insert({
+        user_id: userId!,
+        name: name.trim(),
+        category: category || null,
+        condition: condition || null,
+        notes: notes.trim() || null,
+      })
       .select()
       .single();
     setSaving(false);
     if (!error && data) {
       setItems((prev) => [data, ...prev]);
-      setName(""); setDescription(""); setShowForm(false);
+      resetForm();
+      setShowForm(false);
     }
   }
 
@@ -61,6 +77,8 @@ export default function StuffIWant() {
       },
     ]);
   }
+
+  const canSave = name.trim() && category && condition;
 
   return (
     <SafeAreaView className="flex-1">
@@ -104,7 +122,12 @@ export default function StuffIWant() {
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-[#4A3728]">{item.name}</Text>
-                {item.description ? <Text className="text-xs text-[#8B7355] mt-0.5" numberOfLines={2}>{item.description}</Text> : null}
+                {(item.category || item.condition) ? (
+                  <Text className="text-xs text-[#8B7355] mt-0.5">
+                    {[item.category, item.condition].filter(Boolean).join(" · ")}
+                  </Text>
+                ) : null}
+                {item.notes ? <Text className="text-xs text-[#A09080] mt-0.5" numberOfLines={2}>{item.notes}</Text> : null}
               </View>
               <TouchableOpacity onPress={() => confirmDelete(item.id)} className="p-1">
                 <Ionicons name="trash-outline" size={16} color="#C4B9AA" />
@@ -115,41 +138,83 @@ export default function StuffIWant() {
       )}
 
       {/* Add Modal */}
-      <Modal visible={showForm} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowForm(false)}>
-        <View className="flex-1 bg-[#FAF7F2] px-6 pt-8">
-          <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-xl font-semibold text-[#4A3728]">Add to Wish List</Text>
-            <TouchableOpacity onPress={() => setShowForm(false)}>
+      <Modal visible={showForm} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { resetForm(); setShowForm(false); }}>
+        <ScrollView style={{ flex: 1, backgroundColor: "#FAF7F2" }} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+            <Text style={{ fontSize: 20, fontWeight: "600", color: "#4A3728" }}>Add to Wish List</Text>
+            <TouchableOpacity onPress={() => { resetForm(); setShowForm(false); }}>
               <Ionicons name="close" size={22} color="#8B7355" />
             </TouchableOpacity>
           </View>
-          <View className="gap-3">
-            <TextInput
-              className="bg-white rounded-2xl px-4 py-4 text-[#4A3728] border border-[#EDE8DF]"
-              placeholder="What are you looking for? *"
-              placeholderTextColor="#C4B9AA"
-              value={name}
-              onChangeText={setName}
-            />
-            <TextInput
-              className="bg-white rounded-2xl px-4 py-4 text-[#4A3728] border border-[#EDE8DF]"
-              placeholder="Any details? (optional)"
-              placeholderTextColor="#C4B9AA"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={3}
-              style={{ textAlignVertical: "top" }}
-            />
-            <TouchableOpacity
-              onPress={handleAdd}
-              disabled={!name.trim() || saving}
-              className={`rounded-full py-4 items-center mt-2 ${name.trim() ? "bg-[#4A3728]" : "bg-[#D9CFC4]"}`}
-            >
-              {saving ? <ActivityIndicator color="#FAF7F2" /> : <Text className="text-[#FAF7F2] font-semibold">Add to List</Text>}
-            </TouchableOpacity>
+
+          {/* Name */}
+          <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 6 }}>Item Name</Text>
+          <TextInput
+            style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, color: "#4A3728", borderWidth: 1, borderColor: "#EDE8DF", marginBottom: 16, fontSize: 14 }}
+            placeholder="e.g. Vintage Denim Jacket"
+            placeholderTextColor="#C4B9AA"
+            value={name}
+            onChangeText={setName}
+          />
+
+          {/* Category */}
+          <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 8 }}>Category</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+            {CATEGORIES.map((c) => (
+              <TouchableOpacity
+                key={c}
+                onPress={() => setCategory(c)}
+                style={{
+                  paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start",
+                  borderColor: category === c ? "#4A3728" : "#D9CFC4",
+                  backgroundColor: category === c ? "#4A3728" : "white",
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "500", color: category === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
-        </View>
+
+          {/* Condition */}
+          <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 8 }}>Condition</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+            {CONDITIONS.map((c) => (
+              <TouchableOpacity
+                key={c}
+                onPress={() => setCondition(c)}
+                style={{
+                  paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start",
+                  borderColor: condition === c ? "#4A3728" : "#D9CFC4",
+                  backgroundColor: condition === c ? "#4A3728" : "white",
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "500", color: condition === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Notes */}
+          <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 6 }}>
+            Notes <Text style={{ color: "#A09080" }}>(optional)</Text>
+          </Text>
+          <TextInput
+            style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, color: "#4A3728", borderWidth: 1, borderColor: "#EDE8DF", marginBottom: 24, fontSize: 14, textAlignVertical: "top" }}
+            placeholder="Any specifics — size, colour, brand, model..."
+            placeholderTextColor="#C4B9AA"
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={3}
+          />
+
+          <TouchableOpacity
+            onPress={handleAdd}
+            disabled={!canSave || saving}
+            style={{ borderRadius: 999, paddingVertical: 16, alignItems: "center", backgroundColor: canSave ? "#4A3728" : "#D9CFC4" }}
+          >
+            {saving ? <ActivityIndicator color="#FAF7F2" /> : <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 15 }}>Add to List</Text>}
+          </TouchableOpacity>
+        </ScrollView>
       </Modal>
     </SafeAreaView>
   );
