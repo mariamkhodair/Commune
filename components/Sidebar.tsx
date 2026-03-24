@@ -159,6 +159,21 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Admin link — only visible to admins */}
+        {profile?.is_admin && (
+          <Link
+            href="/admin"
+            className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-colors ${pathname === "/admin" ? "bg-[#4A3728] text-[#F5F0E8]" : "text-[#6B5040] hover:bg-[#F5F0E8] hover:text-[#4A3728]"}`}
+          >
+            <span className="shrink-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </span>
+            {open && <span className="text-sm font-medium whitespace-nowrap">Admin</span>}
+          </Link>
+        )}
       </nav>
 
       {/* User info + sign out */}

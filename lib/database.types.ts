@@ -8,6 +8,8 @@ export type Profile = {
   rating_sum: number;
   rating_count: number;
   created_at: string;
+  is_admin: boolean;
+  is_test: boolean;
 };
 
 export type Item = {
