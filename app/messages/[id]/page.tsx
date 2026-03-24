@@ -28,7 +28,8 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          const incoming = payload.new as Message;
+          setMessages((prev) => prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]);
           setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
         }
       )
@@ -72,7 +73,24 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
     const text = body.trim();
     if (!text || !userId) return;
     setBody("");
-    await supabase.from("messages").insert({ conversation_id: id, sender_id: userId, content: text });
+
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: Message = { id: tempId, content: text, sender_id: userId, created_at: new Date().toISOString() };
+    setMessages((prev) => [...prev, optimistic]);
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({ conversation_id: id, sender_id: userId, content: text })
+      .select("id, content, sender_id, created_at")
+      .single();
+
+    if (error) {
+      console.error("sendMessage error:", error);
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+    } else if (data) {
+      setMessages((prev) => prev.map((m) => m.id === tempId ? data as Message : m));
+    }
   }
 
   if (loading) {
