@@ -17,12 +17,14 @@ export default function Messages() {
   const [convos, setConvos] = useState<Convo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Re-fetch every time this tab comes into focus + clear unread badge
+  // Re-fetch every time this tab comes into focus + clear unread badge + poll every 5s
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
       clearAllMessages();
       fetchConvos();
+      const interval = setInterval(fetchConvos, 5000);
+      return () => clearInterval(interval);
     }, [userId])
   );
 

@@ -24,6 +24,9 @@ export default function Messages() {
   useEffect(() => {
     if (!userId) return;
     fetchConvos();
+    const interval = setInterval(fetchConvos, 5000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   // Re-fetch when the page is focused (e.g. after navigating back from a chat)
