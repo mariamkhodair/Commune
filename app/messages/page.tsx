@@ -26,6 +26,15 @@ export default function Messages() {
     fetchConvos();
   }, [userId]);
 
+  // Re-fetch when the page is focused (e.g. after navigating back from a chat)
+  useEffect(() => {
+    if (!userId) return;
+    const handleFocus = () => fetchConvos();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
   async function fetchConvos() {
     setLoading(true);
     const { data } = await supabase
