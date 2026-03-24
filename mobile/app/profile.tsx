@@ -60,7 +60,7 @@ export default function ProfilePage() {
     const path = `${userId}.jpg`;
 
     // Read as base64 and convert to Buffer — reliable on React Native
-    const base64 = await FileSystem.readAsStringAsync(compressed.uri, { encoding: FileSystem.EncodingType.Base64 });
+    const base64 = await FileSystem.readAsStringAsync(compressed.uri, { encoding: "base64" });
     const buffer = Buffer.from(base64, "base64");
 
     const { error: uploadError } = await supabase.storage
