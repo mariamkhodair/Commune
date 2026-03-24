@@ -130,16 +130,14 @@ export default function MySwaps() {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const allItems: any[] = s.swap_items ?? [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const getItem = (i: any) => Array.isArray(i.items) ? i.items[0] : i.items;
         const proposerItems: SwapItem[] = allItems
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((i: any) => i.items?.owner_id === s.proposer_id)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((i: any) => ({ name: i.items.name, points: i.items.points ?? 0 }));
+          .filter((i) => getItem(i)?.owner_id === s.proposer_id)
+          .map((i) => ({ name: getItem(i).name, points: getItem(i).points ?? 0 }));
         const receiverItems: SwapItem[] = allItems
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((i: any) => i.items?.owner_id === s.receiver_id)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((i: any) => ({ name: i.items.name, points: i.items.points ?? 0 }));
+          .filter((i) => getItem(i)?.owner_id === s.receiver_id)
+          .map((i) => ({ name: getItem(i).name, points: getItem(i).points ?? 0 }));
 
         const { data: conv } = await supabase
           .from("conversations")
@@ -241,8 +239,6 @@ export default function MySwaps() {
           {filtered.map((swap) => {
             const colors = STATUS_COLORS[swap.status] ?? { bg: "#EDE8DF", text: "#4A3728" };
             const isActive = ["Proposed", "Accepted", "In Progress"].includes(swap.status);
-            const offeredItems = swap.direction === "outgoing" ? swap.proposerItems : swap.receiverItems;
-            const wantedItems = swap.direction === "outgoing" ? swap.receiverItems : swap.proposerItems;
             return (
               <View key={swap.id} style={{ backgroundColor: "white", borderRadius: 16, borderWidth: 1, borderColor: "#EDE8DF", padding: 16 }}>
 
@@ -268,12 +264,12 @@ export default function MySwaps() {
                 <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
                   <ItemList
                     label="They offer"
-                    items={offeredItems.length ? offeredItems : [{ name: "—", points: 0 }]}
+                    items={swap.proposerItems.length ? swap.proposerItems : [{ name: "—", points: 0 }]}
                   />
                   <Ionicons name="swap-horizontal" size={18} color="#8B7355" style={{ marginTop: 22 }} />
                   <ItemList
                     label="In exchange for"
-                    items={wantedItems.length ? wantedItems : [{ name: "—", points: 0 }]}
+                    items={swap.receiverItems.length ? swap.receiverItems : [{ name: "—", points: 0 }]}
                   />
                 </View>
 

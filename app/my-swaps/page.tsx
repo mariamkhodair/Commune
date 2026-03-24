@@ -134,16 +134,14 @@ export default function MySwaps() {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const allItems: any[] = s.swap_items ?? [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const getItem = (i: any) => Array.isArray(i.items) ? i.items[0] : i.items;
         const proposerItems: SwapItem[] = allItems
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((i: any) => i.items?.owner_id === s.proposer_id)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((i: any) => ({ name: i.items.name, points: i.items.points ?? 0 }));
+          .filter((i) => getItem(i)?.owner_id === s.proposer_id)
+          .map((i) => ({ name: getItem(i).name, points: getItem(i).points ?? 0 }));
         const receiverItems: SwapItem[] = allItems
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((i: any) => i.items?.owner_id === s.receiver_id)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((i: any) => ({ name: i.items.name, points: i.items.points ?? 0 }));
+          .filter((i) => getItem(i)?.owner_id === s.receiver_id)
+          .map((i) => ({ name: getItem(i).name, points: getItem(i).points ?? 0 }));
 
         const { data: conv } = await supabase
           .from("conversations")
@@ -216,8 +214,6 @@ export default function MySwaps() {
           <div className="flex flex-col gap-4">
             {filtered.map((swap) => {
               const isActive = ["Proposed", "Accepted", "In Progress"].includes(swap.status);
-              const offeredItems = swap.direction === "outgoing" ? swap.proposerItems : swap.receiverItems;
-              const wantedItems = swap.direction === "outgoing" ? swap.receiverItems : swap.proposerItems;
               return (
                 <div key={swap.id} className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-5 shadow-sm">
 
@@ -239,11 +235,11 @@ export default function MySwaps() {
 
                   {/* Items */}
                   <div className="flex items-start gap-3">
-                    <ItemList label="They offer" items={offeredItems.length ? offeredItems : [{ name: "—", points: 0 }]} />
+                    <ItemList label="They offer" items={swap.proposerItems.length ? swap.proposerItems : [{ name: "—", points: 0 }]} />
                     <svg viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" className="w-5 h-5 shrink-0 mt-6">
                       <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
                     </svg>
-                    <ItemList label="In exchange for" items={wantedItems.length ? wantedItems : [{ name: "—", points: 0 }]} />
+                    <ItemList label="In exchange for" items={swap.receiverItems.length ? swap.receiverItems : [{ name: "—", points: 0 }]} />
                   </div>
 
                   {/* Progress bar */}
