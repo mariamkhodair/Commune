@@ -24,17 +24,25 @@ export default function Messages() {
   useEffect(() => {
     if (!userId) return;
     fetchConvos();
-    const interval = setInterval(fetchConvos, 5000);
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
 
-  // Re-fetch when the page is focused (e.g. after navigating back from a chat)
-  useEffect(() => {
-    if (!userId) return;
+    // Realtime: re-fetch instantly when any conversation updates
+    const channel = supabase
+      .channel("conversations-list")
+      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => fetchConvos())
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => fetchConvos())
+      .subscribe();
+
+    // Fallback poll every 5s
+    const interval = setInterval(fetchConvos, 5000);
+
     const handleFocus = () => fetchConvos();
     window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 

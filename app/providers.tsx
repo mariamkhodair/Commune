@@ -7,7 +7,7 @@ import { UnreadProvider } from "@/lib/unreadContext";
 function GlobalRefresh() {
   const router = useRouter();
   useEffect(() => {
-    const interval = setInterval(() => router.refresh(), 5000);
+    const interval = setInterval(() => router.refresh(), 2000);
     return () => clearInterval(interval);
   }, [router]);
   return null;

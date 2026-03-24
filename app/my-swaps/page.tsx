@@ -220,8 +220,21 @@ export default function MySwaps() {
   useEffect(() => {
     if (!userId) return;
     fetchSwaps();
+
+    // Realtime: re-fetch instantly when swaps or scheduled_swaps change
+    const channel = supabase
+      .channel("swaps-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "swaps" }, () => fetchSwaps())
+      .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_swaps" }, () => fetchSwaps())
+      .subscribe();
+
+    // Fallback poll every 5s
     const interval = setInterval(fetchSwaps, 5000);
-    return () => clearInterval(interval);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
