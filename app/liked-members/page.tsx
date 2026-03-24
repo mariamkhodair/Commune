@@ -28,18 +28,26 @@ export default function LikedMembers() {
 
   async function fetchFollowed() {
     setLoading(true);
-    const { data } = await supabase
+
+    // Step 1: get followed IDs
+    const { data: follows } = await supabase
       .from("member_follows")
-      .select("following_id, profiles(id, name, area, city, rating_sum, rating_count, created_at)")
+      .select("following_id")
       .eq("follower_id", userId)
       .order("created_at", { ascending: false });
 
+    const ids = (follows ?? []).map((f) => f.following_id).filter(Boolean);
+    if (ids.length === 0) { setMembers([]); setLoading(false); return; }
+
+    // Step 2: fetch profiles for those IDs
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, name, area, city, rating_sum, rating_count, created_at")
+      .in("id", ids);
+
     const enriched = await Promise.all(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (data ?? []).map(async (row: any) => {
-        const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-        if (!p) return null;
-
+      (profiles ?? []).map(async (p: any) => {
         const { count } = await supabase
           .from("items")
           .select("id", { count: "exact", head: true })
@@ -58,7 +66,7 @@ export default function LikedMembers() {
       })
     );
 
-    setMembers(enriched.filter(Boolean) as FollowedMember[]);
+    setMembers(enriched);
     setLoading(false);
   }
 

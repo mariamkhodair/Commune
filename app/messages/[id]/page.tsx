@@ -90,6 +90,8 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
     } else if (data) {
       setMessages((prev) => prev.map((m) => m.id === tempId ? data as Message : m));
+      // Keep conversation last_message in sync for the messages list
+      supabase.from("conversations").update({ last_message: text, last_message_at: (data as Message).created_at }).eq("id", id);
     }
   }
 
