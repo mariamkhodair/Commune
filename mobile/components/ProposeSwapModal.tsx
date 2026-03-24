@@ -46,14 +46,19 @@ export default function ProposeSwapModal({
   const theirTotal = targetItems.reduce((s, i) => s + i.points, 0);
 
   useEffect(() => {
-    if (!visible || !proposerId || !receiverId) return;
+    if (!visible || !receiverId) return;
     setSubmitted(false);
     setLoading(true);
 
     async function fetchData() {
+      // Always use the authenticated session to guarantee we fetch the right user's items
+      const { data: { session } } = await supabase.auth.getSession();
+      const myId = session?.user?.id;
+      if (!myId) { setLoading(false); return; }
+
       const [{ data: itemsData }, { data: wantedData }] = await Promise.all([
         supabase.from("items").select("id, name, category, points")
-          .eq("owner_id", proposerId).eq("status", "Available"),
+          .eq("owner_id", myId).neq("status", "Swapped"),
         supabase.from("wanted_items").select("name").eq("user_id", receiverId),
       ]);
       const fetched = (itemsData ?? []) as MyItem[];
@@ -78,13 +83,16 @@ export default function ProposeSwapModal({
     if (!receiverId || selected.size === 0) return;
     setSubmitting(true);
 
+    const { data: { session } } = await supabase.auth.getSession();
+    const myId = session?.user?.id ?? proposerId;
+
     const selectedItems = myItems.filter((i) => selected.has(i.id));
     const myTotal = selectedItems.reduce((s, i) => s + i.points, 0);
 
     const { data: swapData, error } = await supabase
       .from("swaps")
       .insert({
-        proposer_id: proposerId,
+        proposer_id: myId,
         receiver_id: receiverId,
         status: "Proposed",
         points_difference: myTotal - theirTotal,

@@ -63,12 +63,17 @@ export default function ProposeSwapModal({
 
   useEffect(() => {
     async function fetchData() {
+      // Always use the authenticated session to guarantee we fetch the right user's items
+      const { data: { session } } = await supabase.auth.getSession();
+      const myId = session?.user?.id;
+      if (!myId) { setLoadingItems(false); return; }
+
       const [{ data: myItemsData }, { data: wantedData }] = await Promise.all([
         supabase
           .from("items")
           .select("id, name, category, points")
-          .eq("owner_id", proposerId)
-          .eq("status", "Available"),
+          .eq("owner_id", myId)
+          .neq("status", "Swapped"),
         receiverId
           ? supabase.from("wanted_items").select("name").eq("user_id", receiverId)
           : Promise.resolve({ data: [] }),
@@ -83,7 +88,7 @@ export default function ProposeSwapModal({
       setLoadingItems(false);
     }
     fetchData();
-  }, [proposerId, receiverId, theirTotal]);
+  }, [receiverId, theirTotal]);
 
   function toggleItem(id: string) {
     setSelected((prev) => {
@@ -98,13 +103,16 @@ export default function ProposeSwapModal({
     setSubmitting(true);
     setError(null);
 
+    const { data: { session } } = await supabase.auth.getSession();
+    const myId = session?.user?.id ?? proposerId;
+
     const selectedItems = myItems.filter((i) => selected.has(i.id));
     const myTotal = selectedItems.reduce((sum, i) => sum + i.points, 0);
 
     const { data: swapData, error: swapError } = await supabase
       .from("swaps")
       .insert({
-        proposer_id: proposerId,
+        proposer_id: myId,
         receiver_id: receiverId,
         status: "Proposed",
         points_difference: myTotal - theirTotal,
