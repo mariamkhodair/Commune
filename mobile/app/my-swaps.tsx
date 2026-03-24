@@ -237,8 +237,19 @@ export default function MySwaps() {
   useEffect(() => {
     if (!userId) return;
     fetchSwaps();
+
+    const channel = supabase
+      .channel("mobile-swaps-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "swaps" }, () => fetchSwaps())
+      .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_swaps" }, () => fetchSwaps())
+      .subscribe();
+
     const interval = setInterval(fetchSwaps, 5000);
-    return () => clearInterval(interval);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 

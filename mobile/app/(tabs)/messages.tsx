@@ -17,14 +17,25 @@ export default function Messages() {
   const [convos, setConvos] = useState<Convo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Re-fetch every time this tab comes into focus + clear unread badge + poll every 5s
+  // Re-fetch on focus + realtime subscription + 5s fallback poll
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
       clearAllMessages();
       fetchConvos();
+
+      const channel = supabase
+        .channel("mobile-conversations-list")
+        .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => fetchConvos())
+        .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => fetchConvos())
+        .subscribe();
+
       const interval = setInterval(fetchConvos, 5000);
-      return () => clearInterval(interval);
+
+      return () => {
+        supabase.removeChannel(channel);
+        clearInterval(interval);
+      };
     }, [userId])
   );
 
