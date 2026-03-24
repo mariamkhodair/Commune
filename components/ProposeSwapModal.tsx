@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/useUser";
 
 export type SwapTargetItem = {
   id: string;
@@ -49,6 +50,7 @@ export default function ProposeSwapModal({
   proposerId: string;
   onClose: () => void;
 }) {
+  const { userId: myId } = useUser();
   const [myItems, setMyItems] = useState<MyItem[]>([]);
   const [theirWanted, setTheirWanted] = useState<string[]>([]);
   const [loadingItems, setLoadingItems] = useState(true);
@@ -62,12 +64,8 @@ export default function ProposeSwapModal({
   const theirTotal = items.reduce((sum, i) => sum + i.points, 0);
 
   useEffect(() => {
+    if (!myId) return;
     async function fetchData() {
-      // getUser() makes a live network call — more reliable than getSession() which can be stale
-      const { data: { user } } = await supabase.auth.getUser();
-      const myId = user?.id;
-      if (!myId) { setLoadingItems(false); return; }
-
       const [{ data: myItemsData }, { data: wantedData }] = await Promise.all([
         supabase
           .from("items")
@@ -88,7 +86,7 @@ export default function ProposeSwapModal({
       setLoadingItems(false);
     }
     fetchData();
-  }, [receiverId, theirTotal]);
+  }, [myId, receiverId, theirTotal]);
 
   function toggleItem(id: string) {
     setSelected((prev) => {
@@ -103,8 +101,7 @@ export default function ProposeSwapModal({
     setSubmitting(true);
     setError(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    const myId = user?.id ?? proposerId;
+    const insertId = myId ?? proposerId;
 
     const selectedItems = myItems.filter((i) => selected.has(i.id));
     const myTotal = selectedItems.reduce((sum, i) => sum + i.points, 0);
@@ -112,7 +109,7 @@ export default function ProposeSwapModal({
     const { data: swapData, error: swapError } = await supabase
       .from("swaps")
       .insert({
-        proposer_id: myId,
+        proposer_id: insertId,
         receiver_id: receiverId,
         status: "Proposed",
       })
