@@ -147,11 +147,13 @@ export default function MySwaps() {
 
   async function fetchSwaps() {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("swaps")
       .select("id, proposer_id, receiver_id, status, swap_items(item_id, side)")
       .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
       .order("created_at", { ascending: false });
+
+    console.log("fetchSwaps userId:", userId, "data:", data, "error:", error);
 
     const enriched = await Promise.all(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
