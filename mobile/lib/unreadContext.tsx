@@ -45,6 +45,24 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
     fetchUnread();
   }, [fetchUnread]);
 
+  // Listen for new incoming messages in real time
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel("unread-watcher")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          if (payload.new.sender_id !== userId) {
+            fetchUnread();
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, fetchUnread]);
+
   // Called when user visits the messages list tab — clears everything
   async function clearAllMessages() {
     await AsyncStorage.setItem("msg_last_seen", new Date().toISOString());
