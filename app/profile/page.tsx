@@ -46,8 +46,9 @@ export default function ProfilePage() {
     }
 
     const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+    const urlWithBust = `${publicUrl}?t=${Date.now()}`;
     await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", userId);
-    setAvatarUrl(publicUrl);
+    setAvatarUrl(urlWithBust);
     setUploading(false);
   }
 

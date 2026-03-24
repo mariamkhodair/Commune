@@ -4,6 +4,8 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+import { Buffer } from "buffer";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
@@ -46,16 +48,16 @@ export default function ProfilePage() {
 
     setUploading(true);
     const asset = result.assets[0];
-    const ext = asset.uri.split(".").pop() ?? "jpg";
+    const ext = (asset.uri.split(".").pop() ?? "jpg").toLowerCase();
     const path = `${userId}.${ext}`;
 
-    // Read file as blob
-    const response = await fetch(asset.uri);
-    const blob = await response.blob();
+    // Read as base64 and convert to Buffer — reliable on React Native
+    const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 });
+    const buffer = Buffer.from(base64, "base64");
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(path, blob, { upsert: true, contentType: `image/${ext}` });
+      .upload(path, buffer, { upsert: true, contentType: `image/${ext}` });
 
     if (uploadError) {
       console.error("Avatar upload error:", uploadError);
@@ -65,8 +67,9 @@ export default function ProfilePage() {
     }
 
     const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+    const urlWithBust = `${publicUrl}?t=${Date.now()}`;
     await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", userId);
-    setAvatarUrl(publicUrl);
+    setAvatarUrl(urlWithBust);
     setUploading(false);
   }
 
