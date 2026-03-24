@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system";
 import { Buffer } from "buffer";
 import { supabase } from "@/lib/supabase";
@@ -48,16 +49,23 @@ export default function ProfilePage() {
 
     setUploading(true);
     const asset = result.assets[0];
-    const ext = (asset.uri.split(".").pop() ?? "jpg").toLowerCase();
-    const path = `${userId}.${ext}`;
+
+    // Resize to 400×400 and compress to ~60% — keeps files under ~40KB
+    const compressed = await ImageManipulator.manipulateAsync(
+      asset.uri,
+      [{ resize: { width: 400, height: 400 } }],
+      { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
+    );
+
+    const path = `${userId}.jpg`;
 
     // Read as base64 and convert to Buffer — reliable on React Native
-    const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 });
+    const base64 = await FileSystem.readAsStringAsync(compressed.uri, { encoding: FileSystem.EncodingType.Base64 });
     const buffer = Buffer.from(base64, "base64");
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(path, buffer, { upsert: true, contentType: `image/${ext}` });
+      .upload(path, buffer, { upsert: true, contentType: "image/jpeg" });
 
     if (uploadError) {
       console.error("Avatar upload error:", uploadError);
