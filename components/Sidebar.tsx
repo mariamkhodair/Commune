@@ -160,7 +160,7 @@ export default function Sidebar() {
 
   // Clear badges when visiting the relevant pages
   useEffect(() => {
-    if (pathname.startsWith("/messages")) {
+    if (pathname === "/messages") {
       clearAllMessages();
     }
     if (pathname === "/scheduled-swaps") {
