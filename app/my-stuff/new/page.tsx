@@ -84,11 +84,27 @@ export default function NewItem() {
 
   async function handleAnalyse() {
     setLoading(true);
-    // TODO: call AI API to analyse item and assign points
-    await new Promise((r) => setTimeout(r, 1800)); // placeholder delay
-    setPoints(340); // placeholder points value
-    setLoading(false);
-    setStep("preview");
+    try {
+      const brand = form.brand === "Other" ? form.customBrand : form.brand;
+      const res = await fetch("/api/analyze-item", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          brand,
+          category: form.category,
+          condition: form.condition,
+          description: form.description,
+        }),
+      });
+      const data = await res.json();
+      if (data.points) {
+        setPoints(data.points);
+        setStep("preview");
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleDrop(e: React.DragEvent) {
