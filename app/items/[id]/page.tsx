@@ -5,6 +5,7 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
 import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/useUser";
 
 type ItemData = {
   id: string;
@@ -21,6 +22,7 @@ type ItemData = {
 
 export default function ItemPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { userId } = useUser();
   const [item, setItem] = useState<ItemData | null>(null);
   const [loading, setLoading] = useState(true);
   const [proposing, setProposing] = useState(false);
@@ -164,27 +166,29 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
                 <p className="text-xs text-[#A09080]">View their full listings</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/messages/${item.owner_id}`}
-                className="w-10 h-10 rounded-full border border-[#D9CFC4] flex items-center justify-center text-[#6B5040] hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
-                title="Message"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </Link>
-              <button
-                onClick={() => setProposing(true)}
-                className="w-10 h-10 rounded-full bg-[#4A3728] flex items-center justify-center text-[#F5F0E8] hover:bg-[#6B5040] transition-colors"
-                title="Propose swap"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
-                </svg>
-              </button>
-            </div>
+            <Link
+              href={`/messages/${item.owner_id}`}
+              className="w-10 h-10 rounded-full border border-[#D9CFC4] flex items-center justify-center text-[#6B5040] hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
+              title="Message"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </Link>
           </div>
+
+          {/* Propose Swap CTA */}
+          {userId && item.owner_id !== userId && (
+            <button
+              onClick={() => setProposing(true)}
+              className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3.5 font-semibold hover:bg-[#6B5040] transition-colors flex items-center justify-center gap-2"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
+              </svg>
+              Propose Swap
+            </button>
+          )}
 
           {/* Description */}
           <div>
@@ -231,9 +235,10 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
         </div>
       </main>
 
-      {proposing && (
+      {proposing && userId && (
         <ProposeSwapModal
           items={[{ id, name: item.name, points: item.points, owner: item.ownerName, ownerId: item.owner_id }]}
+          proposerId={userId}
           onClose={() => setProposing(false)}
         />
       )}

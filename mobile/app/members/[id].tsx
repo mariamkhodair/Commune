@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, FlatList } from "react-native";
+import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import ProposeSwapModal from "@/components/ProposeSwapModal";
 
 type Profile = { id: string; name: string; area: string; city: string; rating: number | null; joined: string };
 type Item = { id: string; name: string; category: string; points: number; photos: string[]; liked: boolean };
@@ -17,6 +18,7 @@ export default function MemberProfile() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [followed, setFollowed] = useState(false);
+  const [proposingItem, setProposingItem] = useState<Item | null>(null);
 
   useEffect(() => {
     if (!id || !userId) return;
@@ -142,7 +144,17 @@ export default function MemberProfile() {
                   </View>
                   <View className="p-2.5">
                     <Text className="text-xs font-medium text-[#4A3728]" numberOfLines={1}>{item.name}</Text>
-                    <Text className="text-xs font-semibold text-[#4A3728] mt-0.5">{item.points} pts</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                      <Text className="text-xs font-semibold text-[#4A3728]">{item.points} pts</Text>
+                      {id !== userId && (
+                        <TouchableOpacity
+                          onPress={() => setProposingItem(item)}
+                          style={{ backgroundColor: "#4A3728", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 }}
+                        >
+                          <Text style={{ color: "#FAF7F2", fontSize: 10, fontWeight: "600" }}>Swap</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -150,6 +162,14 @@ export default function MemberProfile() {
           )}
         </View>
       </ScrollView>
+      {userId && proposingItem && profile && (
+        <ProposeSwapModal
+          visible={!!proposingItem}
+          targetItems={[{ id: proposingItem.id, name: proposingItem.name, points: proposingItem.points, ownerId: id!, ownerName: profile.name }]}
+          proposerId={userId}
+          onClose={() => setProposingItem(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

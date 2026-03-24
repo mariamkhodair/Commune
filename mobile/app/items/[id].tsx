@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import ProposeSwapModal from "@/components/ProposeSwapModal";
 
 const { width } = Dimensions.get("window");
 
@@ -22,6 +23,7 @@ export default function ItemDetail() {
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [proposing, setProposing] = useState(false);
 
   useEffect(() => {
     if (!id || !userId) return;
@@ -141,12 +143,25 @@ export default function ItemDetail() {
 
           {/* CTA */}
           {item.ownerId !== userId && item.status === "Available" && (
-            <TouchableOpacity className="bg-[#4A3728] rounded-full py-4 items-center">
+            <TouchableOpacity
+              onPress={() => setProposing(true)}
+              className="bg-[#4A3728] rounded-full py-4 items-center flex-row justify-center gap-2"
+            >
+              <Ionicons name="swap-horizontal" size={18} color="#FAF7F2" />
               <Text className="text-[#FAF7F2] font-semibold">Propose Swap</Text>
             </TouchableOpacity>
           )}
         </View>
       </ScrollView>
+
+      {userId && item && (
+        <ProposeSwapModal
+          visible={proposing}
+          targetItems={[{ id: item.id, name: item.name, points: item.points, ownerId: item.ownerId, ownerName: item.ownerName }]}
+          proposerId={userId}
+          onClose={() => setProposing(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }

@@ -307,8 +307,8 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {proposingItems && (
-        <ProposeSwapModal items={proposingItems} onClose={() => setProposingItems(null)} />
+      {proposingItems && userId && (
+        <ProposeSwapModal items={proposingItems} proposerId={userId} onClose={() => setProposingItems(null)} />
       )}
 
       {showReport && (
