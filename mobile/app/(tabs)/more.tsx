@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -36,7 +37,18 @@ const SECTIONS: { heading: string; items: MenuItem[] }[] = [
 
 export default function More() {
   const router = useRouter();
-  const { profile } = useUser();
+  const { userId, profile } = useUser();
+  const [proposedCount, setProposedCount] = useState(0);
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from("swaps")
+      .select("id", { count: "exact", head: true })
+      .eq("receiver_id", userId)
+      .eq("status", "Proposed")
+      .then(({ count }) => setProposedCount(count ?? 0));
+  }, [userId]);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -65,19 +77,29 @@ export default function More() {
               {heading}
             </Text>
             <View style={{ gap: 6 }}>
-              {items.map(({ label, icon, route }) => (
-                <TouchableOpacity
-                  key={label}
-                  onPress={() => router.push(route as any)}
-                  className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-4 border border-[#EDE8DF]"
-                >
-                  <View className="flex-row items-center gap-3">
-                    <Ionicons name={icon} size={18} color="#8B7355" />
-                    <Text className="text-sm text-[#4A3728]">{label}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color="#C4B9AA" />
-                </TouchableOpacity>
-              ))}
+              {items.map(({ label, icon, route }) => {
+                const showBadge = label === "My Swaps" && proposedCount > 0;
+                return (
+                  <TouchableOpacity
+                    key={label}
+                    onPress={() => router.push(route as any)}
+                    className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-4 border border-[#EDE8DF]"
+                  >
+                    <View className="flex-row items-center gap-3">
+                      <Ionicons name={icon} size={18} color="#8B7355" />
+                      <Text className="text-sm text-[#4A3728]">{label}</Text>
+                    </View>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      {showBadge && (
+                        <View style={{ backgroundColor: "#A0624A", borderRadius: 999, minWidth: 20, height: 20, paddingHorizontal: 5, alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ color: "white", fontSize: 11, fontWeight: "700" }}>{proposedCount}</Text>
+                        </View>
+                      )}
+                      <Ionicons name="chevron-forward" size={16} color="#C4B9AA" />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         ))}

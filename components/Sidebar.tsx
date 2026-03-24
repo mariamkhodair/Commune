@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -120,9 +120,20 @@ const sidebarItems = [
 
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
+  const [proposedCount, setProposedCount] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
-  const { profile } = useUser();
+  const { userId, profile } = useUser();
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from("swaps")
+      .select("id", { count: "exact", head: true })
+      .eq("receiver_id", userId)
+      .eq("status", "Proposed")
+      .then(({ count }) => setProposedCount(count ?? 0));
+  }, [userId]);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -148,14 +159,32 @@ export default function Sidebar() {
       <nav className="flex flex-col gap-1 px-2 mt-2 flex-1 overflow-y-auto">
         {sidebarItems.map((item) => {
           const active = pathname === item.href;
+          const isMySwaps = item.label === "My Swaps";
+          const showBadge = isMySwaps && proposedCount > 0;
           return (
             <Link
               key={item.label}
               href={item.href}
               className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-colors ${active ? "bg-[#4A3728] text-[#F5F0E8]" : "text-[#6B5040] hover:bg-[#F5F0E8] hover:text-[#4A3728]"}`}
             >
-              <span className="shrink-0">{item.icon}</span>
-              {open && <span className="text-sm font-medium whitespace-nowrap">{item.label}</span>}
+              <span className="shrink-0 relative">
+                {item.icon}
+                {showBadge && !open && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#A0624A] text-white text-[9px] font-bold flex items-center justify-center">
+                    {proposedCount}
+                  </span>
+                )}
+              </span>
+              {open && (
+                <span className="flex items-center gap-2 flex-1">
+                  <span className="text-sm font-medium whitespace-nowrap">{item.label}</span>
+                  {showBadge && (
+                    <span className="ml-auto min-w-[20px] h-5 rounded-full bg-[#A0624A] text-white text-xs font-bold flex items-center justify-center px-1">
+                      {proposedCount}
+                    </span>
+                  )}
+                </span>
+              )}
             </Link>
           );
         })}
