@@ -41,6 +41,77 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+const DAY_NAMES = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+function CalendarPicker({
+  selected,
+  onToggle,
+  month,
+  onChangeMonth,
+}: {
+  selected: Set<string>;
+  onToggle: (date: string) => void;
+  month: Date;
+  onChangeMonth: (d: Date) => void;
+}) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const year = month.getFullYear();
+  const mon = month.getMonth();
+  const firstDay = new Date(year, mon, 1).getDay();
+  const daysInMonth = new Date(year, mon + 1, 0).getDate();
+  const canGoPrev = new Date(year, mon - 1, 1) >= new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  return (
+    <div className="bg-[#FAF7F2] rounded-xl border border-[#D9CFC4] p-4 mt-3">
+      <div className="flex items-center justify-between mb-3">
+        <button
+          onClick={() => canGoPrev && onChangeMonth(new Date(year, mon - 1, 1))}
+          disabled={!canGoPrev}
+          className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${canGoPrev ? "hover:bg-[#EDE8DF] text-[#4A3728]" : "text-[#D9CFC4] cursor-not-allowed"}`}
+        >
+          ‹
+        </button>
+        <span className="text-sm font-semibold text-[#4A3728]">{MONTH_NAMES[mon]} {year}</span>
+        <button
+          onClick={() => onChangeMonth(new Date(year, mon + 1, 1))}
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#EDE8DF] text-[#4A3728] transition-colors"
+        >
+          ›
+        </button>
+      </div>
+      <div className="grid grid-cols-7 mb-1">
+        {DAY_NAMES.map((d) => (
+          <div key={d} className="text-center text-xs text-[#A09080] py-1">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7">
+        {cells.map((day, idx) => {
+          if (day === null) return <div key={`e-${idx}`} />;
+          const dateStr = `${year}-${String(mon + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const isPast = new Date(year, mon, day) < today;
+          const isSelected = selected.has(dateStr);
+          return (
+            <button
+              key={dateStr}
+              onClick={() => !isPast && onToggle(dateStr)}
+              disabled={isPast}
+              className={`aspect-square flex items-center justify-center rounded-full text-sm transition-colors mx-auto w-8 h-8
+                ${isPast ? "text-[#D9CFC4] cursor-not-allowed" : isSelected ? "bg-[#4A3728] text-[#FAF7F2] font-semibold" : "text-[#4A3728] hover:bg-[#EDE8DF]"}`}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ProgressBar({ status }: { status: SwapStatus }) {
   if (status === "Declined") return null;
   const current = STEPS.indexOf(status);
@@ -137,6 +208,13 @@ export default function MySwaps() {
   const [swaps, setSwaps] = useState<Swap[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<SwapStatus | "All">("All");
+
+  // Calendar state
+  const [calendarOpenFor, setCalendarOpenFor] = useState<string | null>(null);
+  const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
+    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d;
+  });
 
 
   useEffect(() => {
@@ -283,6 +361,28 @@ export default function MySwaps() {
   async function acceptDate(dateId: string, swapId: string) {
     await supabase.from("scheduled_swaps").delete().eq("swap_id", swapId).neq("id", dateId);
     await supabase.from("swaps").update({ status: "In Progress" }).eq("id", swapId);
+    fetchSwaps();
+  }
+
+  function openCalendar(swapId: string) {
+    setSelectedDates(new Set());
+    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0);
+    setCalendarMonth(d);
+    setCalendarOpenFor(swapId);
+  }
+
+  function toggleDate(dateStr: string) {
+    setSelectedDates((prev) => {
+      const next = new Set(prev);
+      next.has(dateStr) ? next.delete(dateStr) : next.add(dateStr);
+      return next;
+    });
+  }
+
+  async function proposeDates(swapId: string, dates: string[]) {
+    await supabase.from("scheduled_swaps").insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d })));
+    setCalendarOpenFor(null);
+    setSelectedDates(new Set());
     fetchSwaps();
   }
 
@@ -486,46 +586,55 @@ export default function MySwaps() {
                   {/* Message + Schedule buttons */}
                   {(["Accepted", "In Progress"] as SwapStatus[]).includes(swap.status) && (
                     <div className="flex gap-2 mt-3">
-                      {swap.conversationId &&
-                        (["Accepted", "In Progress"] as SwapStatus[]).includes(swap.status) && (
-                          <Link
-                            href={`/messages/${swap.conversationId}`}
-                            className="flex-1 flex items-center justify-center gap-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
-                          >
-                            <svg
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="w-4 h-4"
-                            >
-                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                            </svg>
-                            Message
-                          </Link>
-                        )}
-
-                      {swap.status === "Accepted" && swap.proposedDates.length === 0 && swap.direction === "outgoing" && (
-                        <button
-                          onClick={() => openChat(swap)}
+                      {swap.conversationId && (
+                        <Link
+                          href={`/messages/${swap.conversationId}`}
                           className="flex-1 flex items-center justify-center gap-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
                         >
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-4 h-4"
-                          >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                           </svg>
                           Message
+                        </Link>
+                      )}
+                      {swap.status === "Accepted" && swap.proposedDates.length === 0 && swap.direction === "outgoing" && (
+                        <button
+                          onClick={() => calendarOpenFor === swap.id ? setCalendarOpenFor(null) : openCalendar(swap.id)}
+                          className="flex-1 flex items-center justify-center gap-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                          </svg>
+                          Schedule
                         </button>
                       )}
+                    </div>
+                  )}
+
+                  {/* Inline calendar */}
+                  {calendarOpenFor === swap.id && (
+                    <div className="mt-2">
+                      <CalendarPicker
+                        selected={selectedDates}
+                        onToggle={toggleDate}
+                        month={calendarMonth}
+                        onChangeMonth={setCalendarMonth}
+                      />
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => { setCalendarOpenFor(null); setSelectedDates(new Set()); }}
+                          className="flex-1 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => proposeDates(swap.id, Array.from(selectedDates))}
+                          disabled={selectedDates.size === 0}
+                          className="flex-1 rounded-full bg-[#4A3728] text-[#F5F0E8] py-2 text-sm font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Propose {selectedDates.size > 0 ? `${selectedDates.size} ` : ""}{selectedDates.size === 1 ? "date" : "dates"}
+                        </button>
+                      </div>
                     </div>
                   )}
 
