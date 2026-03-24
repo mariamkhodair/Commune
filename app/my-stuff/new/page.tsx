@@ -66,14 +66,25 @@ export default function NewItem() {
 
   function handleFiles(files: FileList | File[]) {
     Array.from(files).forEach((file) => {
-      if (!file.type.startsWith("image/")) return;
+      const objectUrl = URL.createObjectURL(file);
+      // Add preview + placeholder file immediately to keep both arrays in sync
+      setPhotos((prev) => [...prev, objectUrl]);
       setPhotoFiles((prev) => [...prev, file]);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setPhotos((prev) => [...prev, result]);
+
+      // Convert to JPEG via canvas and replace the placeholder
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext("2d")?.drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          const jpeg = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+          setPhotoFiles((prev) => prev.map((f) => f === file ? jpeg : f));
+        }, "image/jpeg", 0.85);
       };
-      reader.readAsDataURL(file);
+      img.src = objectUrl;
     });
   }
 
@@ -127,22 +138,21 @@ export default function NewItem() {
       const uploadedUrls: string[] = [];
       for (let i = 0; i < photoFiles.length; i++) {
         const file = photoFiles[i];
-        const ext = file.name.split(".").pop() ?? "jpg";
-        const path = `${userId}/${Date.now()}_${i}.${ext}`;
+        const path = `${userId}/${Date.now()}_${i}.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from("item-photos")
-          .upload(path, file, { cacheControl: "3600", upsert: false });
+          .upload(path, file, { cacheControl: "3600", upsert: false, contentType: "image/jpeg" });
 
         if (uploadError) {
-          // If storage bucket doesn't exist yet, fall back to base64 (dev mode)
-          uploadedUrls.push(photos[i]);
-        } else {
-          const { data: { publicUrl } } = supabase.storage
-            .from("item-photos")
-            .getPublicUrl(path);
-          uploadedUrls.push(publicUrl);
+          setSaveError("Failed to upload photo. Please try again.");
+          setSaving(false);
+          return;
         }
+        const { data: { publicUrl } } = supabase.storage
+          .from("item-photos")
+          .getPublicUrl(path);
+        uploadedUrls.push(publicUrl);
       }
 
       // Insert item into DB

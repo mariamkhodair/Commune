@@ -28,16 +28,26 @@ export default function ProfilePage() {
   }, [profile]);
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !userId) return;
+    const raw = e.target.files?.[0];
+    if (!raw || !userId) return;
     setUploading(true);
 
-    const ext = file.name.split(".").pop();
-    const path = `${userId}.${ext}`;
+    // Convert to JPEG via Canvas so any format (HEIC, TIFF, etc.) works correctly
+    let file: Blob = raw;
+    try {
+      const bitmap = await createImageBitmap(raw);
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+      file = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b!), "image/jpeg", 0.9));
+    } catch { /* fall through with original file */ }
+
+    const path = `${userId}.jpg`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(path, file, { upsert: true });
+      .upload(path, file, { upsert: true, contentType: "image/jpeg" });
 
     if (uploadError) {
       console.error("Avatar upload error:", uploadError);
