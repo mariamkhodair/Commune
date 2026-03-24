@@ -115,13 +115,12 @@ export default function ProposeSwapModal({
         proposer_id: myId,
         receiver_id: receiverId,
         status: "Proposed",
-        points_difference: myTotal - theirTotal,
       })
       .select("id")
       .single();
 
     if (swapError || !swapData) {
-      setError("Something went wrong. Please try again.");
+      setError(swapError?.message ?? "Something went wrong. Please try again.");
       setSubmitting(false);
       return;
     }

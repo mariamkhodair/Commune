@@ -98,14 +98,13 @@ export default function ProposeSwapModal({
         proposer_id: myId,
         receiver_id: receiverId,
         status: "Proposed",
-        points_difference: myTotal - theirTotal,
       })
       .select("id")
       .single();
 
     if (error || !swapData) {
       setSubmitting(false);
-      Alert.alert("Error", "Could not send proposal. Please try again.");
+      Alert.alert("Error", error?.message ?? "Could not send proposal. Please try again.");
       return;
     }
 
