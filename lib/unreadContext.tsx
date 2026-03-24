@@ -48,6 +48,8 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     fetchUnread();
+    const interval = setInterval(fetchUnread, 5000);
+    return () => clearInterval(interval);
   }, [fetchUnread]);
 
   // Listen for new incoming messages in real time
