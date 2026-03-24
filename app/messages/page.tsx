@@ -48,14 +48,27 @@ export default function Messages() {
       (data ?? []).map(async (c: any) => {
         const otherId = c.member1_id === userId ? c.member2_id : c.member1_id;
         const { data: p } = await supabase.from("profiles").select("name").eq("id", otherId).single();
+
+        // Use last_message from conversations if set, else fetch from messages table
+        let lastMessage = c.last_message as string | null;
+        let lastAt = c.last_message_at as string | null;
+        if (!lastMessage) {
+          const { data: msg } = await supabase
+            .from("messages")
+            .select("content, created_at")
+            .eq("conversation_id", c.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (msg) { lastMessage = msg.content; lastAt = msg.created_at; }
+        }
+
         return {
           id: c.id,
           otherId,
           otherName: p?.name ?? "Unknown",
-          lastMessage: c.last_message ?? "No messages yet",
-          lastAt: c.last_message_at
-            ? new Date(c.last_message_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-            : "",
+          lastMessage: lastMessage ?? "No messages yet",
+          lastAt: lastAt ? new Date(lastAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "",
         };
       })
     );
