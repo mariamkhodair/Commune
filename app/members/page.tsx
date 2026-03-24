@@ -16,6 +16,7 @@ type MemberRow = {
   rating_count: number;
   item_count: number;
   joined: string;
+  avatar_url: string | null;
 };
 
 function proximityScore(member: MemberRow, myArea: string, myCity: string) {
@@ -69,7 +70,7 @@ function MembersInner() {
     // Fetch all profiles except current user
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, name, area, city, rating_sum, rating_count, created_at")
+      .select("id, name, area, city, rating_sum, rating_count, created_at, avatar_url")
       .neq("id", userId ?? "00000000-0000-0000-0000-000000000000")
       .order("name");
 
@@ -96,6 +97,7 @@ function MembersInner() {
           rating_count: p.rating_count ?? 0,
           item_count: count ?? 0,
           joined: new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+          avatar_url: p.avatar_url ?? null,
         };
       })
     );
@@ -183,8 +185,11 @@ function MembersInner() {
                   </button>
 
                   <Link href={`/members/${member.id}`} className="flex flex-col items-center gap-3 w-full">
-                    <div className="w-14 h-14 rounded-full bg-[#EDE8DF] flex items-center justify-center text-xl font-medium text-[#4A3728] font-[family-name:var(--font-permanent-marker)]">
-                      {member.name.charAt(0)}
+                    <div className="w-14 h-14 rounded-full bg-[#EDE8DF] flex items-center justify-center text-xl font-medium text-[#4A3728] font-[family-name:var(--font-permanent-marker)] overflow-hidden shrink-0">
+                      {member.avatar_url
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
+                        : member.name.charAt(0)}
                     </div>
 
                     <div className="flex flex-col items-center gap-1">
