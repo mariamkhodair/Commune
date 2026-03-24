@@ -56,7 +56,7 @@ export default function MessageThread() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2]">
+    <SafeAreaView className="flex-1">
       {/* Header */}
       <View className="flex-row items-center gap-3 px-5 py-3 border-b border-[#EDE8DF]">
         <TouchableOpacity onPress={() => router.back()}>

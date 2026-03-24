@@ -131,7 +131,7 @@ export default function ProposeSwapModal({
 
   return (
     // Absolute overlay — more reliable than Modal in Expo Go
-    <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 999, justifyContent: "flex-end" }}>
+    <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 2000, justifyContent: "flex-end" }}>
       {/* Backdrop */}
       <TouchableOpacity
         activeOpacity={1}

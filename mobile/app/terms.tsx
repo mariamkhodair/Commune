@@ -66,7 +66,7 @@ export default function Terms() {
   const router = useRouter();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
+    <SafeAreaView style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, flexDirection: "row", alignItems: "center", gap: 12 }}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={18} color="#4A3728" />

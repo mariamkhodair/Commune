@@ -127,7 +127,7 @@ export default function NewItem() {
   const canSubmit = name.trim() && category && condition && points;
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2]">
+    <SafeAreaView className="flex-1">
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View className="px-5 pt-4 pb-3 flex-row items-center gap-3">
           <TouchableOpacity onPress={() => router.back()}>

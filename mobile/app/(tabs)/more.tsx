@@ -44,7 +44,7 @@ export default function More() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2]">
+    <SafeAreaView className="flex-1">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
 
         {/* Profile header */}

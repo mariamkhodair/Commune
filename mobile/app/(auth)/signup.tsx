@@ -36,7 +36,7 @@ export default function Signup() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-[#FAF7F2]"
+      className="flex-1"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerClassName="px-6 py-12">

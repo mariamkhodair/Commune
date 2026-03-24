@@ -74,7 +74,7 @@ export default function MemberProfile() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2]">
+    <SafeAreaView className="flex-1">
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Back */}
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center gap-1 px-5 pt-4 pb-2">

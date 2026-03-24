@@ -48,7 +48,7 @@ export default function Messages() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2]">
+    <SafeAreaView className="flex-1">
       <View className="px-5 pt-4 pb-4">
         <Text className="text-2xl font-light text-[#4A3728]">Messages</Text>
       </View>

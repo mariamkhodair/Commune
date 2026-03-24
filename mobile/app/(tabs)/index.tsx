@@ -40,7 +40,7 @@ export default function Dashboard() {
   const firstName = profile?.name?.split(" ")[0] ?? "there";
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2]">
+    <SafeAreaView className="flex-1">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="px-5 pt-4 pb-6">

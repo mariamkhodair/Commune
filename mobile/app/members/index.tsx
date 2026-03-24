@@ -70,7 +70,7 @@ export default function Members() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2]">
+    <SafeAreaView className="flex-1">
       <View className="px-5 pt-4 pb-3">
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center gap-1 mb-3">
           <Ionicons name="arrow-back" size={18} color="#4A3728" />

@@ -70,7 +70,7 @@ export default function ItemDetail() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
+    <View style={{ flex: 1 }}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Photo */}
         <View style={{ width, height: width }} className="bg-[#EDE8DF]">

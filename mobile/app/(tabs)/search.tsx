@@ -75,7 +75,7 @@ export default function Search() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2]">
+    <SafeAreaView className="flex-1">
       {/* Search bar */}
       <View className="px-5 pt-4 pb-3">
         <Text className="text-2xl font-light text-[#4A3728] mb-3">Browse</Text>

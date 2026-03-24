@@ -26,7 +26,7 @@ export default function Login() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-[#FAF7F2]"
+      className="flex-1"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerClassName="flex-grow justify-center px-6 py-12">

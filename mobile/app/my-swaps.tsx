@@ -176,7 +176,7 @@ export default function MySwaps() {
   const countFor = (tab: SwapStatus | "All") => tab === "All" ? swaps.length : swaps.filter((s) => s.status === tab).length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
+    <SafeAreaView style={{ flex: 1 }}>
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, flexDirection: "row", alignItems: "center", gap: 12 }}>
         <TouchableOpacity onPress={() => router.back()}>

@@ -42,7 +42,7 @@ export default function LikedStuff() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2]">
+    <SafeAreaView className="flex-1">
       <View className="px-5 pt-4 pb-4 flex-row items-center gap-3">
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
