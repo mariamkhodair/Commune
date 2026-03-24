@@ -141,7 +141,7 @@ export default function MySwaps() {
         } as Swap;
       })
     );
-    setSwaps(enriched);
+    setSwaps(enriched.filter((s) => s.otherName !== "Unknown"));
     setLoading(false);
   }
 
@@ -189,7 +189,7 @@ export default function MySwaps() {
       </View>
 
       {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12, alignItems: "center" }}>
         {TABS.map((tab) => {
           const count = countFor(tab);
           const active = activeTab === tab;
@@ -197,7 +197,7 @@ export default function MySwaps() {
             <TouchableOpacity
               key={tab}
               onPress={() => setActiveTab(tab)}
-              style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: active ? "#4A3728" : "#D9CFC4", backgroundColor: active ? "#4A3728" : "white", flexDirection: "row", alignItems: "center", gap: 4 }}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start", borderColor: active ? "#4A3728" : "#D9CFC4", backgroundColor: active ? "#4A3728" : "white", flexDirection: "row", alignItems: "center", gap: 4 }}
             >
               <Text style={{ fontSize: 12, fontWeight: "500", color: active ? "#FAF7F2" : "#6B5040" }}>{tab}</Text>
               <Text style={{ fontSize: 11, color: active ? "#C4B9AA" : "#A09080" }}>{count}</Text>
@@ -239,7 +239,7 @@ export default function MySwaps() {
                       </Text>
                     </View>
                   </TouchableOpacity>
-                  <View style={{ backgroundColor: colors.bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
+                  <View style={{ backgroundColor: colors.bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, alignSelf: "flex-start" }}>
                     <Text style={{ fontSize: 11, fontWeight: "600", color: colors.text }}>{swap.status}</Text>
                   </View>
                 </View>

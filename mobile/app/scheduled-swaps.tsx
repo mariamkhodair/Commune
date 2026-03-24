@@ -136,7 +136,7 @@ export default function ScheduledSwaps() {
                     </View>
                   </View>
                   {isDone && (
-                    <View style={{ marginTop: 8, backgroundColor: "#D8E4D0", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4, alignSelf: "flex-start" }}>
+                    <View style={{ marginTop: 8, backgroundColor: "#D8E4D0", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, alignSelf: "flex-start" }}>
                       <Text style={{ color: "#4A6640", fontSize: 12, fontWeight: "600" }}>Completed</Text>
                     </View>
                   )}

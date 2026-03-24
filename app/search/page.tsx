@@ -284,7 +284,7 @@ function SearchInner() {
       </main>
 
       {proposingItems && (
-        <ProposeSwapModal items={proposingItems} onClose={() => setProposingItems(null)} />
+        <ProposeSwapModal items={proposingItems} proposerId={userId ?? ""} onClose={() => setProposingItems(null)} />
       )}
 
     </div>

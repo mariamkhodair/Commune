@@ -181,12 +181,12 @@ export default function NewItem() {
           {/* Category */}
           <View>
             <Text className="text-sm font-medium text-[#4A3728] mb-2">Category *</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: "center" }}>
               {CATEGORIES.map((c) => (
                 <TouchableOpacity
                   key={c}
                   onPress={() => { setCategory(c); setBrand(""); setCustomBrand(""); }}
-                  style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: category === c ? "#4A3728" : "#D9CFC4", backgroundColor: category === c ? "#4A3728" : "white" }}
+                  style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start", borderColor: category === c ? "#4A3728" : "#D9CFC4", backgroundColor: category === c ? "#4A3728" : "white" }}
                 >
                   <Text style={{ fontSize: 12, color: category === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
                 </TouchableOpacity>
@@ -198,12 +198,12 @@ export default function NewItem() {
           {category ? (
             <View>
               <Text className="text-sm font-medium text-[#4A3728] mb-2">Brand <Text className="text-[#A09080] font-normal">(optional)</Text></Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: "center" }}>
                 {(BRANDS[category] ?? ["Other"]).map((b) => (
                   <TouchableOpacity
                     key={b}
                     onPress={() => setBrand(b)}
-                    style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: brand === b ? "#4A3728" : "#D9CFC4", backgroundColor: brand === b ? "#4A3728" : "white" }}
+                    style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start", borderColor: brand === b ? "#4A3728" : "#D9CFC4", backgroundColor: brand === b ? "#4A3728" : "white" }}
                   >
                     <Text style={{ fontSize: 12, color: brand === b ? "#FAF7F2" : "#6B5040" }}>{b}</Text>
                   </TouchableOpacity>
@@ -224,12 +224,12 @@ export default function NewItem() {
           {/* Condition */}
           <View>
             <Text className="text-sm font-medium text-[#4A3728] mb-2">Condition *</Text>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {CONDITIONS.map((c) => (
                 <TouchableOpacity
                   key={c}
                   onPress={() => setCondition(c)}
-                  style={{ flex: 1, paddingVertical: 8, borderRadius: 999, borderWidth: 1, alignItems: "center", borderColor: condition === c ? "#4A3728" : "#D9CFC4", backgroundColor: condition === c ? "#4A3728" : "white" }}
+                  style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: condition === c ? "#4A3728" : "#D9CFC4", backgroundColor: condition === c ? "#4A3728" : "white" }}
                 >
                   <Text style={{ fontSize: 12, color: condition === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
                 </TouchableOpacity>

@@ -1,25 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/useUser";
 
-// Placeholder — will be replaced with Supabase data
-const placeholderScheduled = [
-  {
-    id: 1,
-    swapId: 2,
-    member: "Karim A.",
-    memberId: 2,
-    date: new Date(2026, 3, 5), // 5 April 2026
-    yourItem: "Vintage Denim Jacket",
-    theirItem: "Sony WH-1000XM4 Headphones",
-  },
-];
+type ScheduledSwap = {
+  id: string;
+  swapId: string;
+  otherName: string;
+  otherId: string;
+  date: string;
+  yourItem: string;
+  theirItem: string;
+};
 
 export default function ScheduledSwaps() {
-  const [tracking, setTracking] = useState<Record<number, boolean>>({});
-  const [done, setDone] = useState<Record<number, boolean>>({});
+  const { userId } = useUser();
+  const [swaps, setSwaps] = useState<ScheduledSwap[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tracking, setTracking] = useState<Record<string, boolean>>({});
+  const [done, setDone] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchScheduled();
+  }, [userId]);
+
+  async function fetchScheduled() {
+    setLoading(true);
+    const { data } = await supabase
+      .from("scheduled_swaps")
+      .select("id, swap_id, scheduled_date, swaps(proposer_id, receiver_id, swap_items(item_id, items(name, owner_id)))")
+      .order("scheduled_date", { ascending: true });
+
+    const enriched = await Promise.all(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (data ?? []).map(async (s: any) => {
+        const swap = s.swaps;
+        const otherId = swap?.proposer_id === userId ? swap?.receiver_id : swap?.proposer_id;
+        const { data: p } = await supabase.from("profiles").select("name").eq("id", otherId).single();
+        const items = swap?.swap_items ?? [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const yourItems = items.filter((i: any) => i.items?.owner_id === userId).map((i: any) => i.items?.name).join(", ");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const theirItems = items.filter((i: any) => i.items?.owner_id !== userId).map((i: any) => i.items?.name).join(", ");
+        return {
+          id: s.id,
+          swapId: s.swap_id,
+          otherName: p?.name ?? "Unknown",
+          otherId,
+          date: s.scheduled_date,
+          yourItem: yourItems || "Your item",
+          theirItem: theirItems || "Their item",
+        };
+      })
+    );
+    setSwaps(enriched);
+    setLoading(false);
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -30,7 +70,11 @@ export default function ScheduledSwaps() {
         <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)] mb-1">Scheduled Swaps</h1>
         <p className="text-[#8B7355] mb-8">Your confirmed swap dates. Use the buttons below when you're on your way.</p>
 
-        {placeholderScheduled.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-32">
+            <div className="w-6 h-6 border-2 border-[#4A3728] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : swaps.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">Nothing scheduled yet</p>
             <p className="text-[#A09080] mb-6">Once you and another member agree on a date in chat, it'll appear here.</p>
@@ -40,9 +84,10 @@ export default function ScheduledSwaps() {
           </div>
         ) : (
           <div className="flex flex-col gap-5 max-w-xl">
-            {placeholderScheduled.map((swap) => {
+            {swaps.map((swap) => {
               const isTracking = tracking[swap.id];
               const isDone = done[swap.id];
+              const dateObj = new Date(swap.date);
               return (
                 <div key={swap.id} className="bg-white/60 backdrop-blur-sm rounded-2xl border border-[#D9CFC4] overflow-hidden shadow-sm">
 
@@ -55,26 +100,25 @@ export default function ScheduledSwaps() {
                       <div>
                         <p className="text-xs text-[#C4B9AA]">Confirmed date</p>
                         <p className="text-base font-semibold text-[#F5F0E8]">
-                          {swap.date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                          {dateObj.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                         </p>
                       </div>
                     </div>
                     {isDone && (
-                      <span className="text-xs bg-[#D8E4D0] text-[#4A6640] px-3 py-1 rounded-full font-semibold">Completed</span>
+                      <span className="text-xs bg-[#D8E4D0] text-[#4A6640] px-2.5 py-1 rounded-full font-semibold">Completed</span>
                     )}
                   </div>
 
                   <div className="px-6 py-5 flex flex-col gap-4">
-                    {/* Members and items */}
-                    <div className="flex items-center gap-3">
-                      <Link href={`/members/${swap.memberId}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                        <div className="w-8 h-8 rounded-full bg-[#EDE8DF] flex items-center justify-center text-sm font-medium text-[#4A3728] font-[family-name:var(--font-permanent-marker)]">
-                          {swap.member.charAt(0)}
-                        </div>
-                        <span className="text-sm font-medium text-[#4A3728] hover:underline">{swap.member}</span>
-                      </Link>
-                    </div>
+                    {/* Other member */}
+                    <Link href={`/members/${swap.otherId}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity w-fit">
+                      <div className="w-8 h-8 rounded-full bg-[#EDE8DF] flex items-center justify-center text-sm font-medium text-[#4A3728]">
+                        {swap.otherName.charAt(0)}
+                      </div>
+                      <span className="text-sm font-medium text-[#4A3728] hover:underline">{swap.otherName}</span>
+                    </Link>
 
+                    {/* Items */}
                     <div className="flex items-center gap-3">
                       <div className="flex-1 bg-[#F5F0E8] rounded-xl px-3 py-2">
                         <p className="text-xs text-[#A09080]">You're giving</p>
@@ -89,10 +133,7 @@ export default function ScheduledSwaps() {
                       </div>
                     </div>
 
-                    <Link
-                      href={`/my-swaps`}
-                      className="text-xs text-[#8B7355] hover:underline"
-                    >
+                    <Link href="/my-swaps" className="text-xs text-[#8B7355] hover:underline">
                       View in My Swaps →
                     </Link>
 
@@ -101,7 +142,7 @@ export default function ScheduledSwaps() {
                       <div className="bg-[#F5F0E8] rounded-xl px-4 py-3">
                         <p className="text-xs font-medium text-[#6B5040] mb-1">Before you go</p>
                         <p className="text-xs text-[#A09080] leading-relaxed">
-                          Meet in a public place. When you leave for the swap, press <span className="font-semibold text-[#4A3728]">Off to Swap</span> — your location will be shared with {swap.member} for the duration of the exchange. Once you're done and safe, press <span className="font-semibold text-[#4A3728]">Swapped and Safe</span> to stop tracking.
+                          Meet in a public place. When you leave for the swap, press <span className="font-semibold text-[#4A3728]">Off to Swap</span> — {swap.otherName} will know you're on your way. Once done and safe, press <span className="font-semibold text-[#4A3728]">Swapped and Safe</span>.
                         </p>
                       </div>
                     )}
@@ -115,7 +156,7 @@ export default function ScheduledSwaps() {
                             className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors flex items-center justify-center gap-2"
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
-                              <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+                              <polygon points="3 11 22 2 13 21 11 13 3 11"/>
                             </svg>
                             Off to Swap
                           </button>
@@ -123,7 +164,7 @@ export default function ScheduledSwaps() {
                           <>
                             <div className="flex items-center gap-2 justify-center py-2">
                               <span className="w-2 h-2 rounded-full bg-[#A0624A] animate-pulse" />
-                              <p className="text-xs text-[#A0624A] font-medium">Location sharing active — {swap.member} can see you're on your way</p>
+                              <p className="text-xs text-[#A0624A] font-medium">Location sharing active — {swap.otherName} knows you're on your way</p>
                             </div>
                             <button
                               onClick={() => { setTracking((prev) => ({ ...prev, [swap.id]: false })); setDone((prev) => ({ ...prev, [swap.id]: true })); }}
@@ -142,8 +183,8 @@ export default function ScheduledSwaps() {
                     {isDone && (
                       <p className="text-sm text-center text-[#4A6640] font-medium">🤝🏽 Swap complete — don't forget to leave a rating!</p>
                     )}
-
                   </div>
+
                 </div>
               );
             })}

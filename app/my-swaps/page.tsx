@@ -1,92 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/useUser";
 
 type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Declined";
 
-const statusStyles: Record<SwapStatus, string> = {
-  Proposed:    "bg-[#E4E0D0] text-[#6B5040]",
-  Accepted:    "bg-[#D4E0E8] text-[#2A5060]",
-  "In Progress": "bg-[#D8E4D0] text-[#4A6640]",
-  Completed:   "bg-[#DDD8C8] text-[#4A3728]",
-  Declined:    "bg-[#ECD8D4] text-[#8B3A2A]",
+type SwapItem = { name: string; points: number };
+
+type Swap = {
+  id: string;
+  status: SwapStatus;
+  direction: "incoming" | "outgoing";
+  otherName: string;
+  otherId: string;
+  theirItem: SwapItem;
+  yourItem: SwapItem;
+  conversationId: string | null;
 };
 
-const steps: SwapStatus[] = ["Proposed", "Accepted", "In Progress", "Completed"];
+const statusStyles: Record<SwapStatus, string> = {
+  Proposed:      "bg-[#E4E0D0] text-[#6B5040]",
+  Accepted:      "bg-[#D4E0E8] text-[#2A5060]",
+  "In Progress": "bg-[#D8E4D0] text-[#4A6640]",
+  Completed:     "bg-[#DDD8C8] text-[#4A3728]",
+  Declined:      "bg-[#ECD8D4] text-[#8B3A2A]",
+};
 
-// Placeholder — will be replaced with Supabase data
-const placeholderSwaps = [
-  {
-    id: 1,
-    status: "Proposed" as SwapStatus,
-    direction: "incoming",
-    otherUser: "Sara M.",
-    otherUserId: 1,
-    theirItem: { name: "Vintage Levi's Jacket", points: 420 },
-    yourItem: { name: "Canon EOS Camera", points: 850 },
-  },
-  {
-    id: 2,
-    status: "In Progress" as SwapStatus,
-    direction: "outgoing",
-    otherUser: "Karim A.",
-    otherUserId: 2,
-    theirItem: { name: "Sony Headphones", points: 1200 },
-    yourItem: { name: "Mechanical Keyboard", points: 800 },
-  },
-  {
-    id: 3,
-    status: "Completed" as SwapStatus,
-    direction: "outgoing",
-    otherUser: "Nour T.",
-    otherUserId: 3,
-    theirItem: { name: "The Alchemist", points: 60 },
-    yourItem: { name: "Linen Blazer", points: 180 },
-  },
-  {
-    id: 4,
-    status: "Declined" as SwapStatus,
-    direction: "incoming",
-    otherUser: "Ahmed R.",
-    otherUserId: 4,
-    theirItem: { name: "IKEA Desk Lamp", points: 150 },
-    yourItem: { name: "Vintage Denim Jacket", points: 320 },
-  },
-];
-
-const tabs: (SwapStatus | "All")[] = ["All", "Proposed", "Accepted", "In Progress", "Completed", "Declined"];
+const STEPS: SwapStatus[] = ["Proposed", "Accepted", "In Progress", "Completed"];
+const TABS: (SwapStatus | "All")[] = ["All", "Proposed", "Accepted", "In Progress", "Completed", "Declined"];
 
 function ProgressBar({ status }: { status: SwapStatus }) {
   if (status === "Declined") return null;
-  const currentStep = steps.indexOf(status);
+  const current = STEPS.indexOf(status);
   return (
     <div className="flex items-center gap-1 mt-3">
-      {steps.map((step, i) => (
-        <div key={step} className="flex items-center gap-1 flex-1">
-          <div className={`h-1.5 flex-1 rounded-full transition-colors ${i <= currentStep ? "bg-[#4A3728]" : "bg-[#D9CFC4]"}`} />
-          {i === steps.length - 1 && null}
-        </div>
+      {STEPS.map((_, i) => (
+        <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= current ? "bg-[#4A3728]" : "bg-[#D9CFC4]"}`} />
       ))}
     </div>
   );
 }
 
-function RatingPrompt({ name }: { name: string }) {
+function RatingPrompt({ swapId, name }: { swapId: string; name: string }) {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [submitted, setSubmitted] = useState(false);
 
-  if (submitted) return (
-    <p className="text-xs text-[#7A9E6E] mt-4">Thanks for rating {name}!</p>
-  );
+  async function submitRating() {
+    await supabase.from("ratings").upsert({ swap_id: swapId, ratee_name: name, stars: rating });
+    setSubmitted(true);
+  }
+
+  if (submitted) return <p className="text-xs text-[#7A9E6E] mt-4">Thanks for rating {name}!</p>;
 
   return (
     <div className="mt-4 pt-4 border-t border-[#EDE8DF]">
       <p className="text-xs text-[#8B7355] mb-2">How was your swap with {name}?</p>
       <div className="flex items-center gap-1">
-        {[1,2,3,4,5].map((s) => (
+        {[1, 2, 3, 4, 5].map((s) => (
           <button
             key={s}
             onClick={() => setRating(s)}
@@ -101,7 +75,7 @@ function RatingPrompt({ name }: { name: string }) {
         ))}
         {rating > 0 && (
           <button
-            onClick={() => setSubmitted(true)}
+            onClick={submitRating}
             className="ml-3 text-xs px-3 py-1 rounded-full bg-[#4A3728] text-[#F5F0E8] hover:bg-[#6B5040] transition-colors"
           >
             Submit
@@ -113,9 +87,79 @@ function RatingPrompt({ name }: { name: string }) {
 }
 
 export default function MySwaps() {
+  const { userId } = useUser();
+  const [swaps, setSwaps] = useState<Swap[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<SwapStatus | "All">("All");
 
-  const filtered = placeholderSwaps.filter((s) => activeTab === "All" || s.status === activeTab);
+  useEffect(() => {
+    if (!userId) return;
+    fetchSwaps();
+  }, [userId]);
+
+  async function fetchSwaps() {
+    setLoading(true);
+    const { data } = await supabase
+      .from("swaps")
+      .select("id, proposer_id, receiver_id, status, swap_items(item_id, items(name, points, owner_id))")
+      .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
+      .order("created_at", { ascending: false });
+
+    const enriched = await Promise.all(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (data ?? []).map(async (s: any) => {
+        const isProposer = s.proposer_id === userId;
+        const otherId = isProposer ? s.receiver_id : s.proposer_id;
+        const { data: p } = await supabase.from("profiles").select("name").eq("id", otherId).single();
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const items: any[] = s.swap_items ?? [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const yourItems = items.filter((i: any) => i.items?.owner_id === userId);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const theirItems = items.filter((i: any) => i.items?.owner_id !== userId);
+
+        const yourItem: SwapItem = yourItems[0]
+          ? { name: yourItems.map((i: any) => i.items?.name).join(", "), points: yourItems.reduce((acc: number, i: any) => acc + (i.items?.points ?? 0), 0) }
+          : { name: "Your item", points: 0 };
+        const theirItem: SwapItem = theirItems[0]
+          ? { name: theirItems.map((i: any) => i.items?.name).join(", "), points: theirItems.reduce((acc: number, i: any) => acc + (i.items?.points ?? 0), 0) }
+          : { name: "Their item", points: 0 };
+
+        const { data: conv } = await supabase
+          .from("conversations")
+          .select("id")
+          .or(`and(user1_id.eq.${userId},user2_id.eq.${otherId}),and(user1_id.eq.${otherId},user2_id.eq.${userId})`)
+          .maybeSingle();
+
+        return {
+          id: s.id,
+          status: s.status as SwapStatus,
+          direction: isProposer ? "outgoing" : "incoming",
+          otherName: p?.name ?? "Unknown",
+          otherId,
+          yourItem,
+          theirItem,
+          conversationId: conv?.id ?? null,
+        } as Swap;
+      })
+    );
+    setSwaps(enriched.filter((s) => s.otherName !== "Unknown"));
+    setLoading(false);
+  }
+
+  async function acceptSwap(swapId: string) {
+    await supabase.from("swaps").update({ status: "Accepted" }).eq("id", swapId);
+    setSwaps((prev) => prev.map((s) => s.id === swapId ? { ...s, status: "Accepted" } : s));
+  }
+
+  async function declineSwap(swapId: string) {
+    await supabase.from("swaps").update({ status: "Declined" }).eq("id", swapId);
+    setSwaps((prev) => prev.map((s) => s.id === swapId ? { ...s, status: "Declined" } : s));
+  }
+
+  const filtered = activeTab === "All" ? swaps : swaps.filter((s) => s.status === activeTab);
+  const countFor = (tab: SwapStatus | "All") => tab === "All" ? swaps.length : swaps.filter((s) => s.status === tab).length;
 
   return (
     <div className="min-h-screen flex">
@@ -128,115 +172,122 @@ export default function MySwaps() {
 
         {/* Tabs */}
         <div className="flex gap-2 flex-wrap mb-6">
-          {tabs.map((tab) => (
+          {TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${activeTab === tab ? "bg-[#4A3728] text-[#F5F0E8] border-[#4A3728]" : "border-[#D9CFC4] text-[#6B5040] bg-white/60 hover:border-[#4A3728]"}`}
             >
               {tab}
-              <span className="ml-1.5 opacity-60">
-                {tab === "All" ? placeholderSwaps.length : placeholderSwaps.filter(s => s.status === tab).length}
-              </span>
+              <span className="ml-1.5 opacity-60">{countFor(tab)}</span>
             </button>
           ))}
         </div>
 
-        {/* Swap cards */}
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-32">
+            <div className="w-6 h-6 border-2 border-[#4A3728] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">No swaps here yet</p>
             <p className="text-[#A09080]">Head to Search to propose your first swap.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {filtered.map((swap) => (
-              <div key={swap.id} className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-5 shadow-sm">
+            {filtered.map((swap) => {
+              const isActive = ["Proposed", "Accepted", "In Progress"].includes(swap.status);
+              return (
+                <div key={swap.id} className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-5 shadow-sm">
 
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-[#EDE8DF] flex items-center justify-center text-sm font-medium text-[#4A3728]">
-                      {swap.otherUser.charAt(0)}
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#EDE8DF] flex items-center justify-center text-sm font-medium text-[#4A3728]">
+                        {swap.otherName.charAt(0)}
+                      </div>
+                      <div>
+                        <Link href={`/members/${swap.otherId}`} className="text-sm font-medium text-[#4A3728] hover:underline">{swap.otherName}</Link>
+                        <p className="text-xs text-[#A09080]">{swap.direction === "incoming" ? "sent you a request" : "you proposed this swap"}</p>
+                      </div>
                     </div>
-                    <div>
-                      <Link href={`/members/${swap.otherUserId}`} className="text-sm font-medium text-[#4A3728] hover:underline">{swap.otherUser}</Link>
-                      <p className="text-xs text-[#A09080]">{swap.direction === "incoming" ? "sent you a request" : "you proposed this swap"}</p>
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusStyles[swap.status]}`}>
+                      {swap.status}
+                    </span>
+                  </div>
+
+                  {/* Items */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-[#F5F0E8] rounded-xl p-3">
+                      <p className="text-xs text-[#A09080] mb-1">Their item</p>
+                      <p className="text-sm font-medium text-[#4A3728] truncate">{swap.theirItem.name}</p>
+                      {swap.theirItem.points > 0 && <p className="text-xs text-[#8B7355]">{swap.theirItem.points} pts</p>}
+                    </div>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" className="w-5 h-5 shrink-0">
+                      <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
+                    </svg>
+                    <div className="flex-1 bg-[#F5F0E8] rounded-xl p-3">
+                      <p className="text-xs text-[#A09080] mb-1">Your item</p>
+                      <p className="text-sm font-medium text-[#4A3728] truncate">{swap.yourItem.name}</p>
+                      {swap.yourItem.points > 0 && <p className="text-xs text-[#8B7355]">{swap.yourItem.points} pts</p>}
                     </div>
                   </div>
-                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${statusStyles[swap.status]}`}>
-                    {swap.status}
-                  </span>
+
+                  {/* Progress bar */}
+                  <ProgressBar status={swap.status} />
+
+                  {/* Accept / Decline for incoming proposals */}
+                  {swap.status === "Proposed" && swap.direction === "incoming" && (
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        onClick={() => acceptSwap(swap.id)}
+                        className="flex-1 rounded-full bg-[#4A3728] text-[#F5F0E8] py-2 text-sm font-medium hover:bg-[#6B5040] transition-colors"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => declineSwap(swap.id)}
+                        className="flex-1 rounded-full border border-[#D9CFC4] text-[#A0624A] py-2 text-sm font-medium hover:border-[#A0624A] transition-colors"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Message + Schedule for active swaps */}
+                  {isActive && (
+                    <div className="flex gap-2 mt-3">
+                      {swap.conversationId && (
+                        <Link
+                          href={`/messages/${swap.conversationId}`}
+                          className="flex-1 flex items-center justify-center gap-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                          </svg>
+                          Message
+                        </Link>
+                      )}
+                      <Link
+                        href="/scheduled-swaps"
+                        className="flex-1 flex items-center justify-center gap-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
+                          <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                        </svg>
+                        Schedule
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Rating prompt for completed swaps */}
+                  {swap.status === "Completed" && (
+                    <RatingPrompt swapId={swap.id} name={swap.otherName} />
+                  )}
+
                 </div>
-
-                {/* Items */}
-                <div className="flex items-center gap-3">
-                  {/* Their item */}
-                  <div className="flex-1 bg-[#F5F0E8] rounded-xl p-3">
-                    <p className="text-xs text-[#A09080] mb-1">Their item</p>
-                    <p className="text-sm font-medium text-[#4A3728] truncate">{swap.theirItem.name}</p>
-                    <p className="text-xs text-[#8B7355]">{swap.theirItem.points} pts</p>
-                  </div>
-
-                  {/* Swap icon */}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" className="w-5 h-5 shrink-0">
-                    <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
-                  </svg>
-
-                  {/* Your item */}
-                  <div className="flex-1 bg-[#F5F0E8] rounded-xl p-3">
-                    <p className="text-xs text-[#A09080] mb-1">Your item</p>
-                    <p className="text-sm font-medium text-[#4A3728] truncate">{swap.yourItem.name}</p>
-                    <p className="text-xs text-[#8B7355]">{swap.yourItem.points} pts</p>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <ProgressBar status={swap.status} />
-
-                {/* Actions for incoming proposed swaps */}
-                {swap.status === "Proposed" && swap.direction === "incoming" && (
-                  <div className="flex gap-3 mt-4">
-                    <button className="flex-1 rounded-full bg-[#4A3728] text-[#F5F0E8] py-2 text-sm font-medium hover:bg-[#6B5040] transition-colors">
-                      Accept
-                    </button>
-                    <button className="flex-1 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#A0624A] hover:text-[#A0624A] transition-colors">
-                      Decline
-                    </button>
-                  </div>
-                )}
-
-                {/* Chat button for active swaps */}
-                {(swap.status === "Accepted" || swap.status === "In Progress" || swap.status === "Proposed") && (
-                  <div className="flex gap-2 mt-3">
-                    <a
-                      href="/messages/1"
-                      className="flex-1 flex items-center justify-center gap-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                      </svg>
-                      Message
-                    </a>
-                    <Link
-                      href="/scheduled-swaps"
-                      className="flex-1 flex items-center justify-center gap-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
-                        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-                      </svg>
-                      Schedule
-                    </Link>
-                  </div>
-                )}
-
-                {/* Rating prompt for completed swaps */}
-                {swap.status === "Completed" && (
-                  <RatingPrompt name={swap.otherUser} />
-                )}
-
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

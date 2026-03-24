@@ -97,16 +97,19 @@ export default function Search() {
       </View>
 
       {/* Category chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-5 pb-3 gap-2">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, gap: 8, alignItems: "center" }}>
         {CATEGORIES.map((c) => (
           <TouchableOpacity
             key={c}
             onPress={() => setCategory(c)}
-            className={`px-4 py-1.5 rounded-full border ${
-              category === c ? "bg-[#4A3728] border-[#4A3728]" : "bg-white border-[#D9CFC4]"
-            }`}
+            style={{
+              paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1,
+              alignSelf: "flex-start",
+              borderColor: category === c ? "#4A3728" : "#D9CFC4",
+              backgroundColor: category === c ? "#4A3728" : "white",
+            }}
           >
-            <Text className={`text-xs font-medium ${category === c ? "text-[#FAF7F2]" : "text-[#6B5040]"}`}>{c}</Text>
+            <Text style={{ fontSize: 12, fontWeight: "500", color: category === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
