@@ -16,8 +16,8 @@ type Swap = {
   direction: "incoming" | "outgoing";
   otherName: string;
   otherId: string;
-  theirItem: SwapItem;
-  yourItem: SwapItem;
+  proposerItems: SwapItem[];
+  receiverItems: SwapItem[];
   conversationId: string | null;
 };
 
@@ -40,6 +40,26 @@ function ProgressBar({ status }: { status: SwapStatus }) {
       {STEPS.map((_, i) => (
         <View key={i} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i <= current ? "#4A3728" : "#D9CFC4" }} />
       ))}
+    </View>
+  );
+}
+
+function ItemList({ label, items }: { label: string; items: SwapItem[] }) {
+  const total = items.reduce((s, i) => s + i.points, 0);
+  return (
+    <View style={{ flex: 1, backgroundColor: "#F5F0E8", borderRadius: 10, padding: 10 }}>
+      <Text style={{ fontSize: 10, color: "#A09080", marginBottom: 6 }}>{label}</Text>
+      {items.map((item, i) => (
+        <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 4, marginBottom: i < items.length - 1 ? 4 : 0 }}>
+          <Text style={{ fontSize: 12, fontWeight: "500", color: "#4A3728", flex: 1, lineHeight: 16 }} numberOfLines={2}>{item.name}</Text>
+          {item.points > 0 && <Text style={{ fontSize: 11, color: "#8B7355", flexShrink: 0 }}>{item.points} pts</Text>}
+        </View>
+      ))}
+      {items.length > 1 && total > 0 && (
+        <View style={{ borderTopWidth: 1, borderTopColor: "#D9CFC4", marginTop: 6, paddingTop: 6 }}>
+          <Text style={{ fontSize: 11, fontWeight: "700", color: "#4A3728" }}>{total} pts total</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -109,20 +129,18 @@ export default function MySwaps() {
         const { data: p } = await supabase.from("profiles").select("name").eq("id", otherId).single();
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const items: any[] = s.swap_items ?? [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const yourItems = items.filter((i: any) => i.items?.owner_id === userId);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const theirItems = items.filter((i: any) => i.items?.owner_id !== userId);
+        const allItems: any[] = s.swap_items ?? [];
+        const proposerItems: SwapItem[] = allItems
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((i: any) => i.items?.owner_id === s.proposer_id)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((i: any) => ({ name: i.items.name, points: i.items.points ?? 0 }));
+        const receiverItems: SwapItem[] = allItems
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((i: any) => i.items?.owner_id === s.receiver_id)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((i: any) => ({ name: i.items.name, points: i.items.points ?? 0 }));
 
-        const yourItem: SwapItem = yourItems[0]
-          ? { name: yourItems.map((i: any) => i.items?.name).join(", "), points: yourItems.reduce((acc: number, i: any) => acc + (i.items?.points ?? 0), 0) }
-          : { name: "Your item", points: 0 };
-        const theirItem: SwapItem = theirItems[0]
-          ? { name: theirItems.map((i: any) => i.items?.name).join(", "), points: theirItems.reduce((acc: number, i: any) => acc + (i.items?.points ?? 0), 0) }
-          : { name: "Their item", points: 0 };
-
-        // Find conversation
         const { data: conv } = await supabase
           .from("conversations")
           .select("id")
@@ -135,8 +153,8 @@ export default function MySwaps() {
           direction: isProposer ? "outgoing" : "incoming",
           otherName: p?.name ?? "Unknown",
           otherId,
-          yourItem,
-          theirItem,
+          proposerItems,
+          receiverItems,
           conversationId: conv?.id ?? null,
         } as Swap;
       })
@@ -223,6 +241,8 @@ export default function MySwaps() {
           {filtered.map((swap) => {
             const colors = STATUS_COLORS[swap.status] ?? { bg: "#EDE8DF", text: "#4A3728" };
             const isActive = ["Proposed", "Accepted", "In Progress"].includes(swap.status);
+            const offeredItems = swap.direction === "outgoing" ? swap.proposerItems : swap.receiverItems;
+            const wantedItems = swap.direction === "outgoing" ? swap.receiverItems : swap.proposerItems;
             return (
               <View key={swap.id} style={{ backgroundColor: "white", borderRadius: 16, borderWidth: 1, borderColor: "#EDE8DF", padding: 16 }}>
 
@@ -245,18 +265,16 @@ export default function MySwaps() {
                 </View>
 
                 {/* Items */}
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <View style={{ flex: 1, backgroundColor: "#F5F0E8", borderRadius: 10, padding: 10 }}>
-                    <Text style={{ fontSize: 10, color: "#A09080" }}>Their item</Text>
-                    <Text style={{ fontSize: 12, fontWeight: "500", color: "#4A3728" }} numberOfLines={2}>{swap.theirItem.name}</Text>
-                    {swap.theirItem.points > 0 && <Text style={{ fontSize: 11, color: "#8B7355" }}>{swap.theirItem.points} pts</Text>}
-                  </View>
-                  <Ionicons name="swap-horizontal" size={18} color="#8B7355" />
-                  <View style={{ flex: 1, backgroundColor: "#F5F0E8", borderRadius: 10, padding: 10 }}>
-                    <Text style={{ fontSize: 10, color: "#A09080" }}>Your item</Text>
-                    <Text style={{ fontSize: 12, fontWeight: "500", color: "#4A3728" }} numberOfLines={2}>{swap.yourItem.name}</Text>
-                    {swap.yourItem.points > 0 && <Text style={{ fontSize: 11, color: "#8B7355" }}>{swap.yourItem.points} pts</Text>}
-                  </View>
+                <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                  <ItemList
+                    label="They offer"
+                    items={offeredItems.length ? offeredItems : [{ name: "—", points: 0 }]}
+                  />
+                  <Ionicons name="swap-horizontal" size={18} color="#8B7355" style={{ marginTop: 22 }} />
+                  <ItemList
+                    label="In exchange for"
+                    items={wantedItems.length ? wantedItems : [{ name: "—", points: 0 }]}
+                  />
                 </View>
 
                 {/* Progress bar */}

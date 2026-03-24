@@ -16,8 +16,8 @@ type Swap = {
   direction: "incoming" | "outgoing";
   otherName: string;
   otherId: string;
-  theirItem: SwapItem;
-  yourItem: SwapItem;
+  proposerItems: SwapItem[];
+  receiverItems: SwapItem[];
   conversationId: string | null;
 };
 
@@ -40,6 +40,26 @@ function ProgressBar({ status }: { status: SwapStatus }) {
       {STEPS.map((_, i) => (
         <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= current ? "bg-[#4A3728]" : "bg-[#D9CFC4]"}`} />
       ))}
+    </div>
+  );
+}
+
+function ItemList({ label, items }: { label: string; items: SwapItem[] }) {
+  const total = items.reduce((s, i) => s + i.points, 0);
+  return (
+    <div className="flex-1 bg-[#F5F0E8] rounded-xl p-3">
+      <p className="text-xs text-[#A09080] mb-2">{label}</p>
+      <div className="flex flex-col gap-1.5">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium text-[#4A3728] leading-tight">{item.name}</p>
+            {item.points > 0 && <p className="text-xs text-[#8B7355] shrink-0">{item.points} pts</p>}
+          </div>
+        ))}
+      </div>
+      {items.length > 1 && total > 0 && (
+        <p className="text-xs font-semibold text-[#4A3728] mt-2 pt-2 border-t border-[#D9CFC4]">{total} pts total</p>
+      )}
     </div>
   );
 }
@@ -113,18 +133,17 @@ export default function MySwaps() {
         const { data: p } = await supabase.from("profiles").select("name").eq("id", otherId).single();
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const items: any[] = s.swap_items ?? [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const yourItems = items.filter((i: any) => i.items?.owner_id === userId);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const theirItems = items.filter((i: any) => i.items?.owner_id !== userId);
-
-        const yourItem: SwapItem = yourItems[0]
-          ? { name: yourItems.map((i: any) => i.items?.name).join(", "), points: yourItems.reduce((acc: number, i: any) => acc + (i.items?.points ?? 0), 0) }
-          : { name: "Your item", points: 0 };
-        const theirItem: SwapItem = theirItems[0]
-          ? { name: theirItems.map((i: any) => i.items?.name).join(", "), points: theirItems.reduce((acc: number, i: any) => acc + (i.items?.points ?? 0), 0) }
-          : { name: "Their item", points: 0 };
+        const allItems: any[] = s.swap_items ?? [];
+        const proposerItems: SwapItem[] = allItems
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((i: any) => i.items?.owner_id === s.proposer_id)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((i: any) => ({ name: i.items.name, points: i.items.points ?? 0 }));
+        const receiverItems: SwapItem[] = allItems
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((i: any) => i.items?.owner_id === s.receiver_id)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((i: any) => ({ name: i.items.name, points: i.items.points ?? 0 }));
 
         const { data: conv } = await supabase
           .from("conversations")
@@ -138,8 +157,8 @@ export default function MySwaps() {
           direction: isProposer ? "outgoing" : "incoming",
           otherName: p?.name ?? "Unknown",
           otherId,
-          yourItem,
-          theirItem,
+          proposerItems,
+          receiverItems,
           conversationId: conv?.id ?? null,
         } as Swap;
       })
@@ -197,6 +216,8 @@ export default function MySwaps() {
           <div className="flex flex-col gap-4">
             {filtered.map((swap) => {
               const isActive = ["Proposed", "Accepted", "In Progress"].includes(swap.status);
+              const offeredItems = swap.direction === "outgoing" ? swap.proposerItems : swap.receiverItems;
+              const wantedItems = swap.direction === "outgoing" ? swap.receiverItems : swap.proposerItems;
               return (
                 <div key={swap.id} className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-5 shadow-sm">
 
@@ -217,20 +238,12 @@ export default function MySwaps() {
                   </div>
 
                   {/* Items */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-[#F5F0E8] rounded-xl p-3">
-                      <p className="text-xs text-[#A09080] mb-1">Their item</p>
-                      <p className="text-sm font-medium text-[#4A3728] truncate">{swap.theirItem.name}</p>
-                      {swap.theirItem.points > 0 && <p className="text-xs text-[#8B7355]">{swap.theirItem.points} pts</p>}
-                    </div>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" className="w-5 h-5 shrink-0">
+                  <div className="flex items-start gap-3">
+                    <ItemList label="They offer" items={offeredItems.length ? offeredItems : [{ name: "—", points: 0 }]} />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" className="w-5 h-5 shrink-0 mt-6">
                       <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
                     </svg>
-                    <div className="flex-1 bg-[#F5F0E8] rounded-xl p-3">
-                      <p className="text-xs text-[#A09080] mb-1">Your item</p>
-                      <p className="text-sm font-medium text-[#4A3728] truncate">{swap.yourItem.name}</p>
-                      {swap.yourItem.points > 0 && <p className="text-xs text-[#8B7355]">{swap.yourItem.points} pts</p>}
-                    </div>
+                    <ItemList label="In exchange for" items={wantedItems.length ? wantedItems : [{ name: "—", points: 0 }]} />
                   </div>
 
                   {/* Progress bar */}
