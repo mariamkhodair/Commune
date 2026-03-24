@@ -25,6 +25,7 @@ type MemberData = {
   rating_sum: number;
   rating_count: number;
   created_at: string;
+  avatar_url: string | null;
 };
 
 const reportReasons = [
@@ -209,8 +210,11 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
         {/* Member header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-[#EDE8DF] flex items-center justify-center text-2xl font-medium text-[#4A3728] font-[family-name:var(--font-permanent-marker)]">
-              {member.name.charAt(0)}
+            <div className="w-16 h-16 rounded-full bg-[#EDE8DF] flex items-center justify-center text-2xl font-medium text-[#4A3728] font-[family-name:var(--font-permanent-marker)] overflow-hidden shrink-0">
+              {member.avatar_url
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
+                : member.name.charAt(0)}
             </div>
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">{member.name}</h1>

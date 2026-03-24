@@ -7,6 +7,9 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as FileSystem from "expo-file-system/legacy";
+import { Buffer } from "buffer";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
@@ -86,13 +89,18 @@ export default function NewItem() {
     }
   }
 
-  async function uploadPhoto(photo: { uri: string; type: string; name: string }, index: number): Promise<string | null> {
+  async function uploadPhoto(photo: { uri: string }, index: number): Promise<string | null> {
     try {
-      const ext = photo.name.split(".").pop() ?? "jpg";
-      const path = `${userId}/${Date.now()}_${index}.${ext}`;
-      const response = await fetch(photo.uri);
-      const blob = await response.blob();
-      const { error } = await supabase.storage.from("item-photos").upload(path, blob, { contentType: photo.type });
+      // Convert to JPEG so it displays correctly on all platforms (handles HEIC etc.)
+      const compressed = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      const path = `${userId}/${Date.now()}_${index}.jpg`;
+      const base64 = await FileSystem.readAsStringAsync(compressed.uri, { encoding: "base64" });
+      const buffer = Buffer.from(base64, "base64");
+      const { error } = await supabase.storage.from("item-photos").upload(path, buffer, { upsert: true, contentType: "image/jpeg" });
       if (error) return null;
       const { data } = supabase.storage.from("item-photos").getPublicUrl(path);
       return data.publicUrl;

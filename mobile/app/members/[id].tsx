@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
 
-type Profile = { id: string; name: string; area: string; city: string; rating: number | null; joined: string };
+type Profile = { id: string; name: string; area: string; city: string; rating: number | null; joined: string; avatar_url: string | null };
 type Item = { id: string; name: string; category: string; points: number; photos: string[]; liked: boolean };
 
 export default function MemberProfile() {
@@ -40,6 +40,7 @@ export default function MemberProfile() {
         id: p.id, name: p.name, area: p.area ?? "", city: p.city ?? "",
         rating: p.rating_count > 0 ? p.rating_sum / p.rating_count : null,
         joined: new Date(p.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        avatar_url: p.avatar_url ?? null,
       });
     }
     setItems((itemsData ?? []).map((i: any) => ({ ...i, photos: i.photos ?? [], liked: likedSet.has(i.id) })));
@@ -119,8 +120,10 @@ export default function MemberProfile() {
         {/* Profile card */}
         {profile && (
           <View className="px-5 py-4 items-center">
-            <View className="w-20 h-20 rounded-full bg-[#EDE8DF] items-center justify-center mb-3">
-              <Text className="text-3xl font-semibold text-[#4A3728]">{profile.name.charAt(0)}</Text>
+            <View className="w-20 h-20 rounded-full bg-[#EDE8DF] items-center justify-center mb-3 overflow-hidden">
+              {profile.avatar_url
+                ? <Image source={{ uri: profile.avatar_url }} style={{ width: 80, height: 80 }} />
+                : <Text className="text-3xl font-semibold text-[#4A3728]">{profile.name.charAt(0)}</Text>}
             </View>
             <Text className="text-xl font-semibold text-[#4A3728]">{profile.name}</Text>
             {profile.area ? <Text className="text-sm text-[#8B7355]">{profile.area}, {profile.city}</Text> : null}
