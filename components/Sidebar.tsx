@@ -121,6 +121,8 @@ const sidebarItems = [
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
   const [proposedCount, setProposedCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [newScheduled, setNewScheduled] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
   const { userId, profile } = useUser();
@@ -134,6 +136,50 @@ export default function Sidebar() {
       .eq("status", "Proposed")
       .then(({ count }) => setProposedCount(count ?? 0));
   }, [userId]);
+
+  // Unread messages count
+  useEffect(() => {
+    if (!userId) return;
+    const lastSeen = localStorage.getItem("msg_last_seen") ?? new Date(0).toISOString();
+    supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .neq("sender_id", userId)
+      .gt("created_at", lastSeen)
+      .then(({ count }) => setUnreadMessages(count ?? 0));
+  }, [userId]);
+
+  // New scheduled swaps count
+  useEffect(() => {
+    if (!userId) return;
+    const lastSeen = localStorage.getItem("sched_last_seen") ?? new Date(0).toISOString();
+    supabase
+      .from("swaps")
+      .select("id")
+      .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
+      .then(async ({ data: mySwaps }) => {
+        if (!mySwaps?.length) return;
+        const ids = mySwaps.map((s) => s.id);
+        const { count } = await supabase
+          .from("scheduled_swaps")
+          .select("id", { count: "exact", head: true })
+          .in("swap_id", ids)
+          .gt("created_at", lastSeen);
+        setNewScheduled(count ?? 0);
+      });
+  }, [userId]);
+
+  // Clear badges when visiting the relevant pages
+  useEffect(() => {
+    if (pathname.startsWith("/messages")) {
+      localStorage.setItem("msg_last_seen", new Date().toISOString());
+      setUnreadMessages(0);
+    }
+    if (pathname === "/scheduled-swaps") {
+      localStorage.setItem("sched_last_seen", new Date().toISOString());
+      setNewScheduled(0);
+    }
+  }, [pathname]);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -160,7 +206,11 @@ export default function Sidebar() {
         {sidebarItems.map((item) => {
           const active = pathname === item.href;
           const isMySwaps = item.label === "My Swaps";
-          const showBadge = isMySwaps && proposedCount > 0;
+          const isMessages = item.label === "Messages";
+          const isScheduled = item.label === "Scheduled Swaps";
+          const badgeCount = isMySwaps ? proposedCount : isMessages ? unreadMessages : isScheduled ? newScheduled : 0;
+          const showBadge = badgeCount > 0;
+          const badgeColor = isScheduled ? "bg-[#2D6A4F]" : "bg-[#A0624A]";
           return (
             <Link
               key={item.label}
@@ -170,8 +220,8 @@ export default function Sidebar() {
               <span className="shrink-0 relative">
                 {item.icon}
                 {showBadge && !open && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#A0624A] text-white text-[9px] font-bold flex items-center justify-center">
-                    {proposedCount}
+                  <span className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${badgeColor} text-white text-[9px] font-bold flex items-center justify-center`}>
+                    {badgeCount}
                   </span>
                 )}
               </span>
@@ -179,8 +229,8 @@ export default function Sidebar() {
                 <span className="flex items-center gap-2 flex-1">
                   <span className="text-sm font-medium whitespace-nowrap">{item.label}</span>
                   {showBadge && (
-                    <span className="ml-auto min-w-[20px] h-5 rounded-full bg-[#A0624A] text-white text-xs font-bold flex items-center justify-center px-1">
-                      {proposedCount}
+                    <span className={`ml-auto min-w-[20px] h-5 rounded-full ${badgeColor} text-white text-xs font-bold flex items-center justify-center px-1`}>
+                      {badgeCount}
                     </span>
                   )}
                 </span>

@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { Tabs } from "expo-router";
-import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/useUser";
 
 function TabIcon({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focused: boolean }) {
   return (
@@ -13,6 +16,22 @@ function TabIcon({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focu
 }
 
 export default function TabLayout() {
+  const { userId } = useUser();
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const lastSeen = (await AsyncStorage.getItem("msg_last_seen")) ?? new Date(0).toISOString();
+      const { count } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .neq("sender_id", userId)
+        .gt("created_at", lastSeen);
+      setUnreadMessages(count ?? 0);
+    })();
+  }, [userId]);
+
   return (
     <Tabs
       screenOptions={{
@@ -55,6 +74,8 @@ export default function TabLayout() {
         options={{
           title: "Messages",
           tabBarIcon: ({ focused }) => <TabIcon name={focused ? "chatbubble" : "chatbubble-outline"} focused={focused} />,
+          tabBarBadge: unreadMessages > 0 ? unreadMessages : undefined,
+          tabBarBadgeStyle: { backgroundColor: "#A0624A", fontSize: 10, minWidth: 18, height: 18 },
         }}
       />
       <Tabs.Screen

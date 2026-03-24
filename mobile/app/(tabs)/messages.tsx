@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
@@ -15,10 +16,11 @@ export default function Messages() {
   const [convos, setConvos] = useState<Convo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Re-fetch every time this tab comes into focus
+  // Re-fetch every time this tab comes into focus + clear unread badge
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
+      AsyncStorage.setItem("msg_last_seen", new Date().toISOString());
       fetchConvos();
     }, [userId])
   );
