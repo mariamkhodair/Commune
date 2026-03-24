@@ -209,12 +209,14 @@ export default function Sidebar() {
       <div className={`px-2 py-3 border-t border-[#EDE8DF] ${open ? "" : "flex justify-center"}`}>
         {open ? (
           <div className="flex items-center justify-between px-3 py-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-xs font-medium text-[#4A3728] font-[family-name:var(--font-permanent-marker)] shrink-0">
-                {profile?.name?.charAt(0) ?? "?"}
+            <Link href="/profile" className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity">
+              <div className="w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-xs font-medium text-[#4A3728] font-[family-name:var(--font-permanent-marker)] shrink-0 overflow-hidden">
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                  : profile?.name?.charAt(0) ?? "?"}
               </div>
               <span className="text-xs text-[#4A3728] font-medium truncate">{profile?.name ?? ""}</span>
-            </div>
+            </Link>
             <button
               onClick={handleSignOut}
               title="Sign out"
