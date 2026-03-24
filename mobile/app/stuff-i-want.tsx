@@ -52,7 +52,6 @@ export default function StuffIWant() {
         user_id: userId!,
         name: name.trim(),
         category: category || null,
-        condition: condition || null,
         notes: notes.trim() || null,
       })
       .select()
@@ -78,7 +77,7 @@ export default function StuffIWant() {
     ]);
   }
 
-  const canSave = name.trim() && category && condition;
+  const canSave = name.trim() && category;
 
   return (
     <SafeAreaView className="flex-1">
