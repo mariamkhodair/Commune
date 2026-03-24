@@ -121,7 +121,7 @@ export default function MySwaps() {
     setLoading(true);
     const { data } = await supabase
       .from("swaps")
-      .select("id, proposer_id, receiver_id, status, swap_items(item_id, items(name, points, owner_id))")
+      .select("id, proposer_id, receiver_id, status, swap_items(item_id)")
       .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
       .order("created_at", { ascending: false });
 
@@ -130,24 +130,30 @@ export default function MySwaps() {
       (data ?? []).map(async (s: any) => {
         const isProposer = s.proposer_id === userId;
         const otherId = isProposer ? s.receiver_id : s.proposer_id;
-        const { data: p } = await supabase.from("profiles").select("name").eq("id", otherId).single();
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const allItems: any[] = s.swap_items ?? [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const getItem = (i: any) => Array.isArray(i.items) ? i.items[0] : i.items;
-        const proposerItems: SwapItem[] = allItems
-          .filter((i) => getItem(i)?.owner_id === s.proposer_id)
-          .map((i) => ({ name: getItem(i).name, points: getItem(i).points ?? 0 }));
-        const receiverItems: SwapItem[] = allItems
-          .filter((i) => getItem(i)?.owner_id === s.receiver_id)
-          .map((i) => ({ name: getItem(i).name, points: getItem(i).points ?? 0 }));
+        const itemIds: string[] = (s.swap_items ?? []).map((si: any) => si.item_id).filter(Boolean);
 
-        const { data: conv } = await supabase
-          .from("conversations")
-          .select("id")
-          .or(`and(user1_id.eq.${userId},user2_id.eq.${otherId}),and(user1_id.eq.${otherId},user2_id.eq.${userId})`)
-          .maybeSingle();
+        const [{ data: p }, { data: itemsData }, { data: conv }] = await Promise.all([
+          supabase.from("profiles").select("name").eq("id", otherId).single(),
+          itemIds.length > 0
+            ? supabase.from("items").select("id, name, points, owner_id").in("id", itemIds)
+            : Promise.resolve({ data: [] }),
+          supabase
+            .from("conversations")
+            .select("id")
+            .or(`and(user1_id.eq.${userId},user2_id.eq.${otherId}),and(user1_id.eq.${otherId},user2_id.eq.${userId})`)
+            .maybeSingle(),
+        ]);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const allItemData: any[] = itemsData ?? [];
+        const proposerItems: SwapItem[] = allItemData
+          .filter((item) => item.owner_id === s.proposer_id)
+          .map((item) => ({ name: item.name, points: item.points ?? 0 }));
+        const receiverItems: SwapItem[] = allItemData
+          .filter((item) => item.owner_id === s.receiver_id)
+          .map((item) => ({ name: item.name, points: item.points ?? 0 }));
 
         return {
           id: s.id,
@@ -157,7 +163,7 @@ export default function MySwaps() {
           otherId,
           proposerItems,
           receiverItems,
-          conversationId: conv?.id ?? null,
+          conversationId: (conv as any)?.id ?? null,
         } as Swap;
       })
     );
