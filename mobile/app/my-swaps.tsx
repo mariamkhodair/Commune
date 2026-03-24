@@ -1,27 +1,92 @@
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
-type Swap = { id: string; otherName: string; status: string; pointsDiff: number; createdAt: string };
+type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Declined";
 
-const statusColors: Record<string, string> = {
-  pending: "#C4842A", accepted: "#4A6640", rejected: "#A0624A",
-  completed: "#2A5060", cancelled: "#A09080",
+type SwapItem = { name: string; points: number };
+
+type Swap = {
+  id: string;
+  status: SwapStatus;
+  direction: "incoming" | "outgoing";
+  otherName: string;
+  otherId: string;
+  theirItem: SwapItem;
+  yourItem: SwapItem;
+  conversationId: string | null;
 };
-const statusBg: Record<string, string> = {
-  pending: "#FFF3DC", accepted: "#D8E4D0", rejected: "#F5EBE8",
-  completed: "#D4E0E8", cancelled: "#EDE8DF",
+
+const STATUS_COLORS: Record<SwapStatus, { bg: string; text: string }> = {
+  Proposed:       { bg: "#E4E0D0", text: "#6B5040" },
+  Accepted:       { bg: "#D4E0E8", text: "#2A5060" },
+  "In Progress":  { bg: "#D8E4D0", text: "#4A6640" },
+  Completed:      { bg: "#DDD8C8", text: "#4A3728" },
+  Declined:       { bg: "#ECD8D4", text: "#8B3A2A" },
 };
+
+const STEPS: SwapStatus[] = ["Proposed", "Accepted", "In Progress", "Completed"];
+const TABS: (SwapStatus | "All")[] = ["All", "Proposed", "Accepted", "In Progress", "Completed", "Declined"];
+
+function ProgressBar({ status }: { status: SwapStatus }) {
+  if (status === "Declined") return null;
+  const current = STEPS.indexOf(status);
+  return (
+    <View style={{ flexDirection: "row", gap: 4, marginTop: 12 }}>
+      {STEPS.map((_, i) => (
+        <View key={i} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i <= current ? "#4A3728" : "#D9CFC4" }} />
+      ))}
+    </View>
+  );
+}
+
+function RatingPrompt({ swapId, name }: { swapId: string; name: string }) {
+  const [rating, setRating] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+
+  async function submitRating() {
+    await supabase.from("ratings").upsert({ swap_id: swapId, ratee_name: name, stars: rating });
+    setSubmitted(true);
+  }
+
+  if (submitted) {
+    return (
+      <Text style={{ fontSize: 12, color: "#7A9E6E", marginTop: 12 }}>Thanks for rating {name}!</Text>
+    );
+  }
+
+  return (
+    <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#EDE8DF" }}>
+      <Text style={{ fontSize: 12, color: "#8B7355", marginBottom: 8 }}>How was your swap with {name}?</Text>
+      <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+        {[1, 2, 3, 4, 5].map((s) => (
+          <TouchableOpacity key={s} onPress={() => setRating(s)}>
+            <Ionicons name={s <= rating ? "star" : "star-outline"} size={22} color="#C4842A" />
+          </TouchableOpacity>
+        ))}
+        {rating > 0 && (
+          <TouchableOpacity
+            onPress={submitRating}
+            style={{ marginLeft: 8, backgroundColor: "#4A3728", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6 }}
+          >
+            <Text style={{ color: "#FAF7F2", fontSize: 12, fontWeight: "600" }}>Submit</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+}
 
 export default function MySwaps() {
   const router = useRouter();
   const { userId } = useUser();
   const [swaps, setSwaps] = useState<Swap[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<SwapStatus | "All">("All");
 
   useEffect(() => {
     if (!userId) return;
@@ -32,67 +97,220 @@ export default function MySwaps() {
     setLoading(true);
     const { data } = await supabase
       .from("swaps")
-      .select("id, proposer_id, receiver_id, status, points_difference, created_at")
+      .select("id, proposer_id, receiver_id, status, swap_items(item_id, items(name, points, owner_id))")
       .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
       .order("created_at", { ascending: false });
 
     const enriched = await Promise.all(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (data ?? []).map(async (s: any) => {
-        const otherId = s.proposer_id === userId ? s.receiver_id : s.proposer_id;
+        const isProposer = s.proposer_id === userId;
+        const otherId = isProposer ? s.receiver_id : s.proposer_id;
         const { data: p } = await supabase.from("profiles").select("name").eq("id", otherId).single();
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const items: any[] = s.swap_items ?? [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const yourItems = items.filter((i: any) => i.items?.owner_id === userId);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const theirItems = items.filter((i: any) => i.items?.owner_id !== userId);
+
+        const yourItem: SwapItem = yourItems[0]
+          ? { name: yourItems.map((i: any) => i.items?.name).join(", "), points: yourItems.reduce((acc: number, i: any) => acc + (i.items?.points ?? 0), 0) }
+          : { name: "Your item", points: 0 };
+        const theirItem: SwapItem = theirItems[0]
+          ? { name: theirItems.map((i: any) => i.items?.name).join(", "), points: theirItems.reduce((acc: number, i: any) => acc + (i.items?.points ?? 0), 0) }
+          : { name: "Their item", points: 0 };
+
+        // Find conversation
+        const { data: conv } = await supabase
+          .from("conversations")
+          .select("id")
+          .or(`and(user1_id.eq.${userId},user2_id.eq.${otherId}),and(user1_id.eq.${otherId},user2_id.eq.${userId})`)
+          .maybeSingle();
+
         return {
-          id: s.id, otherName: p?.name ?? "Unknown",
-          status: s.status, pointsDiff: s.points_difference,
-          createdAt: new Date(s.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        };
+          id: s.id,
+          status: s.status as SwapStatus,
+          direction: isProposer ? "outgoing" : "incoming",
+          otherName: p?.name ?? "Unknown",
+          otherId,
+          yourItem,
+          theirItem,
+          conversationId: conv?.id ?? null,
+        } as Swap;
       })
     );
     setSwaps(enriched);
     setLoading(false);
   }
 
+  async function acceptSwap(swapId: string) {
+    Alert.alert("Accept Swap?", "This will confirm the swap with the other member.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Accept",
+        onPress: async () => {
+          await supabase.from("swaps").update({ status: "Accepted" }).eq("id", swapId);
+          setSwaps((prev) => prev.map((s) => s.id === swapId ? { ...s, status: "Accepted" } : s));
+        },
+      },
+    ]);
+  }
+
+  async function declineSwap(swapId: string) {
+    Alert.alert("Decline Swap?", "This will decline the swap request.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Decline",
+        style: "destructive",
+        onPress: async () => {
+          await supabase.from("swaps").update({ status: "Declined" }).eq("id", swapId);
+          setSwaps((prev) => prev.map((s) => s.id === swapId ? { ...s, status: "Declined" } : s));
+        },
+      },
+    ]);
+  }
+
+  const filtered = activeTab === "All" ? swaps : swaps.filter((s) => s.status === activeTab);
+  const countFor = (tab: SwapStatus | "All") => tab === "All" ? swaps.length : swaps.filter((s) => s.status === tab).length;
+
   return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2]">
-      <View className="px-5 pt-4 pb-4 flex-row items-center gap-3">
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
+      {/* Header */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, flexDirection: "row", alignItems: "center", gap: 12 }}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
         </TouchableOpacity>
-        <Text className="text-2xl font-light text-[#4A3728]">My Swaps</Text>
+        <View>
+          <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>My Swaps</Text>
+          <Text style={{ fontSize: 12, color: "#8B7355" }}>Track all your swap requests.</Text>
+        </View>
       </View>
 
+      {/* Tabs */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12 }}>
+        {TABS.map((tab) => {
+          const count = countFor(tab);
+          const active = activeTab === tab;
+          return (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: active ? "#4A3728" : "#D9CFC4", backgroundColor: active ? "#4A3728" : "white", flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "500", color: active ? "#FAF7F2" : "#6B5040" }}>{tab}</Text>
+              <Text style={{ fontSize: 11, color: active ? "#C4B9AA" : "#A09080" }}>{count}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
       {loading ? (
-        <View className="flex-1 items-center justify-center"><ActivityIndicator color="#4A3728" /></View>
-      ) : swaps.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-8">
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color="#4A3728" />
+        </View>
+      ) : filtered.length === 0 ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
           <Ionicons name="swap-horizontal-outline" size={40} color="#C4B9AA" />
-          <Text className="text-[#8B7355] text-base mt-3 mb-1">No swaps yet</Text>
-          <Text className="text-[#A09080] text-sm text-center">Propose a swap from any item page.</Text>
+          <Text style={{ color: "#8B7355", fontSize: 16, marginTop: 12, marginBottom: 4 }}>No swaps here</Text>
+          <Text style={{ color: "#A09080", fontSize: 13, textAlign: "center" }}>
+            {activeTab === "All" ? "Head to Search to propose your first swap." : `No ${activeTab.toLowerCase()} swaps.`}
+          </Text>
         </View>
       ) : (
-        <FlatList
-          data={swaps}
-          keyExtractor={(s) => s.id}
-          contentContainerClassName="px-5 pb-8 gap-3"
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View className="bg-white rounded-2xl px-4 py-4 border border-[#EDE8DF]">
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="text-sm font-semibold text-[#4A3728]">{item.otherName}</Text>
-                <View style={{ backgroundColor: statusBg[item.status] ?? "#EDE8DF" }} className="px-2.5 py-1 rounded-full">
-                  <Text style={{ color: statusColors[item.status] ?? "#4A3728" }} className="text-xs font-medium capitalize">{item.status}</Text>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, gap: 14 }}>
+          {filtered.map((swap) => {
+            const colors = STATUS_COLORS[swap.status] ?? { bg: "#EDE8DF", text: "#4A3728" };
+            const isActive = ["Proposed", "Accepted", "In Progress"].includes(swap.status);
+            return (
+              <View key={swap.id} style={{ backgroundColor: "white", borderRadius: 16, borderWidth: 1, borderColor: "#EDE8DF", padding: 16 }}>
+
+                {/* Header row */}
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <TouchableOpacity onPress={() => router.push(`/members/${swap.otherId}` as any)} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#EDE8DF", alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: "#4A3728" }}>{swap.otherName.charAt(0)}</Text>
+                    </View>
+                    <View>
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: "#4A3728" }}>{swap.otherName}</Text>
+                      <Text style={{ fontSize: 11, color: "#A09080" }}>
+                        {swap.direction === "incoming" ? "sent you a request" : "you proposed this swap"}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  <View style={{ backgroundColor: colors.bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: colors.text }}>{swap.status}</Text>
+                  </View>
                 </View>
-              </View>
-              <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-[#A09080]">{item.createdAt}</Text>
-                {item.pointsDiff !== 0 && (
-                  <Text className="text-xs text-[#8B7355]">
-                    {item.pointsDiff > 0 ? `+${item.pointsDiff}` : item.pointsDiff} pts adjustment
-                  </Text>
+
+                {/* Items */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View style={{ flex: 1, backgroundColor: "#F5F0E8", borderRadius: 10, padding: 10 }}>
+                    <Text style={{ fontSize: 10, color: "#A09080" }}>Their item</Text>
+                    <Text style={{ fontSize: 12, fontWeight: "500", color: "#4A3728" }} numberOfLines={2}>{swap.theirItem.name}</Text>
+                    {swap.theirItem.points > 0 && <Text style={{ fontSize: 11, color: "#8B7355" }}>{swap.theirItem.points} pts</Text>}
+                  </View>
+                  <Ionicons name="swap-horizontal" size={18} color="#8B7355" />
+                  <View style={{ flex: 1, backgroundColor: "#F5F0E8", borderRadius: 10, padding: 10 }}>
+                    <Text style={{ fontSize: 10, color: "#A09080" }}>Your item</Text>
+                    <Text style={{ fontSize: 12, fontWeight: "500", color: "#4A3728" }} numberOfLines={2}>{swap.yourItem.name}</Text>
+                    {swap.yourItem.points > 0 && <Text style={{ fontSize: 11, color: "#8B7355" }}>{swap.yourItem.points} pts</Text>}
+                  </View>
+                </View>
+
+                {/* Progress bar */}
+                <ProgressBar status={swap.status} />
+
+                {/* Accept / Decline */}
+                {swap.status === "Proposed" && swap.direction === "incoming" && (
+                  <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
+                    <TouchableOpacity
+                      onPress={() => acceptSwap(swap.id)}
+                      style={{ flex: 1, backgroundColor: "#4A3728", borderRadius: 999, paddingVertical: 11, alignItems: "center" }}
+                    >
+                      <Text style={{ color: "#FAF7F2", fontSize: 13, fontWeight: "600" }}>Accept</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => declineSwap(swap.id)}
+                      style={{ flex: 1, borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 999, paddingVertical: 11, alignItems: "center" }}
+                    >
+                      <Text style={{ color: "#A0624A", fontSize: 13, fontWeight: "600" }}>Decline</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
+
+                {/* Message + Schedule */}
+                {isActive && (
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+                    {swap.conversationId && (
+                      <TouchableOpacity
+                        onPress={() => router.push(`/messages/${swap.conversationId}` as any)}
+                        style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 999, paddingVertical: 10 }}
+                      >
+                        <Ionicons name="chatbubble-outline" size={14} color="#6B5040" />
+                        <Text style={{ fontSize: 12, color: "#6B5040", fontWeight: "500" }}>Message</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => router.push("/scheduled-swaps" as any)}
+                      style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 999, paddingVertical: 10 }}
+                    >
+                      <Ionicons name="calendar-outline" size={14} color="#6B5040" />
+                      <Text style={{ fontSize: 12, color: "#6B5040", fontWeight: "500" }}>Schedule</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Rating prompt */}
+                {swap.status === "Completed" && (
+                  <RatingPrompt swapId={swap.id} name={swap.otherName} />
+                )}
+
               </View>
-            </View>
-          )}
-        />
+            );
+          })}
+        </ScrollView>
       )}
     </SafeAreaView>
   );
