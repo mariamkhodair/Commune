@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Dimensions } from "react-native";
+import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
@@ -59,19 +58,19 @@ export default function ItemDetail() {
   }
 
   if (loading) return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2] items-center justify-center">
+    <View style={{ flex: 1, backgroundColor: "#FAF7F2", alignItems: "center", justifyContent: "center" }}>
       <ActivityIndicator color="#4A3728" />
-    </SafeAreaView>
+    </View>
   );
 
   if (!item) return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2] items-center justify-center">
-      <Text className="text-[#8B7355]">Item not found.</Text>
-    </SafeAreaView>
+    <View style={{ flex: 1, backgroundColor: "#FAF7F2", alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ color: "#8B7355" }}>Item not found.</Text>
+    </View>
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FAF7F2]">
+    <View style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Photo */}
         <View style={{ width, height: width }} className="bg-[#EDE8DF]">
@@ -142,7 +141,7 @@ export default function ItemDetail() {
           </TouchableOpacity>
 
           {/* CTA */}
-          {item.ownerId !== userId && item.status === "Available" && (
+          {item.ownerId !== userId && (
             <TouchableOpacity
               onPress={() => setProposing(true)}
               className="bg-[#4A3728] rounded-full py-4 items-center flex-row justify-center gap-2"
@@ -162,6 +161,6 @@ export default function ItemDetail() {
           onClose={() => setProposing(false)}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }

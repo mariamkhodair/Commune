@@ -63,9 +63,9 @@ export default function ProposeSwapModal({
 
   useEffect(() => {
     async function fetchData() {
-      // Always use the authenticated session to guarantee we fetch the right user's items
-      const { data: { session } } = await supabase.auth.getSession();
-      const myId = session?.user?.id;
+      // getUser() makes a live network call — more reliable than getSession() which can be stale
+      const { data: { user } } = await supabase.auth.getUser();
+      const myId = user?.id;
       if (!myId) { setLoadingItems(false); return; }
 
       const [{ data: myItemsData }, { data: wantedData }] = await Promise.all([
@@ -103,8 +103,8 @@ export default function ProposeSwapModal({
     setSubmitting(true);
     setError(null);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const myId = session?.user?.id ?? proposerId;
+    const { data: { user } } = await supabase.auth.getUser();
+    const myId = user?.id ?? proposerId;
 
     const selectedItems = myItems.filter((i) => selected.has(i.id));
     const myTotal = selectedItems.reduce((sum, i) => sum + i.points, 0);
