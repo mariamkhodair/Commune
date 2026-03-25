@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { toJpegBlob } from "@/lib/imageUtils";
 
 export default function ProfilePage() {
   const { userId, profile } = useUser();
@@ -32,24 +33,7 @@ export default function ProfilePage() {
     if (!raw || !userId) return;
     setUploading(true);
 
-    // Convert to JPEG via img+canvas (works for JPEG, PNG, WebP, HEIC on Safari, etc.)
-    const jpeg = await new Promise<Blob | null>((resolve) => {
-      const url = URL.createObjectURL(raw);
-      const img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        const scale = Math.min(1, 1200 / img.naturalWidth);
-        const w = Math.round(img.naturalWidth * scale);
-        const h = Math.round(img.naturalHeight * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext("2d")?.drawImage(img, 0, 0, w, h);
-        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.9);
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
-      img.src = url;
-    });
+    const jpeg = await toJpegBlob(raw, 0.9);
 
     if (!jpeg) {
       alert("That image format isn't supported. Please use JPEG or PNG.");

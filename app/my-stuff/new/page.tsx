@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { toJpegBlob } from "@/lib/imageUtils";
 
 const categories = [
   "Apparel",
@@ -65,36 +66,16 @@ export default function NewItem() {
   }
 
   function handleFiles(files: FileList | File[]) {
-    Array.from(files).forEach((file) => {
-      const objectUrl = URL.createObjectURL(file);
-      // Add preview + placeholder immediately so both arrays stay in sync
-      setPhotos((prev) => [...prev, objectUrl]);
-      setPhotoFiles((prev) => [...prev, file]);
-
-      const img = new Image();
-      img.onload = () => {
-        // Scale down to max 1200px wide to keep uploads lean
-        const scale = Math.min(1, 1200 / img.naturalWidth);
-        const w = Math.round(img.naturalWidth * scale);
-        const h = Math.round(img.naturalHeight * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext("2d")?.drawImage(img, 0, 0, w, h);
-        canvas.toBlob((blob) => {
-          if (!blob) return;
-          const jpeg = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
-          setPhotoFiles((prev) => prev.map((f) => f === file ? jpeg : f));
-        }, "image/jpeg", 0.85);
-      };
-      img.onerror = () => {
-        // Browser can't decode this format — remove it and warn the user
-        URL.revokeObjectURL(objectUrl);
-        setPhotos((prev) => prev.filter((p) => p !== objectUrl));
-        setPhotoFiles((prev) => prev.filter((f) => f !== file));
-        alert("That image format isn't supported. Please convert to JPEG or PNG first.");
-      };
-      img.src = objectUrl;
+    Array.from(files).forEach(async (file) => {
+      const jpeg = await toJpegBlob(file);
+      if (!jpeg) {
+        alert("Couldn't process this image. Please try a different file.");
+        return;
+      }
+      const jpegFile = new File([jpeg], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+      const previewUrl = URL.createObjectURL(jpeg);
+      setPhotos((prev) => [...prev, previewUrl]);
+      setPhotoFiles((prev) => [...prev, jpegFile]);
     });
   }
 
