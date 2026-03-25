@@ -120,7 +120,20 @@ export default function ItemDetail() {
             <Text className="text-xl font-semibold text-[#4A3728] flex-1 mr-3">{item.name}</Text>
             <Text className="text-xl font-bold text-[#4A3728]">{item.points} pts</Text>
           </View>
-          <Text className="text-sm text-[#8B7355] mb-4">{item.category} · {item.condition}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <Text className="text-sm text-[#8B7355]">{item.category} · {item.condition}</Text>
+            <View style={{
+              backgroundColor: item.status === "Swapped" ? "#DDD8C8" : item.status === "Available" ? "#D8E4D0" : "#EDE8DF",
+              borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2,
+            }}>
+              <Text style={{
+                fontSize: 11, fontWeight: "600",
+                color: item.status === "Swapped" ? "#6B5040" : item.status === "Available" ? "#4A6640" : "#4A3728",
+              }}>
+                {item.status}
+              </Text>
+            </View>
+          </View>
 
           {item.description ? (
             <Text className="text-sm text-[#6B5040] mb-5 leading-relaxed">{item.description}</Text>
