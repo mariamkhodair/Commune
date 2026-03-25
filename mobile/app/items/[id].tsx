@@ -143,13 +143,20 @@ export default function ItemDetail() {
 
           {/* CTA */}
           {item.ownerId !== userId && (
-            <TouchableOpacity
-              onPress={() => setProposing(true)}
-              className="bg-[#4A3728] rounded-full py-4 items-center flex-row justify-center gap-2"
-            >
-              <Ionicons name="swap-horizontal" size={18} color="#FAF7F2" />
-              <Text className="text-[#FAF7F2] font-semibold">Propose Swap</Text>
-            </TouchableOpacity>
+            item.status === "Swapped" ? (
+              <View style={{ backgroundColor: "#EDE8DF", borderRadius: 999, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <Ionicons name="swap-horizontal" size={18} color="#A09080" />
+                <Text style={{ color: "#A09080", fontWeight: "600" }}>Already Swapped</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={() => setProposing(true)}
+                className="bg-[#4A3728] rounded-full py-4 items-center flex-row justify-center gap-2"
+              >
+                <Ionicons name="swap-horizontal" size={18} color="#FAF7F2" />
+                <Text className="text-[#FAF7F2] font-semibold">Propose Swap</Text>
+              </TouchableOpacity>
+            )
           )}
         </View>
       </ScrollView>

@@ -340,6 +340,13 @@ export default function MySwaps() {
     if (!swap) return;
     await supabase.from("swaps").update({ status: "Accepted" }).eq("id", swapId);
 
+    // Mark all items in this swap as Swapped
+    const { data: swapItems } = await supabase.from("swap_items").select("item_id").eq("swap_id", swapId);
+    const itemIds = (swapItems ?? []).map((si: { item_id: string }) => si.item_id);
+    if (itemIds.length > 0) {
+      await supabase.from("items").update({ status: "Swapped" }).in("id", itemIds);
+    }
+
     // Notify proposer
     const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
     notifyUser({
@@ -382,6 +389,14 @@ export default function MySwaps() {
   async function declineSwap(swapId: string) {
     const swap = swaps.find((s) => s.id === swapId);
     await supabase.from("swaps").update({ status: "Declined" }).eq("id", swapId);
+
+    // Revert item statuses to Available
+    const { data: swapItemsData } = await supabase.from("swap_items").select("item_id").eq("swap_id", swapId);
+    const itemIds = (swapItemsData ?? []).map((si: { item_id: string }) => si.item_id);
+    if (itemIds.length > 0) {
+      await supabase.from("items").update({ status: "Available" }).in("id", itemIds);
+    }
+
     setSwaps((prev) =>
       prev.map((s) => (s.id === swapId ? { ...s, status: "Declined" } : s))
     );
@@ -399,6 +414,14 @@ export default function MySwaps() {
 
   async function cancelSwap(swapId: string) {
     await supabase.from("swaps").update({ status: "Declined" }).eq("id", swapId);
+
+    // Revert item statuses to Available
+    const { data: swapItemsData } = await supabase.from("swap_items").select("item_id").eq("swap_id", swapId);
+    const itemIds = (swapItemsData ?? []).map((si: { item_id: string }) => si.item_id);
+    if (itemIds.length > 0) {
+      await supabase.from("items").update({ status: "Available" }).in("id", itemIds);
+    }
+
     setSwaps((prev) => prev.map((s) => (s.id === swapId ? { ...s, status: "Declined" } : s)));
     setConfirmCancel(null);
   }

@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
-type Item = { id: string; name: string; category: string; condition: string; points: number; photos: string[]; owner: string; ownerId: string; liked: boolean };
+type Item = { id: string; name: string; category: string; condition: string; points: number; photos: string[]; owner: string; ownerId: string; liked: boolean; status: string };
 
 const CATEGORIES = ["All", "Clothes", "Books", "Electronics", "Home", "Toys", "Sports", "Other"];
 
@@ -30,8 +30,8 @@ export default function Search() {
     setLoading(true);
     const { data } = await supabase
       .from("items")
-      .select("id, name, category, condition, points, photos, owner_id, profiles(id, name)")
-      .eq("status", "Available")
+      .select("id, name, category, condition, points, photos, status, owner_id, profiles(id, name)")
+      .in("status", ["Available", "Swapped"])
       .neq("owner_id", userId!)
       .order("created_at", { ascending: false });
 
@@ -53,6 +53,7 @@ export default function Search() {
       owner: (Array.isArray(i.profiles) ? i.profiles[0]?.name : i.profiles?.name) ?? "Unknown",
       ownerId: i.owner_id,
       liked: likedSet.has(i.id),
+      status: i.status ?? "Available",
     })));
     setLoading(false);
   }
@@ -152,7 +153,14 @@ export default function Search() {
               <View className="p-2.5">
                 <Text className="text-xs font-medium text-[#4A3728]" numberOfLines={1}>{item.name}</Text>
                 <Text className="text-xs text-[#8B7355]">{item.condition}</Text>
-                <Text className="text-xs font-semibold text-[#4A3728] mt-1">{item.points} pts</Text>
+                <View className="flex-row items-center justify-between mt-1">
+                  <Text className="text-xs font-semibold text-[#4A3728]">{item.points} pts</Text>
+                  {item.status === "Swapped" && (
+                    <View style={{ backgroundColor: "#EDE8DF", borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ fontSize: 9, color: "#A09080", fontWeight: "600" }}>Swapped</Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </TouchableOpacity>
           )}

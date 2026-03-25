@@ -31,6 +31,7 @@ type SearchItem = {
   ownerId: string;
   photos: string[];
   match: boolean;
+  status: string;
 };
 
 function SearchInner() {
@@ -69,7 +70,7 @@ function SearchInner() {
     const { data, error } = await supabase
       .from("items")
       .select("id, name, category, condition, points, photos, status, owner_id, profiles(id, name)")
-      .eq("status", "Available")
+      .in("status", ["Available", "Swapped"])
       .neq("owner_id", userId ?? "00000000-0000-0000-0000-000000000000")
       .order("created_at", { ascending: false });
 
@@ -111,6 +112,7 @@ function SearchInner() {
         owner: profile?.name ?? "Unknown",
         ownerId: item.owner_id,
         match: myWanted.some((w) => item.name.toLowerCase().includes(w) || w.includes(item.name.toLowerCase())),
+        status: item.status,
       };
     });
 
@@ -135,7 +137,7 @@ function SearchInner() {
     if (condition !== "Any" && item.condition !== condition) return false;
     if (minPoints && item.points < parseInt(minPoints)) return false;
     if (maxPoints && item.points > parseInt(maxPoints)) return false;
-    if (matchOnly && !item.match) return false;
+    if (matchOnly && (!item.match || item.status === "Swapped")) return false;
     return true;
   });
 
@@ -266,12 +268,18 @@ function SearchInner() {
                     </p>
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
-                      <button
-                        onClick={() => setProposingItems([{ id: item.id, name: item.name, points: item.points, owner: item.owner, ownerId: item.ownerId }])}
-                        className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
-                      >
-                        Propose swap
-                      </button>
+                      {item.status === "Swapped" ? (
+                        <span className="text-xs px-3 py-1 rounded-full bg-[#EDE8DF] text-[#A09080] border border-[#D9CFC4]">
+                          Swapped
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setProposingItems([{ id: item.id, name: item.name, points: item.points, owner: item.owner, ownerId: item.ownerId }])}
+                          className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
+                        >
+                          Propose swap
+                        </button>
+                      )}
                     </div>
                   </div>
 
