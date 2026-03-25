@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import Svg, { Path } from "react-native-svg";
 import { supabase } from "@/lib/supabase";
 import { UnreadProvider } from "@/lib/unreadContext";
+import { NotificationProvider } from "@/lib/notificationContext";
 
 const { width: W, height: H } = Dimensions.get("window");
 const S = Math.min(W, H) * 0.38; // leaf corner size
@@ -43,13 +44,16 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const [session, setSession] = useState<boolean | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(!!session);
+      setUserId(session?.user?.id ?? null);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(!!s);
+      setUserId(s?.user?.id ?? null);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -63,11 +67,13 @@ export default function RootLayout() {
 
   return (
     <UnreadProvider>
-      <View style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
-        <StatusBar style="dark" backgroundColor="transparent" translucent />
-        <Stack screenOptions={{ headerShown: false }} />
-        <LeafBackground />
-      </View>
+      <NotificationProvider userId={userId}>
+        <View style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
+          <StatusBar style="dark" backgroundColor="transparent" translucent />
+          <Stack screenOptions={{ headerShown: false }} />
+          <LeafBackground />
+        </View>
+      </NotificationProvider>
     </UnreadProvider>
   );
 }

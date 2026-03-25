@@ -28,6 +28,22 @@ export default function MyStuff() {
   useEffect(() => {
     if (!userId) return;
     fetchItems();
+
+    const channel = supabase
+      .channel("mobile-my-stuff-items")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "items", filter: `owner_id=eq.${userId}` },
+        () => fetchItems()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "item_likes" },
+        () => fetchItems()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
   async function fetchItems() {
@@ -57,8 +73,23 @@ export default function MyStuff() {
       {
         text: "Delete", style: "destructive",
         onPress: async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token;
+          if (!token) { Alert.alert("Error", "Not logged in."); return; }
+
+          const res = await fetch("https://commune-neon.vercel.app/api/delete-item", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ itemId: id }),
+          });
+
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            Alert.alert("Error", `Failed to delete: ${body.error ?? res.status}`);
+            return;
+          }
+
           setItems((prev) => prev.filter((i) => i.id !== id));
-          await supabase.from("items").delete().eq("id", id).eq("owner_id", userId!);
         },
       },
     ]);

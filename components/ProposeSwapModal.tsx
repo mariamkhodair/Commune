@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { notifyUser } from "@/lib/notifySwap";
 
 export type SwapTargetItem = {
   id: string;
@@ -127,6 +128,17 @@ export default function ProposeSwapModal({
       ...items.map((i) => ({ swap_id: swapData.id, item_id: i.id, side: "receiver" })),
     ];
     await supabase.from("swap_items").insert(swapItems);
+
+    // Notify receiver
+    const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", insertId).single();
+    const proposerName = myProfile?.name ?? "Someone";
+    notifyUser({
+      userId: receiverId,
+      type: "proposal",
+      title: "New swap proposal",
+      body: `${proposerName} proposed a swap with you.`,
+      swapId: swapData.id,
+    });
 
     setSubmitting(false);
     setSubmitted(true);

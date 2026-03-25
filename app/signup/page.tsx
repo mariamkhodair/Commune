@@ -2,10 +2,12 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { toJpegBlob } from "@/lib/imageUtils";
 
 export default function SignUp() {
+  const router = useRouter();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -22,6 +24,7 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [showCharityModal, setShowCharityModal] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [hasReadGuidelines, setHasReadGuidelines] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handlePhoto(file: File) {
@@ -62,7 +65,7 @@ export default function SignUp() {
     if (error) {
       setError(error.message);
     } else {
-      setSuccess(true);
+      router.push("/dashboard");
     }
   }
 
@@ -333,20 +336,31 @@ export default function SignUp() {
           </div>
 
           {/* Terms agreement */}
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={agreedToTerms}
-              onChange={(e) => setAgreedToTerms(e.target.checked)}
-              className="mt-0.5 w-4 h-4 accent-[#4A3728] shrink-0"
-            />
-            <span className="text-sm text-[#6B5040] leading-relaxed">
-              I have read and agree to Commune's{" "}
-              <Link href="/terms" target="_blank" className="text-[#4A3728] font-medium hover:underline">
-                Terms & Conditions
-              </Link>
-            </span>
-          </label>
+          <div className="flex flex-col gap-2">
+            <label className={`flex items-start gap-3 ${hasReadGuidelines ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                disabled={!hasReadGuidelines}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-[#4A3728] shrink-0"
+              />
+              <span className="text-sm text-[#6B5040] leading-relaxed">
+                I have read and agree to Commune's{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  onClick={() => setHasReadGuidelines(true)}
+                  className="text-[#4A3728] font-medium underline hover:text-[#6B5040] transition-colors"
+                >
+                  Community Guidelines
+                </Link>
+              </span>
+            </label>
+            {!hasReadGuidelines && (
+              <p className="text-xs text-[#A0624A] pl-7">Please press the link and read them thoroughly :)</p>
+            )}
+          </div>
 
           {/* Submit */}
           <button

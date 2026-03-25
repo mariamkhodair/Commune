@@ -6,8 +6,18 @@ import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { useUnread } from "@/lib/unreadContext";
+import { useNotifications } from "@/lib/notificationContext";
 
 const sidebarItems = [
+  {
+    label: "Notifications",
+    href: "/notifications",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+    ),
+  },
   {
     label: "Members",
     href: "/members",
@@ -109,7 +119,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "Terms & Conditions",
+    label: "Community Guidelines",
     href: "/terms",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -127,6 +137,7 @@ export default function Sidebar() {
   const router = useRouter();
   const { userId, profile } = useUser();
   const { unreadMessages, clearAllMessages } = useUnread();
+  const { unreadCount: unreadNotifications, markAllRead } = useNotifications();
 
   useEffect(() => {
     if (!userId) return;
@@ -167,6 +178,9 @@ export default function Sidebar() {
       localStorage.setItem("sched_last_seen", new Date().toISOString());
       setNewScheduled(0);
     }
+    if (pathname === "/notifications") {
+      markAllRead();
+    }
   }, [pathname]);
 
   async function handleSignOut() {
@@ -196,7 +210,8 @@ export default function Sidebar() {
           const isMySwaps = item.label === "My Swaps";
           const isMessages = item.label === "Messages";
           const isScheduled = item.label === "Scheduled Swaps";
-          const badgeCount = isMySwaps ? proposedCount : isMessages ? unreadMessages : isScheduled ? newScheduled : 0;
+          const isNotifications = item.label === "Notifications";
+          const badgeCount = isMySwaps ? proposedCount : isMessages ? unreadMessages : isScheduled ? newScheduled : isNotifications ? unreadNotifications : 0;
           const showBadge = badgeCount > 0;
           const badgeColor = isScheduled ? "bg-[#2D6A4F]" : "bg-[#A0624A]";
           return (

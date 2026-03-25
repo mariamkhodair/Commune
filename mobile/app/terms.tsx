@@ -72,7 +72,7 @@ export default function Terms() {
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
         </TouchableOpacity>
         <View>
-          <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>Terms & Conditions</Text>
+          <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>Community Guidelines</Text>
           <Text style={{ fontSize: 12, color: "#8B7355" }}>By joining Commune, you agree to these.</Text>
         </View>
       </View>

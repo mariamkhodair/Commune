@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { notifyUser } from "@/lib/notifySwap";
 
 const categories = [
   "Apparel",
@@ -21,25 +22,15 @@ const conditions = ["New", "Like New", "Good", "Fair", "Any"];
 
 type WantedItem = { id: string; name: string; category: string | null; condition: string | null; notes: string | null };
 
-// Placeholder AI matches — will be replaced with real matching logic via Supabase
-const placeholderMatches = [
-  {
-    id: 101,
-    member: "Karim A.",
-    memberId: "2",
-    theirItem: { name: "Mechanical Keyboard (TKL)", category: "Electronics", points: 800, condition: "Good" },
-    yourItems: [{ name: "Canon EOS Camera", points: 850 }],
-    pointsDiff: 50,
-  },
-  {
-    id: 102,
-    member: "Sara M.",
-    memberId: "1",
-    theirItem: { name: "Vintage Levi's Jacket", category: "Apparel", points: 420, condition: "Good" },
-    yourItems: [{ name: "Vintage Denim Jacket", points: 320 }, { name: "The Alchemist", points: 80 }],
-    pointsDiff: 20,
-  },
-];
+type Match = {
+  itemId: string;
+  member: string;
+  memberId: string;
+  theirItem: { name: string; category: string; points: number };
+  matchedWant: string;
+  yourItem: { id: string; name: string; points: number } | null;
+  pointsDiff: number;
+};
 
 export default function StuffIWant() {
   const router = useRouter();
@@ -51,7 +42,8 @@ export default function StuffIWant() {
   const [saving, setSaving] = useState(false);
   const [matching, setMatching] = useState(false);
   const [showMatchResults, setShowMatchResults] = useState(false);
-  const [selectedMatches, setSelectedMatches] = useState<Set<number>>(new Set());
+  const [realMatches, setRealMatches] = useState<Match[]>([]);
+  const [selectedMatches, setSelectedMatches] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!userId) return;
@@ -91,6 +83,95 @@ export default function StuffIWant() {
     }
   }
 
+  async function runMatch() {
+    if (!wanted.length) return;
+    setMatching(true);
+
+    const { data: myItems } = await supabase
+      .from("items")
+      .select("id, name, points")
+      .eq("owner_id", userId)
+      .eq("status", "Available");
+
+    const results: Match[] = [];
+    const seenIds = new Set<string>();
+
+    for (const want of wanted) {
+      const filters: string[] = [];
+      if (want.category) filters.push(`category.eq.${want.category}`);
+      const keywords = want.name.split(/\s+/).filter((w) => w.length > 3).slice(0, 2);
+      for (const kw of keywords) {
+        const safe = kw.replace(/[^a-zA-Z0-9]/g, "");
+        if (safe) filters.push(`name.ilike.%${safe}%`);
+      }
+      if (!filters.length) continue;
+
+      const { data: matched } = await supabase
+        .from("items")
+        .select("id, name, category, points, owner_id")
+        .neq("owner_id", userId)
+        .eq("status", "Available")
+        .or(filters.join(","))
+        .limit(5);
+
+      for (const item of matched ?? []) {
+        if (seenIds.has(item.id)) continue;
+        seenIds.add(item.id);
+
+        const { data: p } = await supabase
+          .from("profiles").select("name").eq("id", item.owner_id).single();
+
+        const bestOffer = [...(myItems ?? [])]
+          .sort((a, b) => Math.abs(a.points - item.points) - Math.abs(b.points - item.points))[0] ?? null;
+
+        results.push({
+          itemId: item.id,
+          member: p?.name ?? "Unknown",
+          memberId: item.owner_id,
+          theirItem: { name: item.name, category: item.category ?? "", points: item.points },
+          matchedWant: want.name,
+          yourItem: bestOffer ?? null,
+          pointsDiff: bestOffer ? Math.abs(bestOffer.points - item.points) : 0,
+        });
+      }
+    }
+
+    setRealMatches(results);
+    setMatching(false);
+    setShowMatchResults(true);
+  }
+
+  async function sendProposals() {
+    for (const itemId of selectedMatches) {
+      const match = realMatches.find((m) => m.itemId === itemId);
+      if (!match?.yourItem) continue;
+
+      const { data: swap } = await supabase
+        .from("swaps")
+        .insert({ proposer_id: userId, receiver_id: match.memberId, status: "Proposed" })
+        .select("id").single();
+
+      if (swap) {
+        await supabase.from("swap_items").insert([
+          { swap_id: swap.id, item_id: match.yourItem.id, side: "proposer" },
+          { swap_id: swap.id, item_id: match.itemId, side: "receiver" },
+        ]);
+        // Notify receiver
+        const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
+        notifyUser({
+          userId: match.memberId,
+          type: "proposal",
+          title: "New swap proposal",
+          body: `${myProfile?.name ?? "Someone"} proposed a swap with you.`,
+          swapId: swap.id,
+        });
+      }
+    }
+    setShowMatchResults(false);
+    setSelectedMatches(new Set());
+    router.push("/my-swaps");
+  }
+
   async function deleteItem(id: string) {
     setWanted((prev) => prev.filter((i) => i.id !== id));
     await supabase.from("wanted_items").delete().eq("id", id).eq("user_id", userId);
@@ -109,10 +190,7 @@ export default function StuffIWant() {
           <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">Stuff I Want</h1>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                setMatching(true);
-                setTimeout(() => { setMatching(false); setShowMatchResults(true); }, 2000);
-              }}
+              onClick={runMatch}
               disabled={matching}
               className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#4A3728] text-[#4A3728] font-medium hover:bg-[#4A3728] hover:text-[#F5F0E8] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
@@ -281,18 +359,20 @@ export default function StuffIWant() {
               <h3 className="text-lg font-semibold text-[#4A3728]">Matches Found</h3>
             </div>
             <p className="text-xs text-[#8B7355] mb-6">
-              We found {placeholderMatches.length} potential matches based on your want list. Select the ones you'd like to propose.
+              {realMatches.length
+                ? `We found ${realMatches.length} potential match${realMatches.length > 1 ? "es" : ""} based on your want list. Select the ones you'd like to propose.`
+                : "No matches found yet — check back as more members list items."}
             </p>
 
             <div className="flex flex-col gap-4 mb-6">
-              {placeholderMatches.map((match) => {
-                const isSelected = selectedMatches.has(match.id);
+              {realMatches.map((match) => {
+                const isSelected = selectedMatches.has(match.itemId);
                 return (
                   <button
-                    key={match.id}
+                    key={match.itemId}
                     onClick={() => setSelectedMatches((prev) => {
                       const next = new Set(prev);
-                      next.has(match.id) ? next.delete(match.id) : next.add(match.id);
+                      next.has(match.itemId) ? next.delete(match.itemId) : next.add(match.itemId);
                       return next;
                     })}
                     className={`w-full text-left bg-white/70 rounded-2xl border-2 overflow-hidden transition-colors ${isSelected ? "border-[#4A3728]" : "border-[#D9CFC4] hover:border-[#A09080]"}`}
@@ -303,6 +383,7 @@ export default function StuffIWant() {
                           {match.member[0]}
                         </div>
                         <Link href={`/members/${match.memberId}`} className="text-sm font-medium text-[#4A3728] hover:underline">{match.member}</Link>
+                        <span className="text-xs text-[#A09080]">has your wanted: <em>{match.matchedWant}</em></span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${match.pointsDiff <= 50 ? "bg-[#D8E4D0] text-[#4A6640]" : "bg-[#EDE8DF] text-[#6B5040]"}`}>
@@ -321,7 +402,7 @@ export default function StuffIWant() {
                       <div className="flex-1">
                         <p className="text-xs text-[#A09080] mb-1">They offer</p>
                         <p className="text-sm font-medium text-[#4A3728]">{match.theirItem.name}</p>
-                        <p className="text-xs text-[#8B7355]">{match.theirItem.category} · {match.theirItem.condition}</p>
+                        <p className="text-xs text-[#8B7355]">{match.theirItem.category}</p>
                         <p className="text-xs font-semibold text-[#4A3728] mt-1">{match.theirItem.points} pts</p>
                       </div>
                       <div className="flex items-center text-[#C4B9AA]">
@@ -331,12 +412,14 @@ export default function StuffIWant() {
                       </div>
                       <div className="flex-1 text-right">
                         <p className="text-xs text-[#A09080] mb-1">You offer</p>
-                        {match.yourItems.map((yi, i) => (
-                          <div key={i}>
-                            <p className="text-sm font-medium text-[#4A3728]">{yi.name}</p>
-                            <p className="text-xs font-semibold text-[#4A3728]">{yi.points} pts</p>
-                          </div>
-                        ))}
+                        {match.yourItem ? (
+                          <>
+                            <p className="text-sm font-medium text-[#4A3728]">{match.yourItem.name}</p>
+                            <p className="text-xs font-semibold text-[#4A3728]">{match.yourItem.points} pts</p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-[#A09080]">List items first</p>
+                        )}
                       </div>
                     </div>
                   </button>
@@ -345,13 +428,13 @@ export default function StuffIWant() {
             </div>
 
             <button
-              onClick={() => { setShowMatchResults(false); setSelectedMatches(new Set()); router.push("/my-swaps"); }}
+              onClick={sendProposals}
               disabled={selectedMatches.size === 0}
               className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {selectedMatches.size === 0
                 ? "Select a match to propose"
-                : selectedMatches.size === placeholderMatches.length
+                : selectedMatches.size === realMatches.length
                 ? "Send All Proposals"
                 : `Send ${selectedMatches.size} Proposal${selectedMatches.size > 1 ? "s" : ""}`}
             </button>

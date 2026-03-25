@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
-type Member = { id: string; name: string; area: string; city: string; itemCount: number; joined: string; followed: boolean };
+type Member = { id: string; name: string; area: string; city: string; itemCount: number; joined: string; followed: boolean; avatar_url: string | null };
 
 export default function Members() {
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function Members() {
     setLoading(true);
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, name, area, city, created_at")
+      .select("id, name, area, city, created_at, avatar_url")
       .neq("id", userId!);
 
     const { data: follows } = await supabase
@@ -47,6 +47,7 @@ export default function Members() {
           itemCount: count ?? 0,
           joined: new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
           followed: followedSet.has(p.id),
+          avatar_url: p.avatar_url ?? null,
         };
       })
     );
@@ -104,8 +105,10 @@ export default function Members() {
               onPress={() => router.push(`/members/${item.id}`)}
               className="bg-white rounded-2xl px-4 py-4 border border-[#EDE8DF] flex-row items-center gap-3"
             >
-              <View className="w-11 h-11 rounded-full bg-[#EDE8DF] items-center justify-center">
-                <Text className="text-base font-semibold text-[#4A3728]">{item.name.charAt(0)}</Text>
+              <View className="w-11 h-11 rounded-full bg-[#EDE8DF] items-center justify-center overflow-hidden">
+                {item.avatar_url
+                  ? <Image source={{ uri: item.avatar_url }} style={{ width: 44, height: 44 }} />
+                  : <Text className="text-base font-semibold text-[#4A3728]">{item.name.charAt(0)}</Text>}
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-[#4A3728]">{item.name}</Text>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { notifyUser } from "@/lib/notifySwap";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -113,6 +114,17 @@ export default function ProposeSwapModal({
       ...targetItems.map((i) => ({ swap_id: swapData.id, item_id: i.id, side: "receiver" })),
     ];
     await supabase.from("swap_items").insert(swapItems);
+
+    // Notify receiver
+    const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", myId).single();
+    notifyUser({
+      userId: receiverId,
+      type: "proposal",
+      title: "New swap proposal",
+      body: `${myProfile?.name ?? "Someone"} proposed a swap with you.`,
+      swapId: swapData.id,
+    });
+
     setSubmitting(false);
     setSubmitted(true);
   }

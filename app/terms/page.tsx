@@ -68,7 +68,7 @@ export default function TermsAndConditions() {
       <main className="flex-1 px-8 py-8 overflow-y-auto">
         <div className="max-w-2xl">
 
-          <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)] mb-1">Terms & Conditions</h1>
+          <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)] mb-1">Community Guidelines</h1>
           <p className="text-[#8B7355] mb-10">By joining Commune, you agree to the following. Please read them carefully.</p>
 
           <div className="flex flex-col gap-8">

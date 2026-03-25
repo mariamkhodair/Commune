@@ -14,6 +14,8 @@ export default function Signup() {
   const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", area: "", city: "Cairo" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [agreedToGuidelines, setAgreedToGuidelines] = useState(false);
+  const [hasReadGuidelines, setHasReadGuidelines] = useState(false);
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -22,6 +24,9 @@ export default function Signup() {
   async function handleSignup() {
     if (!form.name || !form.email || !form.password || !form.phone) {
       setError("Please fill in all required fields."); return;
+    }
+    if (!agreedToGuidelines) {
+      setError("Please read and agree to the Community Guidelines."); return;
     }
     setLoading(true); setError("");
     const { error: err } = await supabase.auth.signUp({
@@ -123,6 +128,44 @@ export default function Signup() {
                 <Text className={`text-xs ${form.city === c ? "text-[#FAF7F2]" : "text-[#6B5040]"}`}>{c}</Text>
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Community Guidelines */}
+          <View style={{ gap: 6 }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => hasReadGuidelines && setAgreedToGuidelines((v) => !v)}
+                style={{
+                  marginTop: 2,
+                  width: 18, height: 18,
+                  borderRadius: 4,
+                  borderWidth: 1.5,
+                  borderColor: hasReadGuidelines ? "#4A3728" : "#C4B9AA",
+                  backgroundColor: agreedToGuidelines ? "#4A3728" : "white",
+                  alignItems: "center", justifyContent: "center",
+                  opacity: hasReadGuidelines ? 1 : 0.45,
+                }}
+              >
+                {agreedToGuidelines && (
+                  <Text style={{ color: "#FAF7F2", fontSize: 11, fontWeight: "700" }}>✓</Text>
+                )}
+              </TouchableOpacity>
+              <Text style={{ flex: 1, fontSize: 13, color: "#6B5040", lineHeight: 20 }}>
+                {"I have read and agree to Commune's "}
+                <Link
+                  href="/terms"
+                  onPress={() => setHasReadGuidelines(true)}
+                  style={{ color: "#4A3728", fontWeight: "600", textDecorationLine: "underline" }}
+                >
+                  Community Guidelines
+                </Link>
+              </Text>
+            </View>
+            {!hasReadGuidelines && (
+              <Text style={{ fontSize: 12, color: "#A0624A", paddingLeft: 28 }}>
+                Please press the link and read them thoroughly :)
+              </Text>
+            )}
           </View>
 
           <TouchableOpacity

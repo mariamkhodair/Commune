@@ -32,7 +32,7 @@ const SECTIONS: { heading: string; items: MenuItem[] }[] = [
     items: [
       { label: "Get Help",         icon: "help-circle-outline",      route: "/help" },
       { label: "About Commune",    icon: "information-circle-outline", route: "/about" },
-      { label: "Terms & Conditions", icon: "document-text-outline",  route: "/terms" },
+      { label: "Community Guidelines", icon: "document-text-outline",  route: "/terms" },
     ],
   },
 ];

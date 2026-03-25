@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { notifyUser } from "@/lib/notifySwap";
 
 type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Declined";
 
@@ -340,6 +341,16 @@ export default function MySwaps() {
         onPress: async () => {
           await supabase.from("swaps").update({ status: "Accepted" }).eq("id", swapId);
 
+          // Notify proposer
+          const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
+          notifyUser({
+            userId: swap.otherId,
+            type: "accepted",
+            title: "Swap accepted!",
+            body: `${myProfile?.name ?? "Someone"} accepted your swap proposal.`,
+            swapId,
+          });
+
           let convId = swap.conversationId;
           if (!convId) {
             const { data: existing } = await supabase
@@ -371,6 +382,7 @@ export default function MySwaps() {
   }
 
   async function declineSwap(swapId: string) {
+    const swap = swaps.find((s) => s.id === swapId);
     Alert.alert("Decline Swap?", "This will decline the swap request.", [
       { text: "Cancel", style: "cancel" },
       {
@@ -379,24 +391,75 @@ export default function MySwaps() {
         onPress: async () => {
           await supabase.from("swaps").update({ status: "Declined" }).eq("id", swapId);
           setSwaps((prev) => prev.map((s) => s.id === swapId ? { ...s, status: "Declined" } : s));
+          if (swap) {
+            const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
+            notifyUser({
+              userId: swap.otherId,
+              type: "declined",
+              title: "Swap declined",
+              body: `${myProfile?.name ?? "Someone"} declined your swap proposal.`,
+              swapId,
+            });
+          }
         },
       },
     ]);
   }
 
+  async function cancelSwap(swapId: string) {
+    Alert.alert(
+      "Cancel Swap?",
+      "When canceling a swap, make sure to communicate with your fellow member in your chat :)",
+      [
+        { text: "Go back", style: "cancel" },
+        {
+          text: "Cancel swap",
+          style: "destructive",
+          onPress: async () => {
+            await supabase.from("swaps").update({ status: "Declined" }).eq("id", swapId);
+            setSwaps((prev) => prev.map((s) => s.id === swapId ? { ...s, status: "Declined" } : s));
+          },
+        },
+      ]
+    );
+  }
+
   async function proposeDates(swapId: string, dates: string[]) {
+    const swap = swaps.find((s) => s.id === swapId);
     await supabase
       .from("scheduled_swaps")
       .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d })));
     setCalendarOpenFor(null);
     setSelectedDates(new Set());
     fetchSwaps();
+    if (swap) {
+      const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
+      notifyUser({
+        userId: swap.otherId,
+        type: "dates_proposed",
+        title: "Swap dates proposed",
+        body: `${myProfile?.name ?? "Someone"} proposed ${dates.length === 1 ? "a date" : `${dates.length} dates`} for your swap.`,
+        swapId,
+      });
+    }
   }
 
   async function acceptDate(dateId: string, swapId: string) {
+    const swap = swaps.find((s) => s.id === swapId);
     await supabase.from("scheduled_swaps").delete().eq("swap_id", swapId).neq("id", dateId);
     await supabase.from("swaps").update({ status: "In Progress" }).eq("id", swapId);
     fetchSwaps();
+    if (swap) {
+      const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
+      const date = swap.proposedDates.find((d) => d.id === dateId);
+      notifyUser({
+        userId: swap.otherId,
+        type: "date_confirmed",
+        title: "Swap date confirmed!",
+        body: `${myProfile?.name ?? "Someone"} confirmed${date ? ` ${date.date}` : " a date"} for your swap. It's happening!`,
+        swapId,
+      });
+    }
   }
 
   function openCalendar(swapId: string) {
@@ -611,6 +674,16 @@ export default function MySwaps() {
                 {/* Rating prompt */}
                 {swap.status === "Completed" && (
                   <RatingPrompt swapId={swap.id} name={swap.otherName} />
+                )}
+
+                {/* Cancel swap */}
+                {!["Completed", "Declined"].includes(swap.status) && (
+                  <TouchableOpacity
+                    onPress={() => cancelSwap(swap.id)}
+                    style={{ marginTop: 12, alignItems: "center" }}
+                  >
+                    <Text style={{ fontSize: 12, color: "#A09080", textDecorationLine: "underline" }}>Cancel swap</Text>
+                  </TouchableOpacity>
                 )}
 
               </View>

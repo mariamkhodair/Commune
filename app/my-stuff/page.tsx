@@ -38,6 +38,22 @@ export default function MyStuff() {
   useEffect(() => {
     if (!userId) return;
     fetchItems();
+
+    const channel = supabase
+      .channel("my-stuff-items")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "items", filter: `owner_id=eq.${userId}` },
+        () => fetchItems()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "item_likes" },
+        () => fetchItems()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
   async function fetchItems() {

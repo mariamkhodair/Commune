@@ -3,11 +3,12 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UnreadProvider } from "@/lib/unreadContext";
+import { NotificationProvider } from "@/lib/notificationContext";
 
 function GlobalRefresh() {
   const router = useRouter();
   useEffect(() => {
-    const interval = setInterval(() => router.refresh(), 2000);
+    const interval = setInterval(() => router.refresh(), 1000);
     return () => clearInterval(interval);
   }, [router]);
   return null;
@@ -16,8 +17,10 @@ function GlobalRefresh() {
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <UnreadProvider>
-      <GlobalRefresh />
-      {children}
+      <NotificationProvider>
+        <GlobalRefresh />
+        {children}
+      </NotificationProvider>
     </UnreadProvider>
   );
 }
