@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { toJpegBlob } from "@/lib/imageUtils";
 
 export default function SignUp() {
   const [form, setForm] = useState({
@@ -23,11 +24,10 @@ export default function SignUp() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function handlePhoto(file: File) {
-    if (!file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = (e) => setPhoto(e.target?.result as string);
-    reader.readAsDataURL(file);
+  async function handlePhoto(file: File) {
+    const jpeg = await toJpegBlob(file);
+    if (!jpeg) return;
+    setPhoto(URL.createObjectURL(jpeg));
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {

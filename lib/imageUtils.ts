@@ -1,11 +1,11 @@
 /**
- * Converts any image file (including HEIC/HEIF) to a JPEG Blob,
- * scaled down to a max width of 1200px.
+ * Converts any image file to a JPEG Blob scaled to max 1200px wide.
  *
  * Strategy:
- *  1. Known HEIC/HEIF → heic2any → canvas resize → JPEG
- *  2. All other formats → canvas → JPEG
- *  3. If canvas fails (unknown format, no MIME type) → heic2any → canvas → JPEG
+ *  1. Try canvas (fast, works for JPEG/PNG/WebP natively in all browsers)
+ *  2. If the browser can't decode the format (e.g. HEIC on Chrome),
+ *     send the file to /api/convert-image which uses sharp on the server
+ *     to handle HEIC, TIFF, and any other format.
  */
 
 async function canvasToJpeg(source: Blob, quality: number): Promise<Blob | null> {
@@ -15,12 +15,14 @@ async function canvasToJpeg(source: Blob, quality: number): Promise<Blob | null>
     img.onload = () => {
       URL.revokeObjectURL(url);
       const scale = Math.min(1, 1200 / img.naturalWidth);
-      const w = Math.round(img.naturalWidth * scale);
-      const h = Math.round(img.naturalHeight * scale);
+      const w = Math.max(1, Math.round(img.naturalWidth * scale));
+      const h = Math.max(1, Math.round(img.naturalHeight * scale));
       const canvas = document.createElement("canvas");
       canvas.width = w;
       canvas.height = h;
-      canvas.getContext("2d")?.drawImage(img, 0, 0, w, h);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(null); return; }
+      ctx.drawImage(img, 0, 0, w, h);
       canvas.toBlob(resolve, "image/jpeg", quality);
     };
     img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
@@ -28,35 +30,24 @@ async function canvasToJpeg(source: Blob, quality: number): Promise<Blob | null>
   });
 }
 
-async function heicToJpeg(file: Blob, quality: number): Promise<Blob | null> {
+async function serverConvertToJpeg(file: File): Promise<Blob | null> {
   try {
-    const { default: heic2any } = await import("heic2any");
-    const out = await heic2any({ blob: file, toType: "image/jpeg", quality });
-    return Array.isArray(out) ? out[0] : out;
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/convert-image", { method: "POST", body: form });
+    if (!res.ok) return null;
+    return await res.blob();
   } catch {
     return null;
   }
 }
 
 export async function toJpegBlob(file: File, quality = 0.85): Promise<Blob | null> {
-  const isHeic =
-    file.type === "image/heic" ||
-    file.type === "image/heif" ||
-    /\.heic$/i.test(file.name) ||
-    /\.heif$/i.test(file.name);
+  // Try browser canvas first (fast path for JPEG/PNG/WebP)
+  const fromCanvas = await canvasToJpeg(file, quality);
+  if (fromCanvas) return fromCanvas;
 
-  if (isHeic) {
-    const converted = await heicToJpeg(file, quality);
-    if (!converted) return null;
-    return canvasToJpeg(converted, quality);
-  }
-
-  // Try canvas directly for JPEG/PNG/WebP etc.
-  const result = await canvasToJpeg(file, quality);
-  if (result) return result;
-
-  // Canvas failed (possibly HEIC with wrong/missing MIME type) — try heic2any
-  const converted = await heicToJpeg(file, quality);
-  if (!converted) return null;
-  return canvasToJpeg(converted, quality);
+  // Canvas couldn't decode the format — use server-side sharp conversion
+  // (handles HEIC, HEIF, TIFF, and any other format)
+  return serverConvertToJpeg(file);
 }
