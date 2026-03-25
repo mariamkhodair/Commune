@@ -78,35 +78,20 @@ export default function MyStuff() {
   }
 
   async function deleteItem(id: string) {
-    // Fetch photo URLs before deleting so we can clean up storage
-    const item = items.find((i) => i.id === id);
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) { alert("Not logged in."); return; }
 
-    // Delete from DB and verify it actually deleted (select returns the removed row)
-    const { data: deleted, error } = await supabase
-      .from("items")
-      .delete()
-      .eq("id", id)
-      .eq("owner_id", userId!)
-      .select("id");
+    const res = await fetch("/api/delete-item", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ itemId: id }),
+    });
 
-    if (error || !deleted?.length) {
+    if (!res.ok) {
       alert("Failed to delete item. Please try again.");
       setConfirmDelete(null);
       return;
-    }
-
-    // Remove photos from storage
-    if (item?.photos?.length) {
-      const paths = item.photos
-        .map((url: string) => {
-          // Extract path after "/item-photos/"
-          const match = url.match(/\/item-photos\/(.+)$/);
-          return match ? match[1] : null;
-        })
-        .filter(Boolean) as string[];
-      if (paths.length) {
-        await supabase.storage.from("item-photos").remove(paths);
-      }
     }
 
     setItems((prev) => prev.filter((i) => i.id !== id));
