@@ -14,12 +14,11 @@ export async function DELETE(req: NextRequest) {
 
   const authHeader = req.headers.get("authorization") ?? "";
   const accessToken = authHeader.replace("Bearer ", "").trim();
-  if (!accessToken) return NextResponse.json({ error: "Unauthorized: no token" }, { status: 401 });
+  if (!accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Use service role client to validate token + perform delete
   const admin = createClient(supabaseUrl, serviceRoleKey);
 
-  // Verify the caller's identity
+  // Verify caller identity
   const { data: { user }, error: authError } = await admin.auth.getUser(accessToken);
   if (authError || !user) {
     return NextResponse.json({ error: `Unauthorized: ${authError?.message ?? "no user"}` }, { status: 401 });
@@ -32,14 +31,29 @@ export async function DELETE(req: NextRequest) {
     .eq("id", itemId)
     .single();
 
-  if (fetchError || !item) {
-    return NextResponse.json({ error: `Item not found: ${fetchError?.message}` }, { status: 404 });
-  }
-  if (item.owner_id !== user.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (fetchError || !item) return NextResponse.json({ error: "Item not found" }, { status: 404 });
+  if (item.owner_id !== user.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  // Find all swaps that involve this item
+  const { data: swapItems } = await admin
+    .from("swap_items")
+    .select("swap_id")
+    .eq("item_id", itemId);
+
+  const swapIds = [...new Set((swapItems ?? []).map((r: { swap_id: string }) => r.swap_id))];
+
+  if (swapIds.length) {
+    // Delete scheduled_swaps → ratings → swap_items → swaps (cascade order)
+    await admin.from("scheduled_swaps").delete().in("swap_id", swapIds);
+    await admin.from("ratings").delete().in("swap_id", swapIds);
+    await admin.from("swap_items").delete().in("swap_id", swapIds);
+    await admin.from("swaps").delete().in("id", swapIds);
   }
 
-  // Delete from DB
+  // Delete item_likes for this item
+  await admin.from("item_likes").delete().eq("item_id", itemId);
+
+  // Delete the item
   const { error: deleteError } = await admin.from("items").delete().eq("id", itemId);
   if (deleteError) {
     return NextResponse.json({ error: `Delete failed: ${deleteError.message}` }, { status: 500 });
