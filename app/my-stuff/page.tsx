@@ -89,7 +89,8 @@ export default function MyStuff() {
     });
 
     if (!res.ok) {
-      alert("Failed to delete item. Please try again.");
+      const body = await res.json().catch(() => ({}));
+      alert(`Failed to delete item: ${body.error ?? res.status}`);
       setConfirmDelete(null);
       return;
     }
