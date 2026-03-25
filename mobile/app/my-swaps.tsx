@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { notifyUser } from "@/lib/notifySwap";
+import { updateSwapItemStatus } from "@/lib/updateSwapItems";
 
 type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Declined";
 
@@ -341,12 +342,8 @@ export default function MySwaps() {
         onPress: async () => {
           await supabase.from("swaps").update({ status: "Accepted" }).eq("id", swapId);
 
-          // Mark all items in this swap as Swapped
-          const { data: swapItemsData } = await supabase.from("swap_items").select("item_id").eq("swap_id", swapId);
-          const itemIds = (swapItemsData ?? []).map((si: { item_id: string }) => si.item_id);
-          if (itemIds.length > 0) {
-            await supabase.from("items").update({ status: "Swapped" }).in("id", itemIds);
-          }
+          // Mark all items in this swap as Swapped (via server-side to bypass RLS)
+          updateSwapItemStatus(swapId, "Swapped");
 
           // Notify proposer
           const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
@@ -398,12 +395,8 @@ export default function MySwaps() {
         onPress: async () => {
           await supabase.from("swaps").update({ status: "Declined" }).eq("id", swapId);
 
-          // Revert item statuses to Available
-          const { data: swapItemsDecline } = await supabase.from("swap_items").select("item_id").eq("swap_id", swapId);
-          const declineItemIds = (swapItemsDecline ?? []).map((si: { item_id: string }) => si.item_id);
-          if (declineItemIds.length > 0) {
-            await supabase.from("items").update({ status: "Available" }).in("id", declineItemIds);
-          }
+          // Revert item statuses to Available (via server-side to bypass RLS)
+          updateSwapItemStatus(swapId, "Available");
 
           setSwaps((prev) => prev.map((s) => s.id === swapId ? { ...s, status: "Declined" } : s));
           if (swap) {
@@ -433,12 +426,8 @@ export default function MySwaps() {
           onPress: async () => {
             await supabase.from("swaps").update({ status: "Declined" }).eq("id", swapId);
 
-            // Revert item statuses to Available
-            const { data: cancelSwapItems } = await supabase.from("swap_items").select("item_id").eq("swap_id", swapId);
-            const cancelItemIds = (cancelSwapItems ?? []).map((si: { item_id: string }) => si.item_id);
-            if (cancelItemIds.length > 0) {
-              await supabase.from("items").update({ status: "Available" }).in("id", cancelItemIds);
-            }
+            // Revert item statuses to Available (via server-side to bypass RLS)
+            updateSwapItemStatus(swapId, "Available");
 
             setSwaps((prev) => prev.map((s) => s.id === swapId ? { ...s, status: "Declined" } : s));
           },

@@ -7,6 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { notifyUser } from "@/lib/notifySwap";
+import { updateSwapItemStatus } from "@/lib/updateSwapItems";
 
 type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Declined";
 
@@ -340,12 +341,8 @@ export default function MySwaps() {
     if (!swap) return;
     await supabase.from("swaps").update({ status: "Accepted" }).eq("id", swapId);
 
-    // Mark all items in this swap as Swapped
-    const { data: swapItems } = await supabase.from("swap_items").select("item_id").eq("swap_id", swapId);
-    const itemIds = (swapItems ?? []).map((si: { item_id: string }) => si.item_id);
-    if (itemIds.length > 0) {
-      await supabase.from("items").update({ status: "Swapped" }).in("id", itemIds);
-    }
+    // Mark all items in this swap as Swapped (via server-side to bypass RLS)
+    updateSwapItemStatus(swapId, "Swapped");
 
     // Notify proposer
     const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
@@ -390,12 +387,8 @@ export default function MySwaps() {
     const swap = swaps.find((s) => s.id === swapId);
     await supabase.from("swaps").update({ status: "Declined" }).eq("id", swapId);
 
-    // Revert item statuses to Available
-    const { data: swapItemsData } = await supabase.from("swap_items").select("item_id").eq("swap_id", swapId);
-    const itemIds = (swapItemsData ?? []).map((si: { item_id: string }) => si.item_id);
-    if (itemIds.length > 0) {
-      await supabase.from("items").update({ status: "Available" }).in("id", itemIds);
-    }
+    // Revert item statuses to Available (via server-side to bypass RLS)
+    updateSwapItemStatus(swapId, "Available");
 
     setSwaps((prev) =>
       prev.map((s) => (s.id === swapId ? { ...s, status: "Declined" } : s))
@@ -415,12 +408,8 @@ export default function MySwaps() {
   async function cancelSwap(swapId: string) {
     await supabase.from("swaps").update({ status: "Declined" }).eq("id", swapId);
 
-    // Revert item statuses to Available
-    const { data: swapItemsData } = await supabase.from("swap_items").select("item_id").eq("swap_id", swapId);
-    const itemIds = (swapItemsData ?? []).map((si: { item_id: string }) => si.item_id);
-    if (itemIds.length > 0) {
-      await supabase.from("items").update({ status: "Available" }).in("id", itemIds);
-    }
+    // Revert item statuses to Available (via server-side to bypass RLS)
+    updateSwapItemStatus(swapId, "Available");
 
     setSwaps((prev) => prev.map((s) => (s.id === swapId ? { ...s, status: "Declined" } : s)));
     setConfirmCancel(null);
