@@ -30,34 +30,48 @@ export default function ScheduledSwaps() {
 
   async function fetchScheduled() {
     setLoading(true);
+
+    // Get swap IDs where user is a party with status "In Progress"
+    const { data: mySwaps } = await supabase
+      .from("swaps")
+      .select("id")
+      .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
+      .eq("status", "In Progress");
+
+    const swapIds = (mySwaps ?? []).map((s: { id: string }) => s.id);
+    if (!swapIds.length) { setSwaps([]); setLoading(false); return; }
+
     const { data } = await supabase
       .from("scheduled_swaps")
-      .select("id, swap_id, scheduled_date, swaps(proposer_id, receiver_id, swap_items(item_id, items(name, owner_id)))")
+      .select("id, swap_id, scheduled_date, swaps(proposer_id, receiver_id, swap_items(side, items(name, owner_id)))")
+      .in("swap_id", swapIds)
       .order("scheduled_date", { ascending: true });
 
     const enriched = await Promise.all(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (data ?? []).map(async (s: any) => {
         const swap = s.swaps;
-        const otherId = swap?.proposer_id === userId ? swap?.receiver_id : swap?.proposer_id;
+        const isProposer = swap?.proposer_id === userId;
+        const otherId = isProposer ? swap?.receiver_id : swap?.proposer_id;
+        const yourSide = isProposer ? "proposer" : "receiver";
+        const theirSide = isProposer ? "receiver" : "proposer";
         const { data: p } = await supabase.from("profiles").select("name").eq("id", otherId).single();
-        const items = swap?.swap_items ?? [];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const yourItems = items.filter((i: any) => i.items?.owner_id === userId).map((i: any) => i.items?.name).join(", ");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const theirItems = items.filter((i: any) => i.items?.owner_id !== userId).map((i: any) => i.items?.name).join(", ");
+        const items: any[] = swap?.swap_items ?? [];
+        const yourItem = items.filter((i) => i.side === yourSide).map((i) => i.items?.name).filter(Boolean).join(", ");
+        const theirItem = items.filter((i) => i.side === theirSide).map((i) => i.items?.name).filter(Boolean).join(", ");
         return {
           id: s.id,
           swapId: s.swap_id,
           otherName: p?.name ?? "Unknown",
           otherId,
           date: s.scheduled_date,
-          yourItem: yourItems || "Your item",
-          theirItem: theirItems || "Their item",
+          yourItem: yourItem || "Your items",
+          theirItem: theirItem || "Their items",
         };
       })
     );
-    setSwaps(enriched);
+    setSwaps(enriched.filter((s) => s.otherName !== "Unknown"));
     setLoading(false);
   }
 
@@ -167,7 +181,11 @@ export default function ScheduledSwaps() {
                               <p className="text-xs text-[#A0624A] font-medium">Location sharing active — {swap.otherName} knows you're on your way</p>
                             </div>
                             <button
-                              onClick={() => { setTracking((prev) => ({ ...prev, [swap.id]: false })); setDone((prev) => ({ ...prev, [swap.id]: true })); }}
+                              onClick={async () => {
+                                await supabase.from("swaps").update({ status: "Completed" }).eq("id", swap.swapId);
+                                setTracking((prev) => ({ ...prev, [swap.id]: false }));
+                                setDone((prev) => ({ ...prev, [swap.id]: true }));
+                              }}
                               className="w-full rounded-full bg-[#7A9E6E] text-white py-3 font-semibold hover:bg-[#5A7E4E] transition-colors flex items-center justify-center gap-2"
                             >
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-4 h-4">
