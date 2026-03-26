@@ -70,22 +70,22 @@ const sidebarItems = [
     ),
   },
   {
-    label: "Scheduled Swaps",
-    href: "/scheduled-swaps",
-    id: "tour-scheduled-swaps",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-      </svg>
-    ),
-  },
-  {
     label: "My Swaps",
     href: "/my-swaps",
     id: "tour-my-swaps",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
         <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
+      </svg>
+    ),
+  },
+  {
+    label: "Scheduled Swaps",
+    href: "/scheduled-swaps",
+    id: "tour-scheduled-swaps",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
       </svg>
     ),
   },
