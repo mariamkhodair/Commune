@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { toJpegBlob } from "@/lib/imageUtils";
+
+const DRAFT_KEY = "signup_draft";
 
 export default function SignUp() {
   const router = useRouter();
@@ -24,8 +26,26 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [showCharityModal, setShowCharityModal] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [hasReadGuidelines, setHasReadGuidelines] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const { form: savedForm, agreedToTerms: savedAgreed } = JSON.parse(saved);
+        if (savedForm) setForm(savedForm);
+        if (savedAgreed) setAgreedToTerms(savedAgreed);
+      }
+    } catch {}
+  }, []);
+
+  // Save draft on every change
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ form, agreedToTerms }));
+    } catch {}
+  }, [form, agreedToTerms]);
 
   async function handlePhoto(file: File) {
     const jpeg = await toJpegBlob(file);
@@ -65,7 +85,14 @@ export default function SignUp() {
     if (error) {
       setError(error.message);
     } else {
-      router.push("/dashboard");
+      sessionStorage.removeItem(DRAFT_KEY);
+      // Send welcome email — fire and forget, don't block navigation
+      fetch("/api/welcome-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name, email: form.email }),
+      }).catch(() => {});
+      router.push("/tutorial");
     }
   }
 
@@ -298,6 +325,16 @@ export default function SignUp() {
               <div className="flex-1 h-px bg-[#D9CFC4]" />
             </div>
 
+            {/* Demo disclaimer */}
+            <div className="flex items-start gap-2 bg-[#FFF8E7] border border-[#F0D080] rounded-xl px-4 py-3">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#B8860B" strokeWidth="2" strokeLinecap="round" className="w-4 h-4 shrink-0 mt-0.5">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <p className="text-xs text-[#7A5C00] leading-relaxed">
+                <span className="font-semibold">This is a demo — Sign up for free!</span> Do not enter any real card information.
+              </p>
+            </div>
+
             {/* Card fields — will be replaced with Stripe Elements once API key is set up */}
             <div className="flex flex-col gap-3">
               <input
@@ -337,29 +374,24 @@ export default function SignUp() {
 
           {/* Terms agreement */}
           <div className="flex flex-col gap-2">
-            <label className={`flex items-start gap-3 ${hasReadGuidelines ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
+            <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={agreedToTerms}
-                disabled={!hasReadGuidelines}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
                 className="mt-0.5 w-4 h-4 accent-[#4A3728] shrink-0"
               />
               <span className="text-sm text-[#6B5040] leading-relaxed">
                 I have read and agree to Commune's{" "}
                 <Link
-                  href="/terms"
+                  href="/community-guidelines"
                   target="_blank"
-                  onClick={() => setHasReadGuidelines(true)}
                   className="text-[#4A3728] font-medium underline hover:text-[#6B5040] transition-colors"
                 >
                   Community Guidelines
                 </Link>
               </span>
             </label>
-            {!hasReadGuidelines && (
-              <p className="text-xs text-[#A0624A] pl-7">Please press the link and read them thoroughly :)</p>
-            )}
           </div>
 
           {/* Submit */}

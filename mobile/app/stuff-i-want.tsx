@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, ScrollView, Modal, Image } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, ScrollView, Modal, Image, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,6 +11,7 @@ const CATEGORIES = ["Apparel", "Electronics", "Books", "Cosmetics", "Furniture &
 const CONDITIONS = ["New", "Like New", "Good", "Fair", "Any"];
 
 type WantedItem = { id: string; name: string; category: string | null; condition: string | null; notes: string | null };
+type LikedItem = { id: string; name: string; condition: string; points: number; photos: string[]; owner: string; ownerId: string; status: string };
 
 type Match = {
   itemId: string;
@@ -25,8 +26,12 @@ type Match = {
 export default function StuffIWant() {
   const router = useRouter();
   const { userId } = useUser();
+  const [tab, setTab] = useState<"want" | "liked">("want");
+
+  // Want list state
   const [items, setItems] = useState<WantedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
@@ -38,9 +43,15 @@ export default function StuffIWant() {
   const [realMatches, setRealMatches] = useState<Match[]>([]);
   const [selectedMatches, setSelectedMatches] = useState<Set<string>>(new Set());
 
+  // Liked stuff state
+  const [likedItems, setLikedItems] = useState<LikedItem[]>([]);
+  const [likedLoading, setLikedLoading] = useState(true);
+  const [likedRefreshing, setLikedRefreshing] = useState(false);
+
   useEffect(() => {
     if (!userId) return;
     fetchItems();
+    fetchLiked();
   }, [userId]);
 
   async function fetchItems() {
@@ -52,6 +63,28 @@ export default function StuffIWant() {
       .order("created_at", { ascending: false });
     setItems(data ?? []);
     setLoading(false);
+  }
+
+  async function fetchLiked() {
+    setLikedLoading(true);
+    const { data } = await supabase
+      .from("item_likes")
+      .select("item_id, items(id, name, condition, points, photos, status, owner_id, profiles(id, name))")
+      .eq("user_id", userId!)
+      .order("created_at", { ascending: false });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setLikedItems((data ?? []).map((row: any) => {
+      const item = row.items;
+      const profile = Array.isArray(item?.profiles) ? item.profiles[0] : item?.profiles;
+      return { id: item?.id, name: item?.name, condition: item?.condition, points: item?.points, photos: item?.photos ?? [], owner: profile?.name ?? "Unknown", ownerId: item?.owner_id, status: item?.status ?? "Available" };
+    }).filter((i: any) => i.id));
+    setLikedLoading(false);
+  }
+
+  async function unlike(itemId: string) {
+    setLikedItems((prev) => prev.filter((i) => i.id !== itemId));
+    await supabase.from("item_likes").delete().eq("item_id", itemId).eq("user_id", userId!);
   }
 
   async function runMatch() {
@@ -143,14 +176,8 @@ export default function StuffIWant() {
     setSaving(true);
     const { data, error } = await supabase
       .from("wanted_items")
-      .insert({
-        user_id: userId!,
-        name: name.trim(),
-        category: category || null,
-        notes: notes.trim() || null,
-      })
-      .select()
-      .single();
+      .insert({ user_id: userId!, name: name.trim(), category: category || null, notes: notes.trim() || null })
+      .select().single();
     setSaving(false);
     if (!error && data) {
       setItems((prev) => [data, ...prev]);
@@ -175,71 +202,158 @@ export default function StuffIWant() {
   const canSave = name.trim() && category;
 
   return (
-    <SafeAreaView className="flex-1">
-      <View className="px-5 pt-4 pb-4 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-3">
-          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
-            <Ionicons name="arrow-back" size={18} color="#4A3728" />
-          </TouchableOpacity>
-          <Text className="text-2xl font-light text-[#4A3728]">Stuff I Want</Text>
-        </View>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <TouchableOpacity
-            onPress={runMatch}
-            disabled={matching}
-            style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: "#4A3728", opacity: matching ? 0.6 : 1 }}
-          >
-            {matching
-              ? <ActivityIndicator size="small" color="#4A3728" />
-              : <Text style={{ fontSize: 13, color: "#4A3728", fontWeight: "500" }}>🤝🏽 Match Me</Text>}
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setShowForm(true)}
-            className="flex-row items-center gap-1 bg-[#4A3728] px-3 py-2 rounded-full"
-          >
-            <Ionicons name="add" size={16} color="#FAF7F2" />
-            <Text className="text-[#FAF7F2] text-sm font-medium">Add</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {loading ? (
-        <View className="flex-1 items-center justify-center"><ActivityIndicator color="#4A3728" /></View>
-      ) : items.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="star-outline" size={40} color="#C4B9AA" />
-          <Text className="text-[#8B7355] text-base mt-3 mb-1">Nothing on your list</Text>
-          <Text className="text-[#A09080] text-sm text-center mb-6">Add items you're looking for and we'll notify you when they're listed.</Text>
-          <TouchableOpacity onPress={() => setShowForm(true)} className="bg-[#4A3728] px-5 py-3 rounded-full">
-            <Text className="text-[#FAF7F2] font-medium">Add an Item</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(i) => i.id}
-          contentContainerClassName="px-5 pb-8 gap-3"
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View className="bg-white rounded-2xl px-4 py-4 border border-[#EDE8DF] flex-row items-center gap-3">
-              <View className="w-9 h-9 rounded-full bg-[#EDE8DF] items-center justify-center">
-                <Ionicons name="star-outline" size={16} color="#8B7355" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-[#4A3728]">{item.name}</Text>
-                {(item.category || item.condition) ? (
-                  <Text className="text-xs text-[#8B7355] mt-0.5">
-                    {[item.category, item.condition].filter(Boolean).join(" · ")}
-                  </Text>
-                ) : null}
-                {item.notes ? <Text className="text-xs text-[#A09080] mt-0.5" numberOfLines={2}>{item.notes}</Text> : null}
-              </View>
-              <TouchableOpacity onPress={() => confirmDelete(item.id)} className="p-1">
-                <Ionicons name="trash-outline" size={16} color="#C4B9AA" />
+    <SafeAreaView style={{ flex: 1 }}>
+      {/* Header */}
+      <View>
+        <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
+              <Ionicons name="arrow-back" size={18} color="#4A3728" />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>Stuff I Want</Text>
+          </View>
+          {tab === "want" && (
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity
+                onPress={runMatch}
+                disabled={matching}
+                style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: "#4A3728", opacity: matching ? 0.6 : 1 }}
+              >
+                {matching
+                  ? <ActivityIndicator size="small" color="#4A3728" />
+                  : <Text style={{ fontSize: 13, color: "#4A3728", fontWeight: "500" }}>🤝🏽 Match Me</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowForm(true)}
+                style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#4A3728", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 }}
+              >
+                <Ionicons name="add" size={16} color="#FAF7F2" />
+                <Text style={{ color: "#FAF7F2", fontSize: 13, fontWeight: "500" }}>Add</Text>
               </TouchableOpacity>
             </View>
           )}
-        />
+        </View>
+
+        {/* Tabs */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8, alignItems: "center" }}>
+          {(["want", "liked"] as const).map((t) => (
+            <TouchableOpacity
+              key={t}
+              onPress={() => setTab(t)}
+              style={{
+                paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999, borderWidth: 1,
+                borderColor: tab === t ? "#4A3728" : "#D9CFC4",
+                backgroundColor: tab === t ? "#4A3728" : "white",
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "500", color: tab === t ? "#FAF7F2" : "#6B5040" }}>
+                {t === "want" ? "My Want List" : `Liked Stuff${likedItems.length > 0 ? ` (${likedItems.length})` : ""}`}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Want List content */}
+      {tab === "want" && (
+        <View style={{ flex: 1 }}>
+          {loading ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color="#4A3728" /></View>
+          ) : items.length === 0 ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+              <Ionicons name="star-outline" size={40} color="#C4B9AA" />
+              <Text style={{ color: "#8B7355", fontSize: 16, marginTop: 12, marginBottom: 4 }}>Nothing on your list</Text>
+              <Text style={{ color: "#A09080", fontSize: 13, textAlign: "center", marginBottom: 24 }}>Add items you're looking for and we'll notify you when they're listed.</Text>
+              <TouchableOpacity onPress={() => setShowForm(true)} style={{ backgroundColor: "#4A3728", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 999 }}>
+                <Text style={{ color: "#FAF7F2", fontWeight: "500" }}>Add an Item</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              data={items}
+              keyExtractor={(i) => i.id}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, gap: 12 }}
+              showsVerticalScrollIndicator={false}
+              refreshing={refreshing}
+              onRefresh={async () => { setRefreshing(true); await fetchItems(); setRefreshing(false); }}
+              renderItem={({ item }) => (
+                <View style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, borderWidth: 1, borderColor: "#EDE8DF", flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#EDE8DF", alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name="star-outline" size={16} color="#8B7355" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: "#4A3728" }}>{item.name}</Text>
+                    {(item.category || item.condition) ? (
+                      <Text style={{ fontSize: 11, color: "#8B7355", marginTop: 2 }}>
+                        {[item.category, item.condition].filter(Boolean).join(" · ")}
+                      </Text>
+                    ) : null}
+                    {item.notes ? <Text style={{ fontSize: 11, color: "#A09080", marginTop: 2 }} numberOfLines={2}>{item.notes}</Text> : null}
+                  </View>
+                  <TouchableOpacity onPress={() => confirmDelete(item.id)} style={{ padding: 4 }}>
+                    <Ionicons name="trash-outline" size={16} color="#C4B9AA" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+          )}
+        </View>
+      )}
+
+      {/* Liked Stuff content */}
+      {tab === "liked" && (
+        <View style={{ flex: 1 }}>
+          {likedLoading ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color="#4A3728" /></View>
+          ) : likedItems.length === 0 ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+              <Ionicons name="heart-outline" size={40} color="#C4B9AA" />
+              <Text style={{ color: "#8B7355", fontSize: 16, marginTop: 12, marginBottom: 4 }}>Nothing liked yet</Text>
+              <Text style={{ color: "#A09080", fontSize: 13, textAlign: "center" }}>Browse items and heart the ones you want.</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={likedItems}
+              keyExtractor={(i) => i.id}
+              numColumns={2}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 12 }}
+              columnWrapperStyle={{ gap: 12 }}
+              showsVerticalScrollIndicator={false}
+              refreshing={likedRefreshing}
+              onRefresh={async () => { setLikedRefreshing(true); await fetchLiked(); setLikedRefreshing(false); }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => router.push(`/items/${item.id}` as any)}
+                  style={{ flex: 1, backgroundColor: "white", borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#EDE8DF" }}
+                >
+                  <View style={{ width: "100%", aspectRatio: 1, backgroundColor: "#EDE8DF", alignItems: "center", justifyContent: "center" }}>
+                    {item.photos[0] ? (
+                      <Image source={{ uri: item.photos[0] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                    ) : (
+                      <Ionicons name="image-outline" size={28} color="#C4B9AA" />
+                    )}
+                    <TouchableOpacity
+                      onPress={() => unlike(item.id)}
+                      style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.8)", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <Ionicons name="heart" size={16} color="#A0624A" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{ padding: 10 }}>
+                    <Text style={{ fontSize: 12, fontWeight: "500", color: "#4A3728" }} numberOfLines={1}>{item.name}</Text>
+                    <Text style={{ fontSize: 11, color: "#8B7355" }}>{item.condition}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: "#4A3728" }}>{item.points} pts</Text>
+                      <View style={{ backgroundColor: item.status === "Swapped" ? "#DDD8C8" : "#D8E4D0", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+                        <Text style={{ fontSize: 10, fontWeight: "600", color: item.status === "Swapped" ? "#6B5040" : "#4A6640" }}>{item.status}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
       )}
 
       {/* Match Results Modal */}
@@ -351,7 +465,6 @@ export default function StuffIWant() {
             </TouchableOpacity>
           </View>
 
-          {/* Name */}
           <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 6 }}>Item Name</Text>
           <TextInput
             style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, color: "#4A3728", borderWidth: 1, borderColor: "#EDE8DF", marginBottom: 16, fontSize: 14 }}
@@ -361,43 +474,32 @@ export default function StuffIWant() {
             onChangeText={setName}
           />
 
-          {/* Category */}
           <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 8 }}>Category</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
             {CATEGORIES.map((c) => (
               <TouchableOpacity
                 key={c}
                 onPress={() => setCategory(c)}
-                style={{
-                  paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start",
-                  borderColor: category === c ? "#4A3728" : "#D9CFC4",
-                  backgroundColor: category === c ? "#4A3728" : "white",
-                }}
+                style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start", borderColor: category === c ? "#4A3728" : "#D9CFC4", backgroundColor: category === c ? "#4A3728" : "white" }}
               >
                 <Text style={{ fontSize: 12, fontWeight: "500", color: category === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          {/* Condition */}
           <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 8 }}>Condition</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
             {CONDITIONS.map((c) => (
               <TouchableOpacity
                 key={c}
                 onPress={() => setCondition(c)}
-                style={{
-                  paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start",
-                  borderColor: condition === c ? "#4A3728" : "#D9CFC4",
-                  backgroundColor: condition === c ? "#4A3728" : "white",
-                }}
+                style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start", borderColor: condition === c ? "#4A3728" : "#D9CFC4", backgroundColor: condition === c ? "#4A3728" : "white" }}
               >
                 <Text style={{ fontSize: 12, fontWeight: "500", color: condition === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          {/* Notes */}
           <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 6 }}>
             Notes <Text style={{ color: "#A09080" }}>(optional)</Text>
           </Text>

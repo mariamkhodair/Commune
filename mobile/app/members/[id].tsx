@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
 
-type Profile = { id: string; name: string; area: string; city: string; rating: number | null; joined: string; avatar_url: string | null };
+type Profile = { id: string; name: string; area: string; city: string; rating: number | null; ratingCount: number; joined: string; avatar_url: string | null };
 type Item = { id: string; name: string; category: string; points: number; photos: string[]; liked: boolean };
 
 export default function MemberProfile() {
@@ -18,7 +18,16 @@ export default function MemberProfile() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [followed, setFollowed] = useState(false);
+
+  // Single-item propose
   const [proposingItem, setProposingItem] = useState<Item | null>(null);
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Multi-select
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [proposingBundle, setProposingBundle] = useState(false);
 
   useEffect(() => {
     if (!id || !userId) return;
@@ -33,16 +42,19 @@ export default function MemberProfile() {
     ]);
 
     const { data: likes } = await supabase.from("item_likes").select("item_id").eq("user_id", userId!);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const likedSet = new Set((likes ?? []).map((l: any) => l.item_id));
 
     if (p) {
       setProfile({
         id: p.id, name: p.name, area: p.area ?? "", city: p.city ?? "",
         rating: p.rating_count > 0 ? p.rating_sum / p.rating_count : null,
+        ratingCount: p.rating_count ?? 0,
         joined: new Date(p.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
         avatar_url: p.avatar_url ?? null,
       });
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setItems((itemsData ?? []).map((i: any) => ({ ...i, photos: i.photos ?? [], liked: likedSet.has(i.id) })));
     setFollowed(!!followData);
     setLoading(false);
@@ -51,34 +63,21 @@ export default function MemberProfile() {
   async function openChat() {
     if (!userId) return;
     const memberId = Array.isArray(id) ? id[0] : id;
-
-    const { data: a } = await supabase
-      .from("conversations").select("id")
-      .eq("member1_id", userId).eq("member2_id", memberId).maybeSingle();
-    const { data: b } = !a ? await supabase
-      .from("conversations").select("id")
-      .eq("member1_id", memberId).eq("member2_id", userId).maybeSingle()
-      : { data: null };
-
+    const { data: a } = await supabase.from("conversations").select("id").eq("member1_id", userId).eq("member2_id", memberId).maybeSingle();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: b } = !a ? await supabase.from("conversations").select("id").eq("member1_id", memberId).eq("member2_id", userId).maybeSingle() : { data: null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let convId: string | null = (a as any)?.id ?? (b as any)?.id ?? null;
-
     if (!convId) {
-      const { data: newConv } = await supabase
-        .from("conversations")
-        .insert({ member1_id: userId, member2_id: memberId })
-        .select("id")
-        .single();
+      const { data: newConv } = await supabase.from("conversations").insert({ member1_id: userId, member2_id: memberId }).select("id").single();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       convId = (newConv as any)?.id ?? null;
     }
-
-    // Retry find in case of race condition / unique constraint
     if (!convId) {
-      const { data: retry } = await supabase
-        .from("conversations").select("id")
-        .eq("member1_id", memberId).eq("member2_id", userId).maybeSingle();
+      const { data: retry } = await supabase.from("conversations").select("id").eq("member1_id", memberId).eq("member2_id", userId).maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       convId = (retry as any)?.id ?? null;
     }
-
     if (convId) router.push(`/messages/${convId}` as any);
   }
 
@@ -102,15 +101,34 @@ export default function MemberProfile() {
     }
   }
 
+  function toggleSelect(itemId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(itemId) ? next.delete(itemId) : next.add(itemId);
+      return next;
+    });
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
   if (loading) return (
     <SafeAreaView className="flex-1 bg-[#FAF7F2] items-center justify-center">
       <ActivityIndicator color="#4A3728" />
     </SafeAreaView>
   );
 
+  const selectedItems = items.filter((i) => selectedIds.has(i.id));
+  const bundlePoints = selectedItems.reduce((s, i) => s + i.points, 0);
+
   return (
-    <SafeAreaView className="flex-1">
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={{ flex: 1 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await fetchAll(); setRefreshing(false); }} tintColor="#4A3728" />}
+      >
         {/* Back */}
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }} className="flex-row items-center gap-1 px-5 pt-4 pb-2">
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
@@ -128,12 +146,15 @@ export default function MemberProfile() {
             <Text className="text-xl font-semibold text-[#4A3728]">{profile.name}</Text>
             {profile.area ? <Text className="text-sm text-[#8B7355]">{profile.area}, {profile.city}</Text> : null}
             <Text className="text-xs text-[#A09080] mt-0.5">Member since {profile.joined}</Text>
-            {profile.rating !== null && (
-              <View className="flex-row items-center gap-1 mt-2">
-                <Ionicons name="star" size={14} color="#C4842A" />
-                <Text className="text-sm text-[#6B5040] font-medium">{profile.rating.toFixed(1)}</Text>
+            {profile.rating !== null ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
+                {[1,2,3,4,5].map((s) => (
+                  <Ionicons key={s} name={s <= Math.round(profile.rating!) ? "star" : "star-outline"} size={14} color="#C4842A" />
+                ))}
+                <Text style={{ fontSize: 13, color: "#8B7355", marginLeft: 2 }}>{profile.rating.toFixed(1)}</Text>
+                <Text style={{ fontSize: 12, color: "#A09080" }}>({profile.ratingCount})</Text>
               </View>
-            )}
+            ) : null}
             {id !== userId && (
               <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
                 <TouchableOpacity
@@ -157,61 +178,127 @@ export default function MemberProfile() {
           </View>
         )}
 
-        {/* Items */}
-        <View className="px-5 mb-8">
-          <Text className="text-base font-semibold text-[#4A3728] mb-3">
+        {/* Items header */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 12 }}>
+          <Text style={{ fontSize: 15, fontWeight: "600", color: "#4A3728" }}>
             {items.length} item{items.length !== 1 ? "s" : ""} listed
           </Text>
+          {id !== userId && items.length > 0 && (
+            <TouchableOpacity
+              onPress={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+              style={{
+                borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6,
+                borderColor: selectMode ? "#4A3728" : "#D9CFC4",
+                backgroundColor: selectMode ? "#4A3728" : "white",
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "500", color: selectMode ? "#FAF7F2" : "#6B5040" }}>
+                {selectMode ? "Cancel" : "Select items"}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Items grid */}
+        <View className="px-5 mb-8">
           {items.length === 0 ? (
             <Text className="text-sm text-[#A09080] text-center py-6">No items listed yet.</Text>
           ) : (
             <View className="flex-row flex-wrap gap-3">
-              {items.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() => router.push(`/items/${item.id}`)}
-                  className="bg-white rounded-2xl overflow-hidden border border-[#EDE8DF]"
-                  style={{ width: "47%" }}
-                >
-                  <View className="w-full aspect-square bg-[#EDE8DF] items-center justify-center">
-                    {item.photos[0] ? (
-                      <Image source={{ uri: item.photos[0] }} className="w-full h-full" resizeMode="cover" />
-                    ) : (
-                      <Ionicons name="image-outline" size={24} color="#C4B9AA" />
-                    )}
-                    <TouchableOpacity
-                      onPress={() => toggleLike(item.id)}
-                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/80 items-center justify-center"
-                    >
-                      <Ionicons name={item.liked ? "heart" : "heart-outline"} size={15} color="#A0624A" />
-                    </TouchableOpacity>
-                  </View>
-                  <View className="p-2.5">
-                    <Text className="text-xs font-medium text-[#4A3728]" numberOfLines={1}>{item.name}</Text>
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-                      <Text className="text-xs font-semibold text-[#4A3728]">{item.points} pts</Text>
-                      {id !== userId && (
-                        <TouchableOpacity
-                          onPress={() => setProposingItem(item)}
-                          style={{ backgroundColor: "#4A3728", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 }}
-                        >
-                          <Text style={{ color: "#FAF7F2", fontSize: 10, fontWeight: "600" }}>Swap</Text>
-                        </TouchableOpacity>
+              {items.map((item) => {
+                const isSelected = selectedIds.has(item.id);
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => selectMode ? toggleSelect(item.id) : router.push(`/items/${item.id}`)}
+                    className="bg-white rounded-2xl overflow-hidden border border-[#EDE8DF]"
+                    style={{ width: "47%", borderColor: isSelected ? "#4A3728" : "#EDE8DF", borderWidth: isSelected ? 2 : 1 }}
+                  >
+                    <View className="w-full aspect-square bg-[#EDE8DF] items-center justify-center">
+                      {item.photos[0] ? (
+                        <Image source={{ uri: item.photos[0] }} className="w-full h-full" resizeMode="cover" />
+                      ) : (
+                        <Ionicons name="image-outline" size={24} color="#C4B9AA" />
                       )}
+                      {/* Checkbox overlay in select mode, heart in normal mode */}
+                      <View style={{ position: "absolute", top: 8, right: 8 }}>
+                        {selectMode ? (
+                          <View style={{
+                            width: 24, height: 24, borderRadius: 12, borderWidth: 2,
+                            borderColor: isSelected ? "#4A3728" : "#D9CFC4",
+                            backgroundColor: isSelected ? "#4A3728" : "rgba(255,255,255,0.9)",
+                            alignItems: "center", justifyContent: "center",
+                          }}>
+                            {isSelected && <Ionicons name="checkmark" size={13} color="white" />}
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() => toggleLike(item.id)}
+                            className="w-7 h-7 rounded-full bg-white/80 items-center justify-center"
+                          >
+                            <Ionicons name={item.liked ? "heart" : "heart-outline"} size={15} color="#A0624A" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                    <View className="p-2.5">
+                      <Text className="text-xs font-medium text-[#4A3728]" numberOfLines={1}>{item.name}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                        <Text className="text-xs font-semibold text-[#4A3728]">{item.points} pts</Text>
+                        {!selectMode && id !== userId && (
+                          <TouchableOpacity
+                            onPress={() => setProposingItem(item)}
+                            style={{ backgroundColor: "#4A3728", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 }}
+                          >
+                            <Text style={{ color: "#FAF7F2", fontSize: 10, fontWeight: "600" }}>Swap</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
         </View>
       </ScrollView>
+
+      {/* Bundle swap floating bar */}
+      {selectMode && selectedIds.size > 0 && (
+        <View style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          backgroundColor: "#4A3728", paddingHorizontal: 20, paddingVertical: 16, paddingBottom: 32,
+          flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <Text style={{ color: "#C4B9AA", fontSize: 13 }}>
+            {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} · {bundlePoints} pts
+          </Text>
+          <TouchableOpacity
+            onPress={() => setProposingBundle(true)}
+            style={{ backgroundColor: "#F5F0E8", borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9 }}
+          >
+            <Text style={{ color: "#4A3728", fontWeight: "700", fontSize: 13 }}>Propose Bundle Swap</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Single-item modal */}
       {userId && proposingItem && profile && (
         <ProposeSwapModal
           visible={!!proposingItem}
           targetItems={[{ id: proposingItem.id, name: proposingItem.name, points: proposingItem.points, ownerId: id!, ownerName: profile.name }]}
           proposerId={userId}
           onClose={() => setProposingItem(null)}
+        />
+      )}
+
+      {/* Bundle modal */}
+      {userId && proposingBundle && profile && selectedIds.size > 0 && (
+        <ProposeSwapModal
+          visible={proposingBundle}
+          targetItems={selectedItems.map((i) => ({ id: i.id, name: i.name, points: i.points, ownerId: id!, ownerName: profile.name }))}
+          proposerId={userId}
+          onClose={() => { setProposingBundle(false); exitSelectMode(); }}
         />
       )}
     </SafeAreaView>

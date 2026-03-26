@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, Platform } from "react-native";
+import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, Platform, RefreshControl } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
@@ -23,6 +24,7 @@ export default function ItemDetail() {
   const [liked, setLiked] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [proposing, setProposing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!id || !userId) return;
@@ -70,8 +72,23 @@ export default function ItemDetail() {
   );
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={{ flex: 1 }}>
+      {/* Header */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
+          <Ionicons name="arrow-back" size={18} color="#4A3728" />
+        </TouchableOpacity>
+        {item.ownerId !== userId && (
+          <TouchableOpacity onPress={toggleLike} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
+            <Ionicons name={liked ? "heart" : "heart-outline"} size={20} color="#A0624A" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await fetchItem(); setRefreshing(false); }} tintColor="#4A3728" />}
+      >
         {/* Photo */}
         <View style={{ width, height: width }} className="bg-[#EDE8DF]">
           {item.photos[photoIndex] ? (
@@ -80,22 +97,6 @@ export default function ItemDetail() {
             <View className="flex-1 items-center justify-center">
               <Ionicons name="image-outline" size={48} color="#C4B9AA" />
             </View>
-          )}
-          {/* Back + like buttons */}
-          <TouchableOpacity
-            onPress={() => router.back()}
-            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-            className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/80 items-center justify-center"
-          >
-            <Ionicons name="arrow-back" size={18} color="#4A3728" />
-          </TouchableOpacity>
-          {item.ownerId !== userId && (
-            <TouchableOpacity
-              onPress={toggleLike}
-              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/80 items-center justify-center"
-            >
-              <Ionicons name={liked ? "heart" : "heart-outline"} size={18} color="#A0624A" />
-            </TouchableOpacity>
           )}
         </View>
 
@@ -182,6 +183,6 @@ export default function ItemDetail() {
           onClose={() => setProposing(false)}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }

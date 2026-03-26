@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,7 +12,7 @@ type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Decli
 
 type SwapItem = { name: string; points: number };
 
-type ProposedDate = { id: string; date: string };
+type ProposedDate = { id: string; date: string; proposedBy: string };
 
 type Swap = {
   id: string;
@@ -20,6 +20,7 @@ type Swap = {
   direction: "incoming" | "outgoing";
   otherName: string;
   otherId: string;
+  otherAvatar: string | null;
   proposerItems: SwapItem[];
   receiverItems: SwapItem[];
   conversationId: string | null;
@@ -177,18 +178,39 @@ function ItemList({ label, items }: { label: string; items: SwapItem[] }) {
   );
 }
 
-function RatingPrompt({ swapId, name }: { swapId: string; name: string }) {
+function RatingPrompt({ swapId, name, otherId }: { swapId: string; name: string; otherId: string }) {
+  const { userId } = useUser();
   const [rating, setRating] = useState(0);
   const [submitted, setSubmitted] = useState(false);
 
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from("ratings")
+      .select("score")
+      .eq("swap_id", swapId)
+      .eq("rater_id", userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) { setSubmitted(true); setRating(data.score); }
+      });
+  }, [swapId, userId]);
+
   async function submitRating() {
-    await supabase.from("ratings").upsert({ swap_id: swapId, ratee_name: name, stars: rating });
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return;
+    await fetch("https://commune-neon.vercel.app/api/rate-swap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ swapId, ratedId: otherId, score: rating }),
+    });
     setSubmitted(true);
   }
 
   if (submitted) {
     return (
-      <Text style={{ fontSize: 12, color: "#7A9E6E", marginTop: 12 }}>Thanks for rating {name}!</Text>
+      <Text style={{ fontSize: 12, color: "#7A9E6E", marginTop: 12 }}>Thank you for rating {name}!</Text>
     );
   }
 
@@ -238,7 +260,7 @@ export default function MySwaps() {
 
   useEffect(() => {
     if (!userId) return;
-    fetchSwaps();
+    fetchSwaps(true);
 
     const channel = supabase
       .channel("mobile-swaps-live")
@@ -246,17 +268,14 @@ export default function MySwaps() {
       .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_swaps" }, () => fetchSwaps())
       .subscribe();
 
-    const interval = setInterval(fetchSwaps, 5000);
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  async function fetchSwaps() {
-    setLoading(true);
+  async function fetchSwaps(showSpinner = false) {
+    if (showSpinner) setLoading(true);
     const { data } = await supabase
       .from("swaps")
       .select("id, proposer_id, receiver_id, status, swap_items(item_id, side)")
@@ -276,7 +295,7 @@ export default function MySwaps() {
         const allItemIds = [...proposerIds, ...receiverIds];
 
         const [{ data: p }, { data: itemsData }, { data: conv }] = await Promise.all([
-          supabase.from("profiles").select("name").eq("id", otherId).single(),
+          supabase.from("profiles").select("name, avatar_url").eq("id", otherId).single(),
           allItemIds.length > 0
             ? supabase.from("items").select("id, name, points").in("id", allItemIds)
             : Promise.resolve({ data: [] }),
@@ -298,6 +317,7 @@ export default function MySwaps() {
           direction: isProposer ? "outgoing" : "incoming",
           otherName: p?.name ?? "Unknown",
           otherId,
+          otherAvatar: (p as any)?.avatar_url ?? null,
           proposerItems,
           receiverItems,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -314,13 +334,13 @@ export default function MySwaps() {
     if (swapIds.length > 0) {
       const { data: scheduledData } = await supabase
         .from("scheduled_swaps")
-        .select("id, swap_id, scheduled_date")
+        .select("id, swap_id, scheduled_date, proposed_by")
         .in("swap_id", swapIds);
 
       const scheduledMap: Record<string, ProposedDate[]> = {};
       for (const row of scheduledData ?? []) {
         if (!scheduledMap[row.swap_id]) scheduledMap[row.swap_id] = [];
-        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date });
+        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date, proposedBy: row.proposed_by ?? "" });
       }
       for (const swap of filtered) {
         swap.proposedDates = scheduledMap[swap.id] ?? [];
@@ -440,7 +460,7 @@ export default function MySwaps() {
     const swap = swaps.find((s) => s.id === swapId);
     await supabase
       .from("scheduled_swaps")
-      .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d })));
+      .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d, proposed_by: userId })));
     setCalendarOpenFor(null);
     setSelectedDates(new Set());
     fetchSwaps();
@@ -497,8 +517,9 @@ export default function MySwaps() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      <View>
       {/* Header */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, flexDirection: "row", alignItems: "center", gap: 12 }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, flexDirection: "row", alignItems: "center", gap: 12 }}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
         </TouchableOpacity>
@@ -509,7 +530,7 @@ export default function MySwaps() {
       </View>
 
       {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12, alignItems: "center" }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8, alignItems: "center" }}>
         {TABS.map((tab) => {
           const count = countFor(tab);
           const active = activeTab === tab;
@@ -517,15 +538,17 @@ export default function MySwaps() {
             <TouchableOpacity
               key={tab}
               onPress={() => setActiveTab(tab)}
-              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start", borderColor: active ? "#4A3728" : "#D9CFC4", backgroundColor: active ? "#4A3728" : "white", flexDirection: "row", alignItems: "center", gap: 4 }}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: active ? "#4A3728" : "#D9CFC4", backgroundColor: active ? "#4A3728" : "white", flexDirection: "row", alignItems: "center", gap: 4 }}
             >
-              <Text style={{ fontSize: 12, fontWeight: "500", color: active ? "#FAF7F2" : "#6B5040" }}>{tab}</Text>
+              <Text style={{ fontSize: 13, fontWeight: "500", color: active ? "#FAF7F2" : "#6B5040" }}>{tab}</Text>
               <Text style={{ fontSize: 11, color: active ? "#C4B9AA" : "#A09080" }}>{count}</Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
+      </View>
 
+      <View style={{ flex: 1 }}>
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator color="#4A3728" />
@@ -539,7 +562,11 @@ export default function MySwaps() {
           </Text>
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, gap: 14 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, gap: 14 }}
+          refreshControl={<RefreshControl refreshing={false} onRefresh={() => fetchSwaps()} tintColor="#4A3728" />}
+        >
           {filtered.map((swap) => {
             const colors = STATUS_COLORS[swap.status] ?? { bg: "#EDE8DF", text: "#4A3728" };
             const isCalendarOpen = calendarOpenFor === swap.id;
@@ -550,8 +577,10 @@ export default function MySwaps() {
                 {/* Header row */}
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                   <TouchableOpacity onPress={() => router.push(`/members/${swap.otherId}` as any)} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#EDE8DF", alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ fontSize: 13, fontWeight: "600", color: "#4A3728" }}>{swap.otherName.charAt(0)}</Text>
+                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#EDE8DF", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                      {swap.otherAvatar
+                        ? <Image source={{ uri: swap.otherAvatar }} style={{ width: 32, height: 32 }} />
+                        : <Text style={{ fontSize: 13, fontWeight: "600", color: "#4A3728" }}>{swap.otherName.charAt(0)}</Text>}
                     </View>
                     <View>
                       <Text style={{ fontSize: 13, fontWeight: "600", color: "#4A3728" }}>{swap.otherName}</Text>
@@ -588,15 +617,13 @@ export default function MySwaps() {
                     {swap.proposedDates.map((pd) => (
                       <View key={pd.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F5F0E8", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 6 }}>
                         <Text style={{ fontSize: 13, color: "#4A3728" }}>{formatDate(pd.date)}</Text>
-                        {swap.direction === "incoming" ? (
+                        {pd.proposedBy !== userId && (
                           <TouchableOpacity
                             onPress={() => acceptDate(pd.id, swap.id)}
                             style={{ backgroundColor: "#7A9E6E", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}
                           >
-                            <Text style={{ color: "white", fontSize: 11, fontWeight: "600" }}>Accept</Text>
+                            <Text style={{ color: "white", fontSize: 11, fontWeight: "600" }}>Confirm</Text>
                           </TouchableOpacity>
-                        ) : (
-                          <Text style={{ fontSize: 11, color: "#A09080" }}>Awaiting response</Text>
                         )}
                       </View>
                     ))}
@@ -642,7 +669,7 @@ export default function MySwaps() {
                         <Text style={{ fontSize: 12, color: "#6B5040", fontWeight: "500" }}>Message</Text>
                       </TouchableOpacity>
                     )}
-                    {swap.status === "Accepted" && swap.proposedDates.length === 0 && swap.direction === "outgoing" && (
+                    {swap.status === "Accepted" && (
                       <TouchableOpacity
                         onPress={() => isCalendarOpen ? setCalendarOpenFor(null) : openCalendar(swap.id)}
                         style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 999, paddingVertical: 10 }}
@@ -685,7 +712,7 @@ export default function MySwaps() {
 
                 {/* Rating prompt */}
                 {swap.status === "Completed" && (
-                  <RatingPrompt swapId={swap.id} name={swap.otherName} />
+                  <RatingPrompt swapId={swap.id} name={swap.otherName} otherId={swap.otherId} />
                 )}
 
                 {/* Cancel swap */}
@@ -703,6 +730,7 @@ export default function MySwaps() {
           })}
         </ScrollView>
       )}
+      </View>
     </SafeAreaView>
   );
 }

@@ -24,3 +24,14 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Fix browser autofill background overriding custom input styles */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px #FAF7F2 inset !important;
+  -webkit-text-fill-color: #4A3728 !important;
+  caret-color: #4A3728;
+  transition: background-color 5000s ease-in-out 0s;
+}

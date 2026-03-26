@@ -1,6 +1,3 @@
-import Link from "next/link";
-import Sidebar from "@/components/Sidebar";
-
 const sections = [
   {
     title: "1. Respect Above All",
@@ -60,48 +57,55 @@ const sections = [
   },
 ];
 
-export default function TermsAndConditions() {
+export default function CommunityGuidelines() {
   return (
-    <div className="min-h-screen flex">
-      <Sidebar />
+    <div className="min-h-screen bg-[#FAF7F2] px-6 py-12">
+      <div className="max-w-2xl mx-auto">
 
-      <main className="flex-1 px-8 py-8 overflow-y-auto">
-        <div className="max-w-2xl">
-
-          <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)] mb-1">Community Guidelines</h1>
-          <p className="text-[#8B7355] mb-10">By joining Commune, you agree to the following. Please read them carefully.</p>
-
-          <div className="flex flex-col gap-8">
-            {sections.map((section) => (
-              <section key={section.title}>
-                <h2 className="text-base font-semibold text-[#4A3728] mb-3">{section.title}</h2>
-                <div className="flex flex-col gap-3">
-                  {section.body.map((para, i) => (
-                    <p key={i} className="text-sm text-[#6B5040] leading-relaxed">{para}</p>
-                  ))}
-                  {section.tips && (
-                    <ul className="flex flex-col gap-2 mt-1">
-                      {section.tips.map((tip, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-[#6B5040] leading-relaxed">
-                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#A0624A] shrink-0" />
-                          {tip}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </section>
-            ))}
-          </div>
-
-          <div className="mt-12 pt-6 border-t border-[#D9CFC4]">
-            <p className="text-xs text-[#A09080]">Last updated 23 March 2026. For questions, contact us at{" "}
-              <a href="mailto:commune.eg@gmail.com" className="text-[#4A3728] hover:underline">commune.eg@gmail.com</a>.
-            </p>
-          </div>
-
+        {/* Header */}
+        <div className="mb-10">
+          <p className="text-sm font-[family-name:var(--font-permanent-marker)] text-[#4A3728] mb-4">commune</p>
+          <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)] mb-1">
+            Community Guidelines
+          </h1>
+          <p className="text-[#8B7355] text-sm">By joining Commune, you agree to the following. Please read them carefully.</p>
         </div>
-      </main>
+
+        {/* Sections */}
+        <div className="flex flex-col gap-8">
+          {sections.map((section) => (
+            <section key={section.title}>
+              <h2 className="text-base font-semibold text-[#4A3728] mb-3">{section.title}</h2>
+              <div className="flex flex-col gap-3">
+                {section.body.map((para, i) => (
+                  <p key={i} className="text-sm text-[#6B5040] leading-relaxed">{para}</p>
+                ))}
+                {section.tips && (
+                  <ul className="flex flex-col gap-2 mt-1">
+                    {section.tips.map((tip, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-[#6B5040] leading-relaxed">
+                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#A0624A] shrink-0" />
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="mt-12 pt-6 border-t border-[#D9CFC4]">
+          <p className="text-xs text-[#A09080]">
+            Last updated 23 March 2026. For questions, contact us at{" "}
+            <a href="mailto:commune.eg@gmail.com" className="text-[#4A3728] hover:underline">
+              commune.eg@gmail.com
+            </a>.
+          </p>
+        </div>
+
+      </div>
     </div>
   );
 }

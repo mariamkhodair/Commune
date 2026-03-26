@@ -1,18 +1,19 @@
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
-type Member = { id: string; name: string; area: string; city: string; itemCount: number; joined: string };
+type Member = { id: string; name: string; area: string; city: string; itemCount: number; joined: string; avatar_url: string | null };
 
 export default function LikedMembers() {
   const router = useRouter();
   const { userId } = useUser();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -31,14 +32,14 @@ export default function LikedMembers() {
 
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, name, area, city, created_at")
+      .select("id, name, area, city, created_at, avatar_url")
       .in("id", ids);
 
     const enriched = await Promise.all(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (profiles ?? []).map(async (p: any) => {
         const { count } = await supabase.from("items").select("id", { count: "exact", head: true }).eq("owner_id", p.id).eq("status", "Available");
-        return { id: p.id, name: p.name, area: p.area ?? "", city: p.city ?? "", itemCount: count ?? 0, joined: new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }) };
+        return { id: p.id, name: p.name, area: p.area ?? "", city: p.city ?? "", itemCount: count ?? 0, joined: new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }), avatar_url: p.avatar_url ?? null };
       })
     );
     setMembers(enriched.filter(Boolean) as Member[]);
@@ -73,13 +74,17 @@ export default function LikedMembers() {
           keyExtractor={(m) => m.id}
           contentContainerClassName="px-5 pb-8 gap-3"
           showsVerticalScrollIndicator={false}
+          refreshing={refreshing}
+          onRefresh={async () => { setRefreshing(true); await fetchFollowed(); setRefreshing(false); }}
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() => router.push(`/members/${item.id}`)}
               className="bg-white rounded-2xl px-4 py-4 border border-[#EDE8DF] flex-row items-center gap-3"
             >
-              <View className="w-11 h-11 rounded-full bg-[#EDE8DF] items-center justify-center">
-                <Text className="text-base font-semibold text-[#4A3728]">{item.name.charAt(0)}</Text>
+              <View className="w-11 h-11 rounded-full bg-[#EDE8DF] items-center justify-center overflow-hidden">
+                {item.avatar_url
+                  ? <Image source={{ uri: item.avatar_url }} style={{ width: 44, height: 44 }} />
+                  : <Text className="text-base font-semibold text-[#4A3728]">{item.name.charAt(0)}</Text>}
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-[#4A3728]">{item.name}</Text>

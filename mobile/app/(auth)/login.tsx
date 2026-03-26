@@ -2,7 +2,7 @@
 import { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -32,9 +32,10 @@ export default function Login() {
       <ScrollView contentContainerClassName="flex-grow justify-center px-6 py-12">
         {/* Logo */}
         <View className="items-center mb-10">
-          <View className="w-14 h-14 rounded-full bg-[#4A3728] items-center justify-center mb-4">
-            <Text className="text-[#FAF7F2] text-2xl font-bold">C</Text>
-          </View>
+          <Image
+            source={require("@/assets/icon.png")}
+            style={{ width: 72, height: 72, borderRadius: 18, marginBottom: 16 }}
+          />
           <Text className="text-3xl font-light text-[#4A3728] tracking-wide">commune</Text>
           <Text className="text-[#8B7355] text-sm mt-1">swap what you don't need</Text>
         </View>
@@ -55,6 +56,8 @@ export default function Login() {
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
           />
           <TextInput
             className="bg-white rounded-2xl px-4 py-4 text-[#4A3728] border border-[#EDE8DF]"
@@ -63,6 +66,8 @@ export default function Login() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            textContentType="password"
+            autoComplete="password"
           />
 
           <TouchableOpacity
@@ -77,7 +82,7 @@ export default function Login() {
           </TouchableOpacity>
         </View>
 
-        <View className="flex-row justify-center mt-6 gap-1">
+        <View className="flex-row justify-center gap-1" style={{ marginTop: 32 }}>
           <Text className="text-[#8B7355] text-sm">Don't have an account?</Text>
           <Link href="/(auth)/signup" className="text-[#4A3728] text-sm font-semibold">Sign up</Link>
         </View>

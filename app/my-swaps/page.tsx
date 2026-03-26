@@ -13,7 +13,7 @@ type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Decli
 
 type SwapItem = { name: string; points: number };
 
-type ProposedDate = { id: string; date: string };
+type ProposedDate = { id: string; date: string; proposedBy: string };
 
 type Swap = {
   id: string;
@@ -21,6 +21,7 @@ type Swap = {
   direction: "incoming" | "outgoing";
   otherName: string;
   otherId: string;
+  otherAvatar: string | null;
   proposerItems: SwapItem[];
   receiverItems: SwapItem[];
   conversationId: string | null;
@@ -155,18 +156,40 @@ function ItemList({ label, items }: { label: string; items: SwapItem[] }) {
   );
 }
 
-function RatingPrompt({ swapId, name }: { swapId: string; name: string }) {
+function RatingPrompt({ swapId, name, otherId }: { swapId: string; name: string; otherId: string }) {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [submitted, setSubmitted] = useState(false);
 
+  useEffect(() => {
+    async function checkExisting() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data } = await supabase
+        .from("ratings")
+        .select("score")
+        .eq("swap_id", swapId)
+        .eq("rater_id", session.user.id)
+        .maybeSingle();
+      if (data) { setSubmitted(true); setRating(data.score); }
+    }
+    checkExisting();
+  }, [swapId]);
+
   async function submitRating() {
-    await supabase.from("ratings").upsert({ swap_id: swapId, ratee_name: name, stars: rating });
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return;
+    await fetch("/api/rate-swap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ swapId, ratedId: otherId, score: rating }),
+    });
     setSubmitted(true);
   }
 
   if (submitted)
-    return <p className="text-xs text-[#7A9E6E] mt-4">Thanks for rating {name}!</p>;
+    return <p className="text-xs text-[#7A9E6E] mt-4">Thank you for rating {name}!</p>;
 
   return (
     <div className="mt-4 pt-4 border-t border-[#EDE8DF]">
@@ -223,34 +246,27 @@ export default function MySwaps() {
 
   useEffect(() => {
     if (!userId) return;
-    fetchSwaps();
+    fetchSwaps(true);
 
-    // Realtime: re-fetch instantly when swaps or scheduled_swaps change
     const channel = supabase
       .channel("swaps-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "swaps" }, () => fetchSwaps())
       .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_swaps" }, () => fetchSwaps())
       .subscribe();
 
-    // Fallback poll every 5s
-    const interval = setInterval(fetchSwaps, 5000);
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  async function fetchSwaps() {
-    setLoading(true);
+  async function fetchSwaps(showSpinner = false) {
+    if (showSpinner) setLoading(true);
     const { data, error } = await supabase
       .from("swaps")
       .select("id, proposer_id, receiver_id, status, swap_items(item_id, side)")
       .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
       .order("created_at", { ascending: false });
-
-    console.log("fetchSwaps userId:", userId, "data:", data, "error:", error);
 
     const enriched = await Promise.all(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -271,7 +287,7 @@ export default function MySwaps() {
         const allItemIds = [...proposerIds, ...receiverIds];
 
         const [{ data: p }, { data: itemsData }, { data: conv }] = await Promise.all([
-          supabase.from("profiles").select("name").eq("id", otherId).single(),
+          supabase.from("profiles").select("name, avatar_url").eq("id", otherId).single(),
           allItemIds.length > 0
             ? supabase.from("items").select("id, name, points").in("id", allItemIds)
             : Promise.resolve({ data: [] }),
@@ -303,6 +319,7 @@ export default function MySwaps() {
           direction: isProposer ? "outgoing" : "incoming",
           otherName: p?.name ?? "Unknown",
           otherId,
+          otherAvatar: (p as any)?.avatar_url ?? null,
           proposerItems,
           receiverItems,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -319,13 +336,13 @@ export default function MySwaps() {
     if (swapIds.length > 0) {
       const { data: scheduledData } = await supabase
         .from("scheduled_swaps")
-        .select("id, swap_id, scheduled_date")
+        .select("id, swap_id, scheduled_date, proposed_by")
         .in("swap_id", swapIds);
 
       const scheduledMap: Record<string, ProposedDate[]> = {};
       for (const row of scheduledData ?? []) {
         if (!scheduledMap[row.swap_id]) scheduledMap[row.swap_id] = [];
-        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date });
+        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date, proposedBy: row.proposed_by ?? "" });
       }
       for (const swap of filtered) {
         swap.proposedDates = scheduledMap[swap.id] ?? [];
@@ -450,7 +467,7 @@ export default function MySwaps() {
 
   async function proposeDates(swapId: string, dates: string[]) {
     const swap = swaps.find((s) => s.id === swapId);
-    await supabase.from("scheduled_swaps").insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d })));
+    await supabase.from("scheduled_swaps").insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d, proposed_by: userId })));
     setCalendarOpenFor(null);
     setSelectedDates(new Set());
     fetchSwaps();
@@ -550,8 +567,10 @@ export default function MySwaps() {
                   {/* Header */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[#EDE8DF] flex items-center justify-center text-sm font-medium text-[#4A3728]">
-                        {swap.otherName.charAt(0)}
+                      <div className="w-8 h-8 rounded-full bg-[#EDE8DF] flex items-center justify-center text-sm font-medium text-[#4A3728] overflow-hidden">
+                        {swap.otherAvatar
+                          ? <img src={swap.otherAvatar} alt={swap.otherName} className="w-full h-full object-cover" />
+                          : swap.otherName.charAt(0)}
                       </div>
                       <div>
                         <Link
@@ -619,16 +638,13 @@ export default function MySwaps() {
                             className="flex items-center justify-between bg-[#F5F0E8] rounded-xl px-3 py-2"
                           >
                             <p className="text-sm text-[#4A3728]">{formatDate(pd.date)}</p>
-                            {swap.direction === "incoming" && (
+                            {pd.proposedBy !== userId && (
                               <button
                                 onClick={() => acceptDate(pd.id, swap.id)}
                                 className="text-xs px-3 py-1 rounded-full bg-[#7A9E6E] text-white font-medium hover:bg-[#6A8E5E] transition-colors"
                               >
-                                Accept
+                                Confirm
                               </button>
-                            )}
-                            {swap.direction === "outgoing" && (
-                              <span className="text-xs text-[#A09080]">Awaiting their response</span>
                             )}
                           </div>
                         ))}
@@ -677,7 +693,7 @@ export default function MySwaps() {
                           Message
                         </Link>
                       )}
-                      {swap.status === "Accepted" && swap.proposedDates.length === 0 && swap.direction === "outgoing" && (
+                      {swap.status === "Accepted" && swap.proposedDates.length === 0 && (
                         <button
                           onClick={() => calendarOpenFor === swap.id ? setCalendarOpenFor(null) : openCalendar(swap.id)}
                           className="flex-1 flex items-center justify-center gap-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
@@ -720,7 +736,7 @@ export default function MySwaps() {
 
                   {/* Rating prompt for completed swaps */}
                   {swap.status === "Completed" && (
-                    <RatingPrompt swapId={swap.id} name={swap.otherName} />
+                    <RatingPrompt swapId={swap.id} name={swap.otherName} otherId={swap.otherId} />
                   )}
 
                   {/* Cancel swap */}

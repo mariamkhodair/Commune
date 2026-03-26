@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +16,13 @@ export default function Dashboard() {
   useEffect(() => {
     if (!userId) return;
     fetchRecent();
+
+    const channel = supabase
+      .channel("home-items-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "items" }, () => fetchRecent())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
   async function fetchRecent() {
@@ -37,11 +44,23 @@ export default function Dashboard() {
     })));
   }
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await fetchRecent();
+    setRefreshing(false);
+  }
+
   const firstName = profile?.name?.split(" ")[0] ?? "there";
 
   return (
     <SafeAreaView className="flex-1">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4A3728" />}
+      >
         {/* Header */}
         <View className="px-5 pt-4 pb-6">
           <Text className="text-2xl font-light text-[#4A3728]">Hey, {firstName} 👋</Text>

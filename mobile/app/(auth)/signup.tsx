@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View, Text, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 
 const CAIRO_AREAS = ["Maadi","Zamalek","Heliopolis","New Cairo","6th of October","Mohandessin","Dokki","Nasr City","Rehab","Sheikh Zayed"];
 const CITIES = ["Cairo", "Giza", "Alexandria", "Other"];
+const DRAFT_KEY = "signup_draft";
 
 export default function Signup() {
   const router = useRouter();
@@ -16,6 +18,24 @@ export default function Signup() {
   const [error, setError] = useState("");
   const [agreedToGuidelines, setAgreedToGuidelines] = useState(false);
   const [hasReadGuidelines, setHasReadGuidelines] = useState(false);
+
+  // Restore draft on mount
+  useEffect(() => {
+    AsyncStorage.getItem(DRAFT_KEY).then((saved) => {
+      if (!saved) return;
+      try {
+        const { form: savedForm, agreedToGuidelines: savedAgreed, hasReadGuidelines: savedRead } = JSON.parse(saved);
+        if (savedForm) setForm(savedForm);
+        if (savedAgreed) setAgreedToGuidelines(savedAgreed);
+        if (savedRead) setHasReadGuidelines(savedRead);
+      } catch {}
+    });
+  }, []);
+
+  // Save draft on every change
+  useEffect(() => {
+    AsyncStorage.setItem(DRAFT_KEY, JSON.stringify({ form, agreedToGuidelines, hasReadGuidelines }));
+  }, [form, agreedToGuidelines, hasReadGuidelines]);
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -36,7 +56,7 @@ export default function Signup() {
     });
     setLoading(false);
     if (err) setError(err.message);
-    else router.replace("/(tabs)");
+    else { AsyncStorage.removeItem(DRAFT_KEY); router.replace("/tutorial"); }
   }
 
   return (
@@ -131,14 +151,14 @@ export default function Signup() {
           </View>
 
           {/* Community Guidelines */}
-          <View style={{ gap: 6 }}>
-            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+          <View style={{ gap: 8, alignItems: "center", marginHorizontal: 16 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <TouchableOpacity
                 onPress={() => hasReadGuidelines && setAgreedToGuidelines((v) => !v)}
+                hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
                 style={{
-                  marginTop: 2,
-                  width: 18, height: 18,
-                  borderRadius: 4,
+                  width: 20, height: 20,
+                  borderRadius: 5,
                   borderWidth: 1.5,
                   borderColor: hasReadGuidelines ? "#4A3728" : "#C4B9AA",
                   backgroundColor: agreedToGuidelines ? "#4A3728" : "white",
@@ -150,20 +170,21 @@ export default function Signup() {
                   <Text style={{ color: "#FAF7F2", fontSize: 11, fontWeight: "700" }}>✓</Text>
                 )}
               </TouchableOpacity>
-              <Text style={{ flex: 1, fontSize: 13, color: "#6B5040", lineHeight: 20 }}>
-                {"I have read and agree to Commune's "}
-                <Link
-                  href="/terms"
-                  onPress={() => setHasReadGuidelines(true)}
-                  style={{ color: "#4A3728", fontWeight: "600", textDecorationLine: "underline" }}
-                >
-                  Community Guidelines
-                </Link>
-              </Text>
+              <View style={{ alignItems: "center" }}>
+                <Text style={{ fontSize: 13, color: "#6B5040", lineHeight: 20 }}>I have read and agree to</Text>
+                <Text style={{ fontSize: 13, color: "#6B5040", lineHeight: 20 }}>
+                  <Text
+                    onPress={() => { setHasReadGuidelines(true); router.push("/(auth)/terms" as any); }}
+                    style={{ color: "#4A3728", fontWeight: "600", textDecorationLine: "underline" }}
+                  >
+                    Commune's Community Guidelines
+                  </Text>
+                </Text>
+              </View>
             </View>
-            {!hasReadGuidelines && (
-              <Text style={{ fontSize: 12, color: "#A0624A", paddingLeft: 28 }}>
-                Please press the link and read them thoroughly :)
+            {!agreedToGuidelines && (
+              <Text style={{ fontSize: 12, color: "#A0624A", textAlign: "center" }}>
+                Please click on the Community Guidelines link :)
               </Text>
             )}
           </View>
@@ -180,7 +201,7 @@ export default function Signup() {
           </TouchableOpacity>
         </View>
 
-        <View className="flex-row justify-center mt-6 gap-1">
+        <View className="flex-row justify-center gap-1" style={{ marginTop: 32 }}>
           <Text className="text-[#8B7355] text-sm">Already have an account?</Text>
           <Link href="/(auth)/login" className="text-[#4A3728] text-sm font-semibold">Sign in</Link>
         </View>

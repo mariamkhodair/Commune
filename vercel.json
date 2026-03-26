@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/swap-reminders",
+      "schedule": "0 7 * * *"
+    }
+  ]
+}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import TourOverlay from "@/components/TourOverlay";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
@@ -23,6 +24,15 @@ export default function Dashboard() {
   const [memberQuery, setMemberQuery] = useState("");
   const [stuffQuery, setStuffQuery] = useState("");
   const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tour") === "1") {
+      setShowTour(true);
+      window.history.replaceState({}, "", "/dashboard");
+    }
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -45,6 +55,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen flex">
       <Sidebar />
+      {showTour && <TourOverlay onDone={() => setShowTour(false)} />}
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
 

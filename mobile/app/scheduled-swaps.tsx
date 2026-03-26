@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import { useRouter } from "expo-router";
+import { useState, useEffect, useCallback } from "react";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Image } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
@@ -12,6 +13,7 @@ type ScheduledSwap = {
   swapId: string;
   otherName: string;
   otherId: string;
+  otherAvatar: string | null;
   date: string;
   yourItems: string;
   theirItems: string;
@@ -50,6 +52,13 @@ export default function ScheduledSwaps() {
     if (!userId) return;
     fetchScheduled();
   }, [userId]);
+
+  // Permanently clear the scheduled badge whenever this page is visited
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.setItem("sched_last_seen", new Date().toISOString());
+    }, [])
+  );
 
   async function fetchScheduled() {
     setLoading(true);
@@ -91,7 +100,7 @@ export default function ScheduledSwaps() {
         const theirSide = isProposer ? "receiver" : "proposer";
 
         const [{ data: profile }, { data: conv }] = await Promise.all([
-          supabase.from("profiles").select("name").eq("id", otherId).single(),
+          supabase.from("profiles").select("name, avatar_url").eq("id", otherId).single(),
           supabase
             .from("conversations")
             .select("id")
@@ -117,6 +126,7 @@ export default function ScheduledSwaps() {
           swapId: s.swap_id,
           otherName: profile?.name ?? "Unknown",
           otherId,
+          otherAvatar: (profile as any)?.avatar_url ?? null,
           date: s.scheduled_date,
           yourItems: yourItems || "Your items",
           theirItems: theirItems || "Their items",
@@ -230,7 +240,11 @@ export default function ScheduledSwaps() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, gap: 16 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: 20, gap: 16 }}
+          refreshControl={<RefreshControl refreshing={false} onRefresh={fetchScheduled} tintColor="#4A3728" />}
+        >
           {swaps.map((swap) => {
             const isOff = offToSwap[swap.id];
             const isDone = completed[swap.id] || swap.isCompleted;
@@ -267,8 +281,10 @@ export default function ScheduledSwaps() {
                       onPress={() => router.push(`/members/${swap.otherId}` as any)}
                       style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                     >
-                      <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#EDE8DF", alignItems: "center", justifyContent: "center" }}>
-                        <Text style={{ fontSize: 13, fontWeight: "600", color: "#4A3728" }}>{swap.otherName.charAt(0)}</Text>
+                      <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#EDE8DF", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                        {swap.otherAvatar
+                          ? <Image source={{ uri: swap.otherAvatar }} style={{ width: 32, height: 32 }} />
+                          : <Text style={{ fontSize: 13, fontWeight: "600", color: "#4A3728" }}>{swap.otherName.charAt(0)}</Text>}
                       </View>
                       <Text style={{ fontSize: 14, fontWeight: "500", color: "#4A3728" }}>{swap.otherName}</Text>
                     </TouchableOpacity>

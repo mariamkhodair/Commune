@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, FlatList } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, FlatList, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -128,6 +128,8 @@ export default function MyStuff() {
           data={items}
           keyExtractor={(i) => i.id}
           numColumns={2}
+          refreshing={false}
+          onRefresh={fetchItems}
           contentContainerClassName="px-4 pb-8 gap-3"
           columnWrapperClassName="gap-3"
           showsVerticalScrollIndicator={false}

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
+
+// Allow up to 20MB for HEIC/HEIF files from iPhone cameras
+export const dynamic = "force-dynamic";
+
 
 export async function POST(req: NextRequest) {
   try {

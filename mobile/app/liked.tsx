@@ -1,18 +1,19 @@
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
-type LikedItem = { id: string; name: string; condition: string; points: number; photos: string[]; owner: string; ownerId: string };
+type LikedItem = { id: string; name: string; condition: string; points: number; photos: string[]; owner: string; ownerId: string; status: string };
 
 export default function LikedStuff() {
   const router = useRouter();
   const { userId } = useUser();
   const [items, setItems] = useState<LikedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -23,7 +24,7 @@ export default function LikedStuff() {
     setLoading(true);
     const { data } = await supabase
       .from("item_likes")
-      .select("item_id, items(id, name, condition, points, photos, owner_id, profiles(id, name))")
+      .select("item_id, items(id, name, condition, points, photos, status, owner_id, profiles(id, name))")
       .eq("user_id", userId!)
       .order("created_at", { ascending: false });
 
@@ -31,7 +32,7 @@ export default function LikedStuff() {
     setItems((data ?? []).map((row: any) => {
       const item = row.items;
       const profile = Array.isArray(item?.profiles) ? item.profiles[0] : item?.profiles;
-      return { id: item?.id, name: item?.name, condition: item?.condition, points: item?.points, photos: item?.photos ?? [], owner: profile?.name ?? "Unknown", ownerId: item?.owner_id };
+      return { id: item?.id, name: item?.name, condition: item?.condition, points: item?.points, photos: item?.photos ?? [], owner: profile?.name ?? "Unknown", ownerId: item?.owner_id, status: item?.status ?? "Available" };
     }).filter((i: any) => i.id));
     setLoading(false);
   }
@@ -66,6 +67,8 @@ export default function LikedStuff() {
           contentContainerClassName="px-4 pb-8 gap-3"
           columnWrapperClassName="gap-3"
           showsVerticalScrollIndicator={false}
+          refreshing={refreshing}
+          onRefresh={async () => { setRefreshing(true); await fetchLiked(); setRefreshing(false); }}
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() => router.push(`/items/${item.id}`)}
@@ -87,7 +90,18 @@ export default function LikedStuff() {
               <View className="p-2.5">
                 <Text className="text-xs font-medium text-[#4A3728]" numberOfLines={1}>{item.name}</Text>
                 <Text className="text-xs text-[#8B7355]">{item.condition}</Text>
-                <Text className="text-xs font-semibold text-[#4A3728] mt-1">{item.points} pts</Text>
+                <View className="flex-row items-center justify-between mt-1.5">
+                  <Text className="text-xs font-semibold text-[#4A3728]">{item.points} pts</Text>
+                  {item.status === "Swapped" ? (
+                    <View style={{ backgroundColor: "#DDD8C8", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "#D9CFC4" }}>
+                      <Text style={{ fontSize: 11, color: "#6B5040", fontWeight: "600" }}>Swapped</Text>
+                    </View>
+                  ) : (
+                    <View style={{ backgroundColor: "#D8E4D0", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ fontSize: 11, color: "#4A6640", fontWeight: "600" }}>Available</Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </TouchableOpacity>
           )}

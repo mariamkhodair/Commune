@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { useUnread } from "@/lib/unreadContext";
 
-type Convo = { id: string; otherId: string; otherName: string; lastMessage: string; lastAt: string };
+type Convo = { id: string; otherId: string; otherName: string; otherAvatar: string | null; lastMessage: string; lastAt: string };
 
 export default function Messages() {
   const router = useRouter();
@@ -16,6 +16,7 @@ export default function Messages() {
   const { clearAllMessages } = useUnread();
   const [convos, setConvos] = useState<Convo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Re-fetch on focus + realtime subscription + 5s fallback poll
   useFocusEffect(
@@ -30,11 +31,8 @@ export default function Messages() {
         .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => fetchConvos())
         .subscribe();
 
-      const interval = setInterval(fetchConvos, 5000);
-
       return () => {
         supabase.removeChannel(channel);
-        clearInterval(interval);
       };
     }, [userId])
   );
@@ -51,7 +49,7 @@ export default function Messages() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (data ?? []).map(async (c: any) => {
         const otherId = c.member1_id === userId ? c.member2_id : c.member1_id;
-        const { data: p } = await supabase.from("profiles").select("name").eq("id", otherId).single();
+        const { data: p } = await supabase.from("profiles").select("name, avatar_url").eq("id", otherId).single();
 
         // Use last_message from conversations if set, else fetch from messages table
         let lastMessage = c.last_message as string | null;
@@ -71,6 +69,7 @@ export default function Messages() {
           id: c.id,
           otherId,
           otherName: p?.name ?? "Unknown",
+          otherAvatar: (p as any)?.avatar_url ?? null,
           lastMessage: lastMessage ?? "No messages yet",
           lastAt: lastAt ? new Date(lastAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "",
         };
@@ -102,13 +101,17 @@ export default function Messages() {
           keyExtractor={(c) => c.id}
           showsVerticalScrollIndicator={false}
           contentContainerClassName="px-5 pb-8"
+          refreshing={refreshing}
+          onRefresh={async () => { setRefreshing(true); await fetchConvos(); setRefreshing(false); }}
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() => router.push(`/messages/${item.id}`)}
               className="flex-row items-center gap-3 py-4 border-b border-[#EDE8DF]"
             >
-              <View className="w-11 h-11 rounded-full bg-[#EDE8DF] items-center justify-center">
-                <Text className="text-base font-semibold text-[#4A3728]">{item.otherName.charAt(0)}</Text>
+              <View className="w-11 h-11 rounded-full bg-[#EDE8DF] items-center justify-center overflow-hidden">
+                {item.otherAvatar
+                  ? <Image source={{ uri: item.otherAvatar }} style={{ width: 44, height: 44 }} />
+                  : <Text className="text-base font-semibold text-[#4A3728]">{item.otherName.charAt(0)}</Text>}
               </View>
               <View className="flex-1">
                 <View className="flex-row items-center justify-between">

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator, FlatList,
+  Image, ActivityIndicator, FlatList, RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,23 +11,31 @@ import { useUser } from "@/lib/useUser";
 
 type Item = { id: string; name: string; category: string; condition: string; points: number; photos: string[]; owner: string; ownerId: string; liked: boolean; status: string };
 
-const CATEGORIES = ["All", "Clothes", "Books", "Electronics", "Home", "Toys", "Sports", "Other"];
+const CATEGORIES = ["All", "Apparel", "Electronics", "Books", "Cosmetics", "Furniture & Home Decor", "Stationery & Art Supplies", "Miscellaneous"];
 
 export default function Search() {
   const router = useRouter();
   const { userId } = useUser();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
 
   useEffect(() => {
     if (!userId) return;
-    fetchItems();
+    fetchItems(true);
+
+    const channel = supabase
+      .channel("search-items-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "items" }, () => fetchItems())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
-  async function fetchItems() {
-    setLoading(true);
+  async function fetchItems(showSpinner = false) {
+    if (showSpinner) setLoading(true);
     const { data } = await supabase
       .from("items")
       .select("id, name, category, condition, points, photos, status, owner_id, profiles(id, name)")
@@ -98,19 +106,14 @@ export default function Search() {
       </View>
 
       {/* Category chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, gap: 8, alignItems: "center" }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexShrink: 0 }} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8, alignItems: "center" }}>
         {CATEGORIES.map((c) => (
           <TouchableOpacity
             key={c}
             onPress={() => setCategory(c)}
-            style={{
-              paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1,
-              alignSelf: "flex-start",
-              borderColor: category === c ? "#4A3728" : "#D9CFC4",
-              backgroundColor: category === c ? "#4A3728" : "white",
-            }}
+            style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: category === c ? "#4A3728" : "#D9CFC4", backgroundColor: category === c ? "#4A3728" : "white", flexDirection: "row", alignItems: "center" }}
           >
-            <Text style={{ fontSize: 12, fontWeight: "500", color: category === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
+            <Text style={{ fontSize: 13, fontWeight: "500", color: category === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -124,6 +127,8 @@ export default function Search() {
           data={filtered}
           keyExtractor={(i) => i.id}
           numColumns={2}
+          refreshing={refreshing}
+          onRefresh={async () => { setRefreshing(true); await fetchItems(); setRefreshing(false); }}
           contentContainerClassName="px-4 pb-8 gap-3"
           columnWrapperClassName="gap-3"
           showsVerticalScrollIndicator={false}
@@ -153,11 +158,15 @@ export default function Search() {
               <View className="p-2.5">
                 <Text className="text-xs font-medium text-[#4A3728]" numberOfLines={1}>{item.name}</Text>
                 <Text className="text-xs text-[#8B7355]">{item.condition}</Text>
-                <View className="flex-row items-center justify-between mt-1">
+                <View className="flex-row items-center justify-between mt-1.5">
                   <Text className="text-xs font-semibold text-[#4A3728]">{item.points} pts</Text>
-                  {item.status === "Swapped" && (
-                    <View style={{ backgroundColor: "#EDE8DF", borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 }}>
-                      <Text style={{ fontSize: 9, color: "#A09080", fontWeight: "600" }}>Swapped</Text>
+                  {item.status === "Swapped" ? (
+                    <View style={{ backgroundColor: "#DDD8C8", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "#D9CFC4" }}>
+                      <Text style={{ fontSize: 11, color: "#6B5040", fontWeight: "600" }}>Swapped</Text>
+                    </View>
+                  ) : (
+                    <View style={{ backgroundColor: "#D8E4D0", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ fontSize: 11, color: "#4A6640", fontWeight: "600" }}>Available</Text>
                     </View>
                   )}
                 </View>

@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
+import { View, StyleSheet, Dimensions, Platform } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Svg, { Path } from "react-native-svg";
+import * as Notifications from "expo-notifications";
 import { supabase } from "@/lib/supabase";
 import { UnreadProvider } from "@/lib/unreadContext";
 import { NotificationProvider } from "@/lib/notificationContext";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false }),
+});
 
 const { width: W, height: H } = Dimensions.get("window");
 const S = Math.min(W, H) * 0.38; // leaf corner size
@@ -57,6 +62,23 @@ export default function RootLayout() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Register for push notifications and save token to profile
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "default",
+          importance: Notifications.AndroidImportance.MAX,
+        });
+      }
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") return;
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      await supabase.from("profiles").update({ expo_push_token: token }).eq("id", userId);
+    })();
+  }, [userId]);
 
   useEffect(() => {
     if (session === null) return;

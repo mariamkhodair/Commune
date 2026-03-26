@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNotifications } from "@/lib/notificationContext";
+import { useUser } from "@/lib/useUser";
 
 const TYPE_ICONS: Record<string, string> = {
   proposal: "swap-horizontal-outline",
@@ -34,11 +35,13 @@ function timeAgo(dateStr: string) {
 export default function NotificationsScreen() {
   const router = useRouter();
   const { notifications, markRead, markAllRead } = useNotifications();
+  const { userId } = useUser();
 
   useEffect(() => {
+    if (!userId) return;
     markAllRead();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userId]);
 
   return (
     <SafeAreaView style={{ flex: 1 }}>

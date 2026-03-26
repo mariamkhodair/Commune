@@ -1,10 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
 import { useRouter } from "expo-router";
-import { useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
@@ -17,8 +14,6 @@ const SECTIONS: { heading: string; items: MenuItem[] }[] = [
       { label: "My Swaps",         icon: "swap-horizontal-outline", route: "/my-swaps" },
       { label: "Scheduled Swaps",  icon: "calendar-outline",         route: "/scheduled-swaps" },
       { label: "Stuff I Want",     icon: "star-outline",             route: "/stuff-i-want" },
-      { label: "Liked Stuff",      icon: "heart-outline",            route: "/liked" },
-      { label: "Liked Members",    icon: "people-outline",           route: "/liked-members" },
     ],
   },
   {
@@ -40,45 +35,6 @@ const SECTIONS: { heading: string; items: MenuItem[] }[] = [
 export default function More() {
   const router = useRouter();
   const { userId, profile } = useUser();
-  const [proposedCount, setProposedCount] = useState(0);
-  const [newScheduled, setNewScheduled] = useState(0);
-
-  useEffect(() => {
-    if (!userId) return;
-    supabase
-      .from("swaps")
-      .select("id", { count: "exact", head: true })
-      .eq("receiver_id", userId)
-      .eq("status", "Proposed")
-      .then(({ count }) => setProposedCount(count ?? 0));
-  }, [userId]);
-
-  // New scheduled swaps count
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      const lastSeen = (await AsyncStorage.getItem("sched_last_seen")) ?? new Date(0).toISOString();
-      const { data: mySwaps } = await supabase
-        .from("swaps")
-        .select("id")
-        .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`);
-      if (!mySwaps?.length) return;
-      const ids = mySwaps.map((s) => s.id);
-      const { count } = await supabase
-        .from("scheduled_swaps")
-        .select("id", { count: "exact", head: true })
-        .in("swap_id", ids)
-        .gt("created_at", lastSeen);
-      setNewScheduled(count ?? 0);
-    })();
-  }, [userId]);
-
-  // Clear scheduled badge when this screen comes into view (user sees the item)
-  useFocusEffect(
-    useCallback(() => {
-      // Badge clears only when user taps Scheduled Swaps, handled at navigation
-    }, [])
-  );
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -114,39 +70,19 @@ export default function More() {
               {heading}
             </Text>
             <View style={{ gap: 6 }}>
-              {items.map(({ label, icon, route }) => {
-                const isMySwaps = label === "My Swaps";
-                const isScheduled = label === "Scheduled Swaps";
-                const badgeCount = isMySwaps ? proposedCount : isScheduled ? newScheduled : 0;
-                const showBadge = badgeCount > 0;
-                const badgeColor = isScheduled ? "#2D6A4F" : "#A0624A";
-                return (
+              {items.map(({ label, icon, route }) => (
                   <TouchableOpacity
                     key={label}
-                    onPress={async () => {
-                      if (isScheduled && newScheduled > 0) {
-                        await AsyncStorage.setItem("sched_last_seen", new Date().toISOString());
-                        setNewScheduled(0);
-                      }
-                      router.push(route as any);
-                    }}
+                    onPress={() => router.push(route as any)}
                     className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-4 border border-[#EDE8DF]"
                   >
                     <View className="flex-row items-center gap-3">
                       <Ionicons name={icon} size={18} color="#8B7355" />
                       <Text className="text-sm text-[#4A3728]">{label}</Text>
                     </View>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      {showBadge && (
-                        <View style={{ backgroundColor: badgeColor, borderRadius: 999, minWidth: 20, height: 20, paddingHorizontal: 5, alignItems: "center", justifyContent: "center" }}>
-                          <Text style={{ color: "white", fontSize: 11, fontWeight: "700" }}>{badgeCount}</Text>
-                        </View>
-                      )}
-                      <Ionicons name="chevron-forward" size={16} color="#C4B9AA" />
-                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="#C4B9AA" />
                   </TouchableOpacity>
-                );
-              })}
+              ))}
             </View>
           </View>
         ))}
