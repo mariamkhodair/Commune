@@ -458,12 +458,28 @@ export default function MySwaps() {
 
   async function proposeDates(swapId: string, dates: string[]) {
     const swap = swaps.find((s) => s.id === swapId);
-    await supabase
+    const { error: insertError } = await supabase
       .from("scheduled_swaps")
       .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d, proposed_by: userId })));
+
+    if (insertError) {
+      console.error("Failed to propose dates:", insertError);
+      return;
+    }
+
+    // Optimistically update UI immediately
+    setSwaps((prev) =>
+      prev.map((s) => {
+        if (s.id !== swapId) return s;
+        const newDates = dates.map((d) => ({ id: d, date: d, proposedBy: userId ?? "" }));
+        return { ...s, proposedDates: [...s.proposedDates, ...newDates] };
+      })
+    );
+
     setCalendarOpenFor(null);
     setSelectedDates(new Set());
-    fetchSwaps();
+    await fetchSwaps();
+
     if (swap) {
       const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
       notifyUser({
