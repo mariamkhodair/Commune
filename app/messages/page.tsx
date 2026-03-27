@@ -32,15 +32,11 @@ export default function Messages() {
       .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => fetchConvos())
       .subscribe();
 
-    // Fallback poll every 5s
-    const interval = setInterval(fetchConvos, 5000);
-
     const handleFocus = () => fetchConvos();
     window.addEventListener("focus", handleFocus);
 
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(interval);
       window.removeEventListener("focus", handleFocus);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

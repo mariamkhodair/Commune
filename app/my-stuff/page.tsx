@@ -71,23 +71,27 @@ export default function MyStuff() {
       return;
     }
 
-    // For each item, fetch who liked it
-    const itemsWithLikes: ItemWithLikes[] = await Promise.all(
-      itemsData.map(async (item) => {
-        const { data: likes } = await supabase
-          .from("item_likes")
-          .select("user_id, profiles(id, name)")
-          .eq("item_id", item.id);
+    // Fetch all likes for all items in one query
+    const { data: allLikes } = await supabase
+      .from("item_likes")
+      .select("item_id, user_id, profiles(id, name)")
+      .in("item_id", itemsData.map((item) => item.id));
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const likedBy = (likes ?? []).map((l: any) => ({
-          id: l.user_id as string,
-          name: (Array.isArray(l.profiles) ? l.profiles[0]?.name : l.profiles?.name) ?? "Unknown",
-        }));
+    const likesMap = new Map<string, { id: string; name: string }[]>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const l of allLikes ?? [] as any[]) {
+      const entry = {
+        id: l.user_id as string,
+        name: (Array.isArray(l.profiles) ? l.profiles[0]?.name : l.profiles?.name) ?? "Unknown",
+      };
+      if (!likesMap.has(l.item_id)) likesMap.set(l.item_id, []);
+      likesMap.get(l.item_id)!.push(entry);
+    }
 
-        return { ...item, likedBy };
-      })
-    );
+    const itemsWithLikes: ItemWithLikes[] = itemsData.map((item) => ({
+      ...item,
+      likedBy: likesMap.get(item.id) ?? [],
+    }));
 
     setItems(itemsWithLikes);
     setLoading(false);

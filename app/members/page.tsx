@@ -79,22 +79,24 @@ function MembersInner() {
 
     if (error || !data) { setLoading(false); return; }
 
-    const enriched: MemberRow[] = await Promise.all(
-      data.map(async (p) => {
-        const { count } = await supabase
-          .from("items")
-          .select("id", { count: "exact", head: true })
-          .eq("owner_id", p.id)
-          .eq("status", "Available");
-        return {
-          id: p.id, name: p.name, area: p.area ?? "", city: p.city ?? "",
-          rating_sum: p.rating_sum ?? 0, rating_count: p.rating_count ?? 0,
-          item_count: count ?? 0,
-          joined: new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-          avatar_url: p.avatar_url ?? null,
-        };
-      })
-    );
+    const { data: itemRows } = await supabase
+      .from("items")
+      .select("owner_id")
+      .in("owner_id", data.map((p) => p.id))
+      .eq("status", "Available");
+
+    const countMap = new Map<string, number>();
+    for (const row of itemRows ?? []) {
+      countMap.set(row.owner_id, (countMap.get(row.owner_id) ?? 0) + 1);
+    }
+
+    const enriched: MemberRow[] = data.map((p) => ({
+      id: p.id, name: p.name, area: p.area ?? "", city: p.city ?? "",
+      rating_sum: p.rating_sum ?? 0, rating_count: p.rating_count ?? 0,
+      item_count: countMap.get(p.id) ?? 0,
+      joined: new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+      avatar_url: p.avatar_url ?? null,
+    }));
 
     if (userId) {
       const { data: followData } = await supabase
@@ -120,18 +122,24 @@ function MembersInner() {
       .select("id, name, area, city, rating_sum, rating_count, created_at, avatar_url")
       .in("id", ids);
 
+    const { data: likedItemRows } = await supabase
+      .from("items")
+      .select("owner_id")
+      .in("owner_id", ids)
+      .eq("status", "Available");
+
+    const likedCountMap = new Map<string, number>();
+    for (const row of likedItemRows ?? []) {
+      likedCountMap.set(row.owner_id, (likedCountMap.get(row.owner_id) ?? 0) + 1);
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const enriched: MemberRow[] = await Promise.all((profiles ?? []).map(async (p: any) => {
-      const { count } = await supabase
-        .from("items").select("id", { count: "exact", head: true })
-        .eq("owner_id", p.id).eq("status", "Available");
-      return {
-        id: p.id, name: p.name, area: p.area ?? "", city: p.city ?? "",
-        rating_sum: p.rating_sum ?? 0, rating_count: p.rating_count ?? 0,
-        item_count: count ?? 0,
-        joined: new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-        avatar_url: p.avatar_url ?? null,
-      };
+    const enriched: MemberRow[] = (profiles ?? []).map((p: any) => ({
+      id: p.id, name: p.name, area: p.area ?? "", city: p.city ?? "",
+      rating_sum: p.rating_sum ?? 0, rating_count: p.rating_count ?? 0,
+      item_count: likedCountMap.get(p.id) ?? 0,
+      joined: new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+      avatar_url: p.avatar_url ?? null,
     }));
 
     setLikedMembers(enriched);

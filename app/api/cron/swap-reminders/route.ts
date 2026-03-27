@@ -8,7 +8,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-async function sendSms(to: string, body: string) {
+async function sendSms(to: string, body: string): Promise<boolean> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID!;
   const authToken = process.env.TWILIO_AUTH_TOKEN!;
   const from = process.env.TWILIO_PHONE_NUMBER!;
@@ -16,14 +16,19 @@ async function sendSms(to: string, body: string) {
   const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
   const encoded = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
 
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      "Authorization": `Basic ${encoded}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({ To: to, From: from, Body: body }).toString(),
-  });
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Basic ${encoded}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ To: to, From: from, Body: body }).toString(),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -38,14 +43,15 @@ export async function GET(req: NextRequest) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
-  // Find all scheduled swaps happening tomorrow
+  // Find all scheduled swaps happening tomorrow that are still active
   const { data: scheduled, error } = await supabaseAdmin
     .from("scheduled_swaps")
     .select(`
       id, swap_id, scheduled_date,
-      swaps(proposer_id, receiver_id)
+      swaps!inner(proposer_id, receiver_id, status)
     `)
-    .eq("scheduled_date", tomorrowStr);
+    .eq("scheduled_date", tomorrowStr)
+    .eq("swaps.status", "In Progress");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!scheduled?.length) return NextResponse.json({ sent: 0 });
