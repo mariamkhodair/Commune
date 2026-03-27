@@ -237,6 +237,7 @@ export default function MySwaps() {
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
 
   // Calendar state
+  const [proposeError, setProposeError] = useState<string | null>(null);
   const [calendarOpenFor, setCalendarOpenFor] = useState<string | null>(null);
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
@@ -473,8 +474,10 @@ export default function MySwaps() {
 
     if (insertError) {
       console.error("Failed to propose dates:", insertError);
+      setProposeError(insertError.message);
       return;
     }
+    setProposeError(null);
 
     // Optimistically update UI immediately
     setSwaps((prev) =>
@@ -734,9 +737,12 @@ export default function MySwaps() {
                         month={calendarMonth}
                         onChangeMonth={setCalendarMonth}
                       />
+                      {proposeError && (
+                        <p className="text-xs text-red-500 mt-2">{proposeError}</p>
+                      )}
                       <div className="flex gap-2 mt-3">
                         <button
-                          onClick={() => { setCalendarOpenFor(null); setSelectedDates(new Set()); }}
+                          onClick={() => { setCalendarOpenFor(null); setSelectedDates(new Set()); setProposeError(null); }}
                           className="flex-1 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] transition-colors"
                         >
                           Cancel
