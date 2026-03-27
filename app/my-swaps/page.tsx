@@ -763,6 +763,13 @@ export default function MySwaps() {
                     <RatingPrompt swapId={swap.id} name={swap.otherName} otherId={swap.otherId} />
                   )}
 
+                  {/* Confirmed date label */}
+                  {swap.status === "In Progress" && swap.proposedDates.length > 0 && (
+                    <p className="text-xs text-[#7A9E6E] font-semibold text-center mt-3">
+                      Confirmed swap date: {formatDate(swap.proposedDates[0].date)}
+                    </p>
+                  )}
+
                   {/* Cancel swap */}
                   {!["Completed", "Declined"].includes(swap.status) && (
                     <div className="mt-3 flex justify-center">
