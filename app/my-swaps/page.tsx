@@ -336,13 +336,13 @@ export default function MySwaps() {
     if (swapIds.length > 0) {
       const { data: scheduledData } = await supabase
         .from("scheduled_swaps")
-        .select("id, swap_id, scheduled_date, proposed_by")
+        .select("id, swap_id, scheduled_date")
         .in("swap_id", swapIds);
 
       const scheduledMap: Record<string, ProposedDate[]> = {};
       for (const row of scheduledData ?? []) {
         if (!scheduledMap[row.swap_id]) scheduledMap[row.swap_id] = [];
-        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date, proposedBy: row.proposed_by ?? "" });
+        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date, proposedBy: "" });
       }
       for (const swap of filtered) {
         swap.proposedDates = scheduledMap[swap.id] ?? [];
@@ -469,7 +469,7 @@ export default function MySwaps() {
     const swap = swaps.find((s) => s.id === swapId);
     const { error: insertError } = await supabase
       .from("scheduled_swaps")
-      .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d, proposed_by: userId })));
+      .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d })));
 
     if (insertError) {
       console.error("Failed to propose dates:", insertError);
@@ -656,14 +656,12 @@ export default function MySwaps() {
                             className="flex items-center justify-between bg-[#F5F0E8] rounded-xl px-3 py-2"
                           >
                             <p className="text-sm text-[#4A3728]">{formatDate(pd.date)}</p>
-                            {pd.proposedBy !== userId && (
-                              <button
-                                onClick={() => acceptDate(pd.id, swap.id)}
-                                className="text-xs px-3 py-1 rounded-full bg-[#7A9E6E] text-white font-medium hover:bg-[#6A8E5E] transition-colors"
-                              >
-                                Confirm
-                              </button>
-                            )}
+                            <button
+                              onClick={() => acceptDate(pd.id, swap.id)}
+                              className="text-xs px-3 py-1 rounded-full bg-[#7A9E6E] text-white font-medium hover:bg-[#6A8E5E] transition-colors"
+                            >
+                              Confirm
+                            </button>
                           </div>
                         ))}
                       </div>

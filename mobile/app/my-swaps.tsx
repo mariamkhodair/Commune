@@ -334,13 +334,13 @@ export default function MySwaps() {
     if (swapIds.length > 0) {
       const { data: scheduledData } = await supabase
         .from("scheduled_swaps")
-        .select("id, swap_id, scheduled_date, proposed_by")
+        .select("id, swap_id, scheduled_date")
         .in("swap_id", swapIds);
 
       const scheduledMap: Record<string, ProposedDate[]> = {};
       for (const row of scheduledData ?? []) {
         if (!scheduledMap[row.swap_id]) scheduledMap[row.swap_id] = [];
-        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date, proposedBy: row.proposed_by ?? "" });
+        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date, proposedBy: "" });
       }
       for (const swap of filtered) {
         swap.proposedDates = scheduledMap[swap.id] ?? [];
@@ -460,7 +460,7 @@ export default function MySwaps() {
     const swap = swaps.find((s) => s.id === swapId);
     const { error: insertError } = await supabase
       .from("scheduled_swaps")
-      .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d, proposed_by: userId })));
+      .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d })));
 
     if (insertError) {
       console.error("Failed to propose dates:", insertError);
@@ -633,14 +633,12 @@ export default function MySwaps() {
                     {swap.proposedDates.map((pd) => (
                       <View key={pd.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F5F0E8", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 6 }}>
                         <Text style={{ fontSize: 13, color: "#4A3728" }}>{formatDate(pd.date)}</Text>
-                        {pd.proposedBy !== userId && (
-                          <TouchableOpacity
-                            onPress={() => acceptDate(pd.id, swap.id)}
-                            style={{ backgroundColor: "#7A9E6E", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}
-                          >
-                            <Text style={{ color: "white", fontSize: 11, fontWeight: "600" }}>Confirm</Text>
-                          </TouchableOpacity>
-                        )}
+                        <TouchableOpacity
+                          onPress={() => acceptDate(pd.id, swap.id)}
+                          style={{ backgroundColor: "#7A9E6E", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}
+                        >
+                          <Text style={{ color: "white", fontSize: 11, fontWeight: "600" }}>Confirm</Text>
+                        </TouchableOpacity>
                       </View>
                     ))}
                   </View>
