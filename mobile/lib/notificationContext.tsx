@@ -61,8 +61,9 @@ export function NotificationProvider({ children, userId }: { children: React.Rea
 
   async function markAllRead() {
     if (!userId) return;
-    await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    const { error } = await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
+    if (error) fetchNotifications(userId);
   }
 
   const unreadCount = notifications.filter((n) => !n.read).length;

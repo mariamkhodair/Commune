@@ -54,17 +54,22 @@ export default function MyStuff() {
       .eq("owner_id", userId!)
       .order("created_at", { ascending: false });
 
-    const withLikes = await Promise.all(
-      (data ?? []).map(async (item: any) => {
-        const { count } = await supabase
-          .from("item_likes")
-          .select("id", { count: "exact", head: true })
-          .eq("item_id", item.id);
-        return { ...item, photos: item.photos ?? [], likeCount: count ?? 0 };
-      })
-    );
-    setItems(withLikes);
-    setLoading(false);
+    try {
+      const withLikes = await Promise.all(
+        (data ?? []).map(async (item: any) => {
+          const { count } = await supabase
+            .from("item_likes")
+            .select("id", { count: "exact", head: true })
+            .eq("item_id", item.id);
+          return { ...item, photos: item.photos ?? [], likeCount: count ?? 0 };
+        })
+      );
+      setItems(withLikes);
+    } catch {
+      setItems((data ?? []).map((item: any) => ({ ...item, photos: item.photos ?? [], likeCount: 0 })));
+    } finally {
+      setLoading(false);
+    }
   }
 
   function confirmDelete(id: string, name: string) {

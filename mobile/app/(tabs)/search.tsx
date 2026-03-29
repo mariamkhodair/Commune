@@ -25,13 +25,6 @@ export default function Search() {
   useEffect(() => {
     if (!userId) return;
     fetchItems(true);
-
-    const channel = supabase
-      .channel("search-items-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "items" }, () => fetchItems())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
   async function fetchItems(showSpinner = false) {

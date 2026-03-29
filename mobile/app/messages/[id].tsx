@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { View, Text, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -78,9 +78,8 @@ export default function MessageThread() {
       .single();
 
     if (error) {
-      console.error("sendMessage error:", error);
-      // Revert optimistic update on failure
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      Alert.alert("Failed to send", "Your message couldn't be sent. Please try again.");
     } else if (data) {
       // Replace temp message with real one from DB
       setMessages((prev) => prev.map((m) => m.id === tempId ? data as Message : m));

@@ -276,6 +276,7 @@ export default function MySwaps() {
 
   async function fetchSwaps(showSpinner = false) {
     if (showSpinner) setLoading(true);
+    try {
     const { data } = await supabase
       .from("swaps")
       .select("id, proposer_id, receiver_id, status, swap_items(item_id, side)")
@@ -348,7 +349,11 @@ export default function MySwaps() {
     }
 
     setSwaps(filtered);
-    setLoading(false);
+    } catch {
+      // swaps remain at previous state; spinner clears
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function acceptSwap(swapId: string) {
