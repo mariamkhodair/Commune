@@ -33,7 +33,7 @@ export default function AboutUs() {
             <h2 className="text-2xl text-[#4A3728] mb-4 text-center font-[family-name:var(--font-permanent-marker)]">Our Mission</h2>
             <div className="rounded-2xl px-6 py-8 text-center">
               <p className="text-xl text-[#4A3728] font-[family-name:var(--font-jost)] font-light leading-relaxed">
-                "To help people declutter their Homes, Save money and Help those in need - just by swapping."
+                "To help people declutter their Homes, Save money<br />and Help those in need - just by swapping."
               </p>
             </div>
           </section>
