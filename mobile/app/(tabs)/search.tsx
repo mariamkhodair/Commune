@@ -70,11 +70,17 @@ export default function Search() {
     }
   }
 
-  const filtered = items.filter((i) => {
-    const matchQ = !query || i.name.toLowerCase().includes(query.toLowerCase());
-    const matchC = category === "All" || i.category === category;
-    return matchQ && matchC;
-  });
+  const filtered = items
+    .filter((i) => {
+      const matchQ = !query || i.name.toLowerCase().includes(query.toLowerCase());
+      const matchC = category === "All" || i.category === category;
+      return matchQ && matchC;
+    })
+    .sort((a, b) => {
+      const aAvail = a.status === "Available" ? 1 : 0;
+      const bAvail = b.status === "Available" ? 1 : 0;
+      return bAvail - aAvail;
+    });
 
   return (
     <SafeAreaView className="flex-1">

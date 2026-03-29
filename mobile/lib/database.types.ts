@@ -4,6 +4,7 @@ export type Profile = {
   phone: string;
   area: string | null;
   city: string | null;
+  avatar_url: string | null;
   rating_sum: number;
   rating_count: number;
   created_at: string;

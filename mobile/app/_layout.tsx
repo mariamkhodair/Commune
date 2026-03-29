@@ -9,7 +9,13 @@ import { UnreadProvider } from "@/lib/unreadContext";
 import { NotificationProvider } from "@/lib/notificationContext";
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false }),
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
 });
 
 const { width: W, height: H } = Dimensions.get("window");
