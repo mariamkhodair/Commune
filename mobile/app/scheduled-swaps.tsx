@@ -6,7 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
-import { notifyUser } from "@/lib/notifySwap";
+import SwapSafetyControls from "@/components/SwapSafetyControls";
 
 type ScheduledSwap = {
   id: string;
@@ -45,8 +45,6 @@ export default function ScheduledSwaps() {
   const { userId } = useUser();
   const [swaps, setSwaps] = useState<ScheduledSwap[]>([]);
   const [loading, setLoading] = useState(true);
-  const [offToSwap, setOffToSwap] = useState<Record<string, boolean>>({});
-  const [completed, setCompleted] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!userId) return;
@@ -141,59 +139,6 @@ export default function ScheduledSwaps() {
     setLoading(false);
   }
 
-  async function handleOffToSwap(swap: ScheduledSwap) {
-    Alert.alert(
-      "Off to Swap!",
-      `This will let ${swap.otherName} know you're on your way.\n\nAlways meet in a public place. Ready to head out?`,
-      [
-        { text: "Not yet", style: "cancel" },
-        {
-          text: "Yes, heading out!",
-          onPress: async () => {
-            setOffToSwap((prev) => ({ ...prev, [swap.id]: true }));
-            const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
-            notifyUser({
-              userId: swap.otherId,
-              type: "swap_incoming",
-              title: "Someone's on their way!",
-              body: `${myProfile?.name ?? "Your swap partner"} is heading out for your swap on ${formatDate(swap.date)}.`,
-              swapId: swap.swapId,
-            });
-          },
-        },
-      ]
-    );
-  }
-
-  async function handleSwappedAndSafe(swap: ScheduledSwap) {
-    Alert.alert(
-      "Swapped and Safe?",
-      "Confirm the swap is done and you're safely on your way home.",
-      [
-        { text: "Not yet", style: "cancel" },
-        {
-          text: "Yes, all done!",
-          onPress: async () => {
-            // Mark swap as Completed in DB
-            await supabase.from("swaps").update({ status: "Completed" }).eq("id", swap.swapId);
-            setOffToSwap((prev) => ({ ...prev, [swap.id]: false }));
-            setCompleted((prev) => ({ ...prev, [swap.id]: true }));
-
-            // Notify the other member
-            const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
-            notifyUser({
-              userId: swap.otherId,
-              type: "swap_complete",
-              title: "Swap completed!",
-              body: `${myProfile?.name ?? "Your swap partner"} confirmed the swap is done. Don't forget to leave a rating!`,
-              swapId: swap.swapId,
-            });
-          },
-        },
-      ]
-    );
-  }
-
   async function openChat(swap: ScheduledSwap) {
     let convId = swap.conversationId;
     if (!convId) {
@@ -246,8 +191,7 @@ export default function ScheduledSwaps() {
           refreshControl={<RefreshControl refreshing={false} onRefresh={fetchScheduled} tintColor="#4A3728" />}
         >
           {swaps.map((swap) => {
-            const isOff = offToSwap[swap.id];
-            const isDone = completed[swap.id] || swap.isCompleted;
+            const isDone = swap.isCompleted;
             const upcoming = isUpcoming(swap.date);
 
             return (
@@ -315,52 +259,15 @@ export default function ScheduledSwaps() {
                     <Text style={{ fontSize: 12, color: "#8B7355", textDecorationLine: "underline" }}>View in My Swaps →</Text>
                   </TouchableOpacity>
 
-                  {/* Safety tip + action buttons (only for upcoming, non-completed) */}
-                  {upcoming && !isDone && (
-                    <>
-                      <View style={{ backgroundColor: "#F5F0E8", borderRadius: 12, padding: 12 }}>
-                        <Text style={{ fontSize: 12, fontWeight: "600", color: "#6B5040", marginBottom: 4 }}>Before you go</Text>
-                        <Text style={{ fontSize: 11, color: "#A09080", lineHeight: 17 }}>
-                          {"Meet in a public place. Press "}
-                          <Text style={{ fontWeight: "600", color: "#4A3728" }}>Off to Swap</Text>
-                          {` when you leave — ${swap.otherName} will know you're on your way. Once done and safe, press `}
-                          <Text style={{ fontWeight: "600", color: "#4A3728" }}>Swapped and Safe</Text>
-                          {"."}
-                        </Text>
-                      </View>
-
-                      {isOff ? (
-                        <View style={{ gap: 8 }}>
-                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 6 }}>
-                            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#A0624A" }} />
-                            <Text style={{ fontSize: 11, color: "#A0624A", fontWeight: "500" }}>
-                              {swap.otherName} knows you're on your way
-                            </Text>
-                          </View>
-                          <TouchableOpacity
-                            onPress={() => handleSwappedAndSafe(swap)}
-                            style={{ backgroundColor: "#7A9E6E", borderRadius: 999, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
-                          >
-                            <Ionicons name="checkmark-circle" size={18} color="white" />
-                            <Text style={{ color: "white", fontWeight: "600", fontSize: 15 }}>Swapped and Safe</Text>
-                          </TouchableOpacity>
-                        </View>
-                      ) : (
-                        <TouchableOpacity
-                          onPress={() => handleOffToSwap(swap)}
-                          style={{ backgroundColor: "#4A3728", borderRadius: 999, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
-                        >
-                          <Ionicons name="navigate" size={18} color="#FAF7F2" />
-                          <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 15 }}>Off to Swap</Text>
-                        </TouchableOpacity>
-                      )}
-                    </>
-                  )}
-
-                  {isDone && (
-                    <Text style={{ textAlign: "center", color: "#4A6640", fontWeight: "500", fontSize: 13 }}>
-                      Swap complete — don't forget to leave a rating in My Swaps!
-                    </Text>
+                  {/* Swap Safety System — Off to Swap / Swapped & Safe / map */}
+                  {upcoming && userId && (
+                    <SwapSafetyControls
+                      swapId={swap.swapId}
+                      otherName={swap.otherName}
+                      otherId={swap.otherId}
+                      userId={userId}
+                      onComplete={fetchScheduled}
+                    />
                   )}
                 </View>
               </View>

@@ -10,6 +10,20 @@ export type Profile = {
   created_at: string;
   is_admin: boolean;
   is_test: boolean;
+  location_privacy_accepted: boolean;
+};
+
+export type SwapSafetySession = {
+  id: string;
+  swap_id: string;
+  user_id: string;
+  departure_lat: number | null;
+  departure_lng: number | null;
+  departed_at: string | null;
+  completion_lat: number | null;
+  completion_lng: number | null;
+  completed_at: string | null;
+  expires_at: string | null;
 };
 
 export type Item = {

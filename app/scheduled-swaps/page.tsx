@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import SwapSafetyControls from "@/components/SwapSafetyControls";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
-import { notifyUser } from "@/lib/notifySwap";
 
 type ScheduledSwap = {
   id: string;
@@ -40,10 +40,6 @@ export default function ScheduledSwaps() {
   const { userId } = useUser();
   const [swaps, setSwaps] = useState<ScheduledSwap[]>([]);
   const [loading, setLoading] = useState(true);
-  const [offToSwap, setOffToSwap] = useState<Record<string, boolean>>({});
-  const [completed, setCompleted] = useState<Record<string, boolean>>({});
-  const [confirmOff, setConfirmOff] = useState<ScheduledSwap | null>(null);
-  const [confirmDone, setConfirmDone] = useState<ScheduledSwap | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -117,34 +113,6 @@ export default function ScheduledSwaps() {
     setLoading(false);
   }
 
-  async function handleOffToSwap(swap: ScheduledSwap) {
-    setConfirmOff(null);
-    setOffToSwap((prev) => ({ ...prev, [swap.id]: true }));
-    const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
-    notifyUser({
-      userId: swap.otherId,
-      type: "swap_incoming",
-      title: "Someone's on their way!",
-      body: `${myProfile?.name ?? "Your swap partner"} is heading out for your swap on ${formatDate(swap.date)}.`,
-      swapId: swap.swapId,
-    });
-  }
-
-  async function handleSwappedAndSafe(swap: ScheduledSwap) {
-    setConfirmDone(null);
-    await supabase.from("swaps").update({ status: "Completed" }).eq("id", swap.swapId);
-    setOffToSwap((prev) => ({ ...prev, [swap.id]: false }));
-    setCompleted((prev) => ({ ...prev, [swap.id]: true }));
-    const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
-    notifyUser({
-      userId: swap.otherId,
-      type: "swap_complete",
-      title: "Swap completed!",
-      body: `${myProfile?.name ?? "Your swap partner"} confirmed the swap is done. Don't forget to leave a rating!`,
-      swapId: swap.swapId,
-    });
-  }
-
   async function openChat(swap: ScheduledSwap) {
     let convId = swap.conversationId;
     if (!convId) {
@@ -192,8 +160,7 @@ export default function ScheduledSwaps() {
         ) : (
           <div className="flex flex-col gap-4 max-w-2xl">
             {swaps.map((swap) => {
-              const isOff = offToSwap[swap.id];
-              const isDone = completed[swap.id] || swap.isCompleted;
+              const isDone = swap.isCompleted;
               const upcoming = isUpcoming(swap.date);
 
               return (
@@ -260,52 +227,15 @@ export default function ScheduledSwaps() {
                       View in My Swaps →
                     </Link>
 
-                    {/* Safety tip + action buttons */}
-                    {upcoming && !isDone && (
-                      <div className="flex flex-col gap-3">
-                        <div className="bg-[#F5F0E8] rounded-xl p-4">
-                          <p className="text-xs font-semibold text-[#6B5040] mb-1">Before you go</p>
-                          <p className="text-xs text-[#A09080] leading-relaxed">
-                            Meet in a public place. Press <span className="font-semibold text-[#4A3728]">Off to Swap</span> when you leave —{" "}
-                            {swap.otherName} will know you&apos;re on your way. Once done and safe, press{" "}
-                            <span className="font-semibold text-[#4A3728]">Swapped and Safe</span>.
-                          </p>
-                        </div>
-
-                        {isOff ? (
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center justify-center gap-2 py-1">
-                              <div className="w-2 h-2 rounded-full bg-[#A0624A]" />
-                              <p className="text-xs text-[#A0624A] font-medium">{swap.otherName} knows you&apos;re on your way</p>
-                            </div>
-                            <button
-                              onClick={() => setConfirmDone(swap)}
-                              className="w-full flex items-center justify-center gap-2 rounded-full bg-[#7A9E6E] text-white py-3 text-sm font-semibold hover:bg-[#6A8E5E] transition-colors"
-                            >
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                                <path d="M20 6L9 17l-5-5" />
-                              </svg>
-                              Swapped and Safe
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setConfirmOff(swap)}
-                            className="w-full flex items-center justify-center gap-2 rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 text-sm font-semibold hover:bg-[#6B5040] transition-colors"
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                              <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0" /><path d="M12 8v4l3 3" />
-                            </svg>
-                            Off to Swap
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {isDone && (
-                      <p className="text-center text-sm text-[#4A6640] font-medium">
-                        Swap complete — don&apos;t forget to leave a rating in My Swaps!
-                      </p>
+                    {/* Swap Safety System — Off to Swap / Swapped & Safe / map */}
+                    {upcoming && userId && (
+                      <SwapSafetyControls
+                        swapId={swap.swapId}
+                        otherName={swap.otherName}
+                        otherId={swap.otherId}
+                        userId={userId}
+                        onComplete={fetchScheduled}
+                      />
                     )}
                   </div>
                 </div>
@@ -315,59 +245,6 @@ export default function ScheduledSwaps() {
         )}
       </main>
 
-      {/* Off to Swap confirmation modal */}
-      {confirmOff && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setConfirmOff(null)} />
-          <div className="relative w-full max-w-sm bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg text-center">
-            <p className="text-base font-semibold text-[#4A3728] mb-2">Off to Swap!</p>
-            <p className="text-sm text-[#8B7355] mb-6">
-              This will let {confirmOff.otherName} know you&apos;re on your way. Always meet in a public place. Ready to head out?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmOff(null)}
-                className="flex-1 py-2.5 rounded-full border border-[#D9CFC4] text-[#6B5040] text-sm hover:bg-[#EDE8DF] transition-colors"
-              >
-                Not yet
-              </button>
-              <button
-                onClick={() => handleOffToSwap(confirmOff)}
-                className="flex-1 py-2.5 rounded-full bg-[#4A3728] text-white text-sm font-semibold hover:bg-[#6B5040] transition-colors"
-              >
-                Yes, heading out!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Swapped and Safe confirmation modal */}
-      {confirmDone && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setConfirmDone(null)} />
-          <div className="relative w-full max-w-sm bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg text-center">
-            <p className="text-base font-semibold text-[#4A3728] mb-2">Swapped and Safe?</p>
-            <p className="text-sm text-[#8B7355] mb-6">
-              Confirm the swap is done and you&apos;re safely on your way home.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDone(null)}
-                className="flex-1 py-2.5 rounded-full border border-[#D9CFC4] text-[#6B5040] text-sm hover:bg-[#EDE8DF] transition-colors"
-              >
-                Not yet
-              </button>
-              <button
-                onClick={() => handleSwappedAndSafe(confirmDone)}
-                className="flex-1 py-2.5 rounded-full bg-[#7A9E6E] text-white text-sm font-semibold hover:bg-[#6A8E5E] transition-colors"
-              >
-                Yes, all done!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
