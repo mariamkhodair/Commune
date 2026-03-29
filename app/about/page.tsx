@@ -14,7 +14,7 @@ export default function AboutUs() {
 
           {/* Story */}
           <section className="mb-10">
-            <h2 className="text-2xl font-medium text-[#4A3728] mb-4 text-center">The Story</h2>
+            <h2 className="text-2xl text-[#4A3728] mb-4 text-center font-[family-name:var(--font-permanent-marker)]">The Story</h2>
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-6 border border-[#D9CFC4] flex flex-col gap-4 text-sm text-[#6B5040] leading-relaxed">
               <p>
                 Commune was conceived in 2022 in a simple ahwa over a couple of dark roast turkish coffees. It all started with a conversation about how everyone has so much stuff! Wardrobes full of things never worn, shelves of books never re-read, gadgets collecting dust in drawers. Meanwhile, others are looking for exactly those things.
@@ -30,9 +30,9 @@ export default function AboutUs() {
 
           {/* Mission */}
           <section className="mb-10">
-            <h2 className="text-2xl font-medium text-[#4A3728] mb-4 text-center">Our Mission</h2>
+            <h2 className="text-2xl text-[#4A3728] mb-4 text-center font-[family-name:var(--font-permanent-marker)]">Our Mission</h2>
             <div className="rounded-2xl px-6 py-8 text-center">
-              <p className="text-xl text-[#4A3728] font-[family-name:var(--font-permanent-marker)] leading-relaxed">
+              <p className="text-xl text-[#4A3728] font-[family-name:var(--font-jost)] font-light leading-relaxed">
                 "To help people declutter their Homes, Save money and Help those in need - just by swapping."
               </p>
             </div>
@@ -40,7 +40,7 @@ export default function AboutUs() {
 
           {/* Impact */}
           <section className="mb-10">
-            <h2 className="text-2xl font-medium text-[#4A3728] mb-4 text-center">The Impact</h2>
+            <h2 className="text-2xl text-[#4A3728] mb-4 text-center font-[family-name:var(--font-permanent-marker)]">The Impact</h2>
             <div className="flex flex-col gap-3">
 
               <div className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-5 border border-[#D9CFC4] flex gap-4 items-start">
@@ -72,7 +72,7 @@ export default function AboutUs() {
 
           {/* Founder */}
           <section>
-            <h2 className="text-2xl font-medium text-[#4A3728] mb-4 text-center">The Founder</h2>
+            <h2 className="text-2xl text-[#4A3728] mb-4 text-center font-[family-name:var(--font-permanent-marker)]">The Founder</h2>
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-6 border border-[#D9CFC4] flex flex-col gap-2">
               <p className="text-sm font-medium text-[#4A3728]">Mariam Khodair</p>
               <p className="text-sm text-[#6B5040] leading-relaxed">

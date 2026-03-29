@@ -47,13 +47,11 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
   }, [loading]);
 
   async function fetchThread() {
-    const { data: convo, error: convErr } = await supabase
+    const { data: convo } = await supabase
       .from("conversations")
       .select("member1_id, member2_id")
       .eq("id", id)
       .maybeSingle();
-
-    console.log("fetchThread id:", id, "userId:", userId, "convo:", convo, "error:", convErr);
 
     if (convo) {
       const other = convo.member1_id === userId ? convo.member2_id : convo.member1_id;

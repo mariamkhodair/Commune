@@ -124,31 +124,26 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
     if (!userId) return;
 
     // Try both orderings separately — more reliable than nested or/and filter
-    const { data: a, error: e1 } = await supabase
+    const { data: a } = await supabase
       .from("conversations").select("id")
       .eq("member1_id", userId).eq("member2_id", id).maybeSingle();
-    if (e1) console.error("openChat e1:", e1);
 
-    const { data: b, error: e2 } = !a ? await supabase
+    const { data: b } = !a ? await supabase
       .from("conversations").select("id")
       .eq("member1_id", id).eq("member2_id", userId).maybeSingle()
-      : { data: null, error: null };
-    if (e2) console.error("openChat e2:", e2);
+      : { data: null };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let convId: string | null = (a as any)?.id ?? (b as any)?.id ?? null;
-    console.log("openChat existing convId:", convId, "userId:", userId, "memberId:", id);
 
     if (!convId) {
-      const { data: newConv, error: e3 } = await supabase
+      const { data: newConv } = await supabase
         .from("conversations")
         .insert({ member1_id: userId, member2_id: id })
         .select("id")
         .single();
-      if (e3) console.error("openChat insert error:", e3);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       convId = (newConv as any)?.id ?? null;
-      console.log("openChat new convId:", convId);
     }
 
     // If insert also failed (e.g. race condition), try finding again
@@ -161,7 +156,6 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
     }
 
     if (convId) router.push(`/messages/${convId}`);
-    else console.error("openChat: could not get convId, not navigating");
   }
 
   function handleReportSubmit(e: React.FormEvent) {

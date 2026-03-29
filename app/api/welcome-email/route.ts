@@ -9,11 +9,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing name or email" }, { status: 400 });
     }
 
+    const safeName = name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     const { error } = await resend.emails.send({
       from: "Commune <hello@commune-eg.com>",
       to: email,
       subject: "Welcome to Commune 🤝🏽",
-      html: welcomeEmail(name),
+      html: welcomeEmail(safeName),
     });
 
     if (error) {

@@ -7,27 +7,17 @@ import { supabase } from "@/lib/supabase";
 
 export default function Login() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    setError("");
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: form.email,
-      password: form.password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-
     if (error) {
       setError(error.message);
     } else {
@@ -98,9 +88,10 @@ export default function Login() {
               name="email"
               type="email"
               required
+              autoComplete="email"
               placeholder="you@example.com"
-              value={form.email}
-              onChange={handleChange}
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(""); }}
               className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
             />
           </div>
@@ -112,9 +103,10 @@ export default function Login() {
               name="password"
               type="password"
               required
+              autoComplete="current-password"
               placeholder="Your password"
-              value={form.password}
-              onChange={handleChange}
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setError(""); }}
               className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
             />
             <Link href="/forgot-password" className="text-xs text-[#8B7355] hover:underline self-end mt-1">

@@ -65,8 +65,8 @@ export default function NewItem() {
     }
   }
 
-  function handleFiles(files: FileList | File[]) {
-    Array.from(files).forEach(async (file) => {
+  async function handleFiles(files: FileList | File[]) {
+    await Promise.all(Array.from(files).map(async (file) => {
       const jpeg = await toJpegBlob(file);
       if (!jpeg) {
         alert("Couldn't process this image. Please try a different file.");
@@ -76,7 +76,7 @@ export default function NewItem() {
       const previewUrl = URL.createObjectURL(jpeg);
       setPhotos((prev) => [...prev, previewUrl]);
       setPhotoFiles((prev) => [...prev, jpegFile]);
-    });
+    }));
   }
 
   function removePhoto(index: number) {
