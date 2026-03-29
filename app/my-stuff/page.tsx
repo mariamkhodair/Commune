@@ -170,7 +170,7 @@ export default function MyStuff() {
         )}
 
         {!loading && !userLoading && items.length > 0 && (
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-3 portrait-grid-2">
             {items.map((item) => (
               <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
                 <button
