@@ -141,7 +141,12 @@ function SearchInner() {
     return true;
   });
 
-  const sorted = [...filtered].sort((a, b) => (b.match ? 1 : 0) - (a.match ? 1 : 0));
+  const sorted = [...filtered].sort((a, b) => {
+    const aAvail = a.status === "Available" ? 1 : 0;
+    const bAvail = b.status === "Available" ? 1 : 0;
+    if (bAvail !== aAvail) return bAvail - aAvail;
+    return (b.match ? 1 : 0) - (a.match ? 1 : 0);
+  });
 
   return (
     <div className="min-h-screen flex">
