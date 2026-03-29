@@ -120,11 +120,24 @@ const sidebarItems = [
 
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { userId, profile } = useUser();
   const { unreadMessages, clearAllMessages } = useUnread();
   const { unreadCount: unreadNotifications, markAllRead } = useNotifications();
+
+  // Collapse sidebar and lock it closed on portrait mobile
+  useEffect(() => {
+    const mq = window.matchMedia("(orientation: portrait) and (max-width: 1024px)");
+    const handler = (e: MediaQueryList | MediaQueryListEvent) => {
+      setIsMobilePortrait(e.matches);
+      if (e.matches) setOpen(false);
+    };
+    handler(mq);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   // Clear badges when visiting the relevant pages
   useEffect(() => {
@@ -144,14 +157,14 @@ export default function Sidebar() {
   return (
     <aside className={`relative overflow-visible flex flex-col bg-white/70 backdrop-blur-sm border-r border-[#D9CFC4] transition-all duration-300 ease-in-out ${open ? "w-52" : "w-16"} shrink-0 z-30`}>
 
-      <button
+      {!isMobilePortrait && <button
         onClick={() => setOpen(!open)}
         className="absolute -right-3 top-6 w-6 h-6 rounded-full bg-[#4A3728] text-[#F5F0E8] flex items-center justify-center shadow-sm hover:bg-[#6B5040] transition-colors z-50"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3 h-3">
           {open ? <path d="M15 18l-6-6 6-6" /> : <path d="M9 18l6-6-6-6" />}
         </svg>
-      </button>
+      </button>}
 
       <Link href="/dashboard" className="px-4 pt-6 pb-3 text-[#4A3728] font-[family-name:var(--font-permanent-marker)] whitespace-nowrap overflow-hidden" style={{ fontSize: open ? "1.5rem" : "0" }}>
         Commune

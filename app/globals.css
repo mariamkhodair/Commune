@@ -26,6 +26,13 @@ body {
 }
 
 
+/* 2-column grid on portrait mobile */
+@media screen and (orientation: portrait) and (max-width: 1024px) {
+  .portrait-grid-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
 /* Fix browser autofill background overriding custom input styles */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
