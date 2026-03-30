@@ -56,7 +56,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Poll every 15s as fallback in case Realtime misses an event
+    const poll = setInterval(fetchNotifications, 15_000);
+
+    // Refetch when the tab regains focus
+    const onFocus = () => fetchNotifications();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(poll);
+      window.removeEventListener("focus", onFocus);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 

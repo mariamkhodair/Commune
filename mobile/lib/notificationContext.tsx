@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { AppState } from "react-native";
 import { supabase } from "./supabase";
 
 type Notification = {
@@ -51,7 +52,19 @@ export function NotificationProvider({ children, userId }: { children: React.Rea
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Poll every 15s as fallback in case Realtime misses an event
+    const poll = setInterval(() => fetchNotifications(userId), 15_000);
+
+    // Refetch when app comes back to foreground
+    const appStateSub = AppState.addEventListener("change", (state) => {
+      if (state === "active") fetchNotifications(userId);
+    });
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(poll);
+      appStateSub.remove();
+    };
   }, [userId]);
 
   async function markRead(id: string) {
