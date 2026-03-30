@@ -12,6 +12,7 @@ const TYPE_ICONS: Record<string, string> = {
   declined: "close-circle-outline",
   dates_proposed: "calendar-outline",
   date_confirmed: "calendar-number-outline",
+  swap_check: "help-circle-outline",
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -20,6 +21,7 @@ const TYPE_COLORS: Record<string, string> = {
   declined: "#8B3A2A",
   dates_proposed: "#2A5060",
   date_confirmed: "#2D6A4F",
+  swap_check: "#8B6030",
 };
 
 function timeAgo(dateStr: string) {

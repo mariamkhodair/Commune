@@ -15,6 +15,7 @@ type ScheduledSwap = {
   otherId: string;
   otherAvatar: string | null;
   date: string;
+  time: string | null;
   yourItems: string;
   theirItems: string;
   conversationId: string | null;
@@ -80,7 +81,7 @@ export default function ScheduledSwaps() {
     const { data } = await supabase
       .from("scheduled_swaps")
       .select(`
-        id, swap_id, scheduled_date,
+        id, swap_id, scheduled_date, scheduled_time,
         swaps(proposer_id, receiver_id, status,
           swap_items(side, items(name, owner_id))
         )
@@ -126,6 +127,7 @@ export default function ScheduledSwaps() {
           otherId,
           otherAvatar: (profile as any)?.avatar_url ?? null,
           date: s.scheduled_date,
+          time: s.scheduled_time ?? null,
           yourItems: yourItems || "Your items",
           theirItems: theirItems || "Their items",
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,7 +209,7 @@ export default function ScheduledSwaps() {
                           {isDone ? "Completed" : upcoming ? "Confirmed date" : "Past date"}
                         </Text>
                         <Text style={{ color: isDone ? "#2D5030" : "#FAF7F2", fontWeight: "600", fontSize: 15 }}>
-                          {formatDate(swap.date)}
+                          {formatDate(swap.date)}{swap.time ? ` at ${swap.time}` : ""}
                         </Text>
                       </View>
                     </View>

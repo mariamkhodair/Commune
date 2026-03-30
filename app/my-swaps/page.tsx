@@ -13,7 +13,7 @@ type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Decli
 
 type SwapItem = { name: string; points: number };
 
-type ProposedDate = { id: string; date: string; proposedBy: string };
+type ProposedDate = { id: string; date: string; time: string | null; proposedBy: string };
 
 type Swap = {
   id: string;
@@ -235,11 +235,13 @@ export default function MySwaps() {
   const [activeTab, setActiveTab] = useState<SwapStatus | "All">("All");
 
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
+  const [confirmingSwapId, setConfirmingSwapId] = useState<string | null>(null);
 
   // Calendar state
   const [proposeError, setProposeError] = useState<string | null>(null);
   const [calendarOpenFor, setCalendarOpenFor] = useState<string | null>(null);
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
+  const [proposedTime, setProposedTime] = useState<string>("");
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
     const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d;
   });
@@ -337,13 +339,13 @@ export default function MySwaps() {
     if (swapIds.length > 0) {
       const { data: scheduledData } = await supabase
         .from("scheduled_swaps")
-        .select("id, swap_id, scheduled_date, proposed_by")
+        .select("id, swap_id, scheduled_date, scheduled_time, proposed_by")
         .in("swap_id", swapIds);
 
       const scheduledMap: Record<string, ProposedDate[]> = {};
       for (const row of scheduledData ?? []) {
         if (!scheduledMap[row.swap_id]) scheduledMap[row.swap_id] = [];
-        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date, proposedBy: row.proposed_by ?? "" });
+        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date, time: row.scheduled_time ?? null, proposedBy: row.proposed_by ?? "" });
       }
       for (const swap of filtered) {
         swap.proposedDates = scheduledMap[swap.id] ?? [];
@@ -354,46 +356,35 @@ export default function MySwaps() {
     setLoading(false);
   }
 
+  async function confirmSwapHappened(swapId: string) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await fetch(`/api/swap/${swapId}/confirm-manual`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${session.access_token}` },
+    });
+    await fetchSwaps();
+  }
+
   async function acceptSwap(swapId: string) {
     const swap = swaps.find((s) => s.id === swapId);
     if (!swap) return;
-    await supabase.from("swaps").update({ status: "Accepted" }).eq("id", swapId);
 
-    // Mark all items in this swap as Swapped (via server-side to bypass RLS)
-    updateSwapItemStatus(swapId, "Swapped");
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
-    // Notify proposer
-    const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
-    notifyUser({
-      userId: swap.otherId,
-      type: "accepted",
-      title: "Swap accepted!",
-      body: `${myProfile?.name ?? "Someone"} accepted your swap proposal.`,
-      swapId,
+    const res = await fetch(`/api/swap/${swapId}/accept`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${session.access_token}` },
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = await res.json() as any;
+    if (!res.ok) return;
 
-    let convId = swap.conversationId;
-    if (!convId) {
-      const { data: existing } = await supabase
-        .from("conversations")
-        .select("id")
-        .or(
-          `and(member1_id.eq.${userId},member2_id.eq.${swap.otherId}),and(member1_id.eq.${swap.otherId},member2_id.eq.${userId})`
-        )
-        .maybeSingle();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      convId = (existing as any)?.id ?? null;
-      if (!convId) {
-        const { data: newConv } = await supabase
-          .from("conversations")
-          .insert({ member1_id: userId, member2_id: swap.otherId })
-          .select("id")
-          .single();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        convId = (newConv as any)?.id ?? null;
-      }
-    }
+    const convId = json.conversationId ?? swap.conversationId;
 
+    // Refresh the full list so auto-declined swaps update too
+    await fetchSwaps();
     setSwaps((prev) =>
       prev.map((s) =>
         s.id === swapId ? { ...s, status: "Accepted", conversationId: convId } : s
@@ -424,6 +415,7 @@ export default function MySwaps() {
   }
 
   async function cancelSwap(swapId: string) {
+    const swap = swaps.find((s) => s.id === swapId);
     await supabase.from("swaps").update({ status: "Declined" }).eq("id", swapId);
 
     // Revert item statuses to Available (via server-side to bypass RLS)
@@ -431,6 +423,17 @@ export default function MySwaps() {
 
     setSwaps((prev) => prev.map((s) => (s.id === swapId ? { ...s, status: "Declined" } : s)));
     setConfirmCancel(null);
+
+    if (swap) {
+      const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
+      notifyUser({
+        userId: swap.otherId,
+        type: "declined",
+        title: "Swap cancelled",
+        body: `${myProfile?.name ?? "Someone"} cancelled the swap.`,
+        swapId,
+      });
+    }
   }
 
   async function acceptDate(dateId: string, swapId: string) {
@@ -453,6 +456,7 @@ export default function MySwaps() {
 
   function openCalendar(swapId: string) {
     setSelectedDates(new Set());
+    setProposedTime("");
     const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0);
     setCalendarMonth(d);
     setCalendarOpenFor(swapId);
@@ -468,9 +472,10 @@ export default function MySwaps() {
 
   async function proposeDates(swapId: string, dates: string[]) {
     const swap = swaps.find((s) => s.id === swapId);
+    const timeToSave = proposedTime.trim() || null;
     const { error: insertError } = await supabase
       .from("scheduled_swaps")
-      .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d, proposed_by: userId })));
+      .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d, scheduled_time: timeToSave, proposed_by: userId })));
 
     if (insertError) {
       console.error("Failed to propose dates:", insertError);
@@ -483,13 +488,14 @@ export default function MySwaps() {
     setSwaps((prev) =>
       prev.map((s) => {
         if (s.id !== swapId) return s;
-        const newDates = dates.map((d) => ({ id: d, date: d, proposedBy: userId ?? "" }));
+        const newDates = dates.map((d) => ({ id: d, date: d, time: timeToSave, proposedBy: userId ?? "" }));
         return { ...s, proposedDates: [...s.proposedDates, ...newDates] };
       })
     );
 
     setCalendarOpenFor(null);
     setSelectedDates(new Set());
+    setProposedTime("");
     await fetchSwaps();
 
     if (swap) {
@@ -534,7 +540,13 @@ export default function MySwaps() {
     return `${MONTH_NAMES[mon - 1]} ${day}, ${year}`;
   }
 
-  const filteredSwaps = activeTab === "All" ? swaps : swaps.filter((s) => s.status === activeTab);
+  const filteredSwaps = (activeTab === "All" ? swaps : swaps.filter((s) => s.status === activeTab))
+    .slice()
+    .sort((a, b) => {
+      const aDeclined = a.status === "Declined" ? 1 : 0;
+      const bDeclined = b.status === "Declined" ? 1 : 0;
+      return aDeclined - bDeclined;
+    });
   const countFor = (tab: SwapStatus | "All") =>
     tab === "All" ? swaps.length : swaps.filter((s) => s.status === tab).length;
 
@@ -658,7 +670,7 @@ export default function MySwaps() {
                             key={pd.id}
                             className="flex items-center justify-between bg-[#F5F0E8] rounded-xl px-3 py-2"
                           >
-                            <p className="text-sm text-[#4A3728]">{formatDate(pd.date)}</p>
+                            <p className="text-sm text-[#4A3728]">{formatDate(pd.date)}{pd.time ? ` at ${pd.time}` : ""}</p>
                             {pd.proposedBy !== userId && (
                               <button
                                 onClick={() => acceptDate(pd.id, swap.id)}
@@ -677,7 +689,7 @@ export default function MySwaps() {
                   {swap.status === "In Progress" && swap.proposedDates.length === 1 && (
                     <div className="mt-4 pt-4 border-t border-[#EDE8DF]">
                       <p className="text-xs text-[#7A9E6E] font-semibold">
-                        Confirmed: {formatDate(swap.proposedDates[0].date)}
+                        Confirmed: {formatDate(swap.proposedDates[0].date)}{swap.proposedDates[0].time ? ` at ${swap.proposedDates[0].time}` : ""}
                       </p>
                     </div>
                   )}
@@ -737,12 +749,21 @@ export default function MySwaps() {
                         month={calendarMonth}
                         onChangeMonth={setCalendarMonth}
                       />
+                      <div className="mt-3 flex items-center gap-2">
+                        <label className="text-xs text-[#8B7355] shrink-0">Time (optional)</label>
+                        <input
+                          type="time"
+                          value={proposedTime}
+                          onChange={(e) => setProposedTime(e.target.value)}
+                          className="flex-1 text-sm text-[#4A3728] bg-[#F5F0E8] border border-[#D9CFC4] rounded-xl px-3 py-1.5 outline-none focus:border-[#4A3728]"
+                        />
+                      </div>
                       {proposeError && (
                         <p className="text-xs text-red-500 mt-2">{proposeError}</p>
                       )}
                       <div className="flex gap-2 mt-3">
                         <button
-                          onClick={() => { setCalendarOpenFor(null); setSelectedDates(new Set()); setProposeError(null); }}
+                          onClick={() => { setCalendarOpenFor(null); setSelectedDates(new Set()); setProposedTime(""); setProposeError(null); }}
                           className="flex-1 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] transition-colors"
                         >
                           Cancel
@@ -766,8 +787,37 @@ export default function MySwaps() {
                   {/* Confirmed date label */}
                   {swap.status === "In Progress" && swap.proposedDates.length > 0 && (
                     <p className="text-xs text-[#7A9E6E] font-semibold text-center mt-3">
-                      Confirmed swap date: {formatDate(swap.proposedDates[0].date)}
+                      Confirmed swap date: {formatDate(swap.proposedDates[0].date)}{swap.proposedDates[0].time ? ` at ${swap.proposedDates[0].time}` : ""}
                     </p>
+                  )}
+
+                  {/* Missed swap check */}
+                  {swap.status === "In Progress" && swap.proposedDates.length > 0 && (() => {
+                    const [y, m, d] = swap.proposedDates[0].date.split("-").map(Number);
+                    const swapDate = new Date(y, m - 1, d);
+                    const today = new Date(); today.setHours(0, 0, 0, 0);
+                    return swapDate < today;
+                  })() && (
+                    <div className="mt-3 bg-[#FFF8F0] border border-[#E8D5BC] rounded-2xl px-4 py-3">
+                      <p className="text-sm font-semibold text-[#4A3728] mb-1">Did your swap happen?</p>
+                      <p className="text-xs text-[#8B7355] mb-3">
+                        The scheduled date has passed. Let us know so we can keep your items up to date.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => confirmSwapHappened(swap.id)}
+                          className="flex-1 rounded-full bg-[#4A3728] text-[#F5F0E8] py-2 text-xs font-semibold hover:bg-[#6B5040] transition-colors"
+                        >
+                          Yes, we swapped!
+                        </button>
+                        <button
+                          onClick={() => setConfirmCancel(swap.id)}
+                          className="flex-1 rounded-full border border-[#D9CFC4] text-[#A0624A] py-2 text-xs font-medium hover:border-[#A0624A] transition-colors"
+                        >
+                          No, it didn&apos;t happen
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   {/* Cancel swap */}

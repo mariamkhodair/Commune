@@ -11,6 +11,7 @@ const TYPE_ICONS: Record<string, string> = {
   declined: "❌",
   dates_proposed: "📅",
   date_confirmed: "🗓️",
+  swap_check: "❓",
 };
 
 function timeAgo(dateStr: string) {

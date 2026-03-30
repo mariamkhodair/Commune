@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Image, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,7 +12,7 @@ type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Decli
 
 type SwapItem = { name: string; points: number };
 
-type ProposedDate = { id: string; date: string; proposedBy: string };
+type ProposedDate = { id: string; date: string; time: string | null; proposedBy: string };
 
 type Swap = {
   id: string;
@@ -251,6 +251,7 @@ export default function MySwaps() {
   // Calendar state
   const [calendarOpenFor, setCalendarOpenFor] = useState<string | null>(null);
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
+  const [proposedTime, setProposedTime] = useState<string>("");
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
     const d = new Date();
     d.setDate(1);
@@ -335,13 +336,13 @@ export default function MySwaps() {
     if (swapIds.length > 0) {
       const { data: scheduledData } = await supabase
         .from("scheduled_swaps")
-        .select("id, swap_id, scheduled_date, proposed_by")
+        .select("id, swap_id, scheduled_date, scheduled_time, proposed_by")
         .in("swap_id", swapIds);
 
       const scheduledMap: Record<string, ProposedDate[]> = {};
       for (const row of scheduledData ?? []) {
         if (!scheduledMap[row.swap_id]) scheduledMap[row.swap_id] = [];
-        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date, proposedBy: row.proposed_by ?? "" });
+        scheduledMap[row.swap_id].push({ id: row.id, date: row.scheduled_date, time: row.scheduled_time ?? null, proposedBy: row.proposed_by ?? "" });
       }
       for (const swap of filtered) {
         swap.proposedDates = scheduledMap[swap.id] ?? [];
@@ -356,6 +357,16 @@ export default function MySwaps() {
     }
   }
 
+  async function confirmSwapHappened(swapId: string) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await fetch("https://commune-neon.vercel.app/api/swap/" + swapId + "/confirm-manual", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${session.access_token}` },
+    });
+    await fetchSwaps();
+  }
+
   async function acceptSwap(swapId: string) {
     const swap = swaps.find((s) => s.id === swapId);
     if (!swap) return;
@@ -365,46 +376,33 @@ export default function MySwaps() {
       {
         text: "Accept",
         onPress: async () => {
-          await supabase.from("swaps").update({ status: "Accepted" }).eq("id", swapId);
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return;
 
-          // Mark all items in this swap as Swapped (via server-side to bypass RLS)
-          updateSwapItemStatus(swapId, "Swapped");
-
-          // Notify proposer
-          const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
-          notifyUser({
-            userId: swap.otherId,
-            type: "accepted",
-            title: "Swap accepted!",
-            body: `${myProfile?.name ?? "Someone"} accepted your swap proposal.`,
-            swapId,
-          });
-
-          let convId = swap.conversationId;
-          if (!convId) {
-            const { data: existing } = await supabase
-              .from("conversations")
-              .select("id")
-              .or(`and(member1_id.eq.${userId},member2_id.eq.${swap.otherId}),and(member1_id.eq.${swap.otherId},member2_id.eq.${userId})`)
-              .maybeSingle();
+          try {
+            const res = await fetch("https://commune-neon.vercel.app/api/swap/" + swapId + "/accept", {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${session.access_token}` },
+            });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            convId = (existing as any)?.id ?? null;
-            if (!convId) {
-              const { data: newConv } = await supabase
-                .from("conversations")
-                .insert({ member1_id: userId, member2_id: swap.otherId })
-                .select("id")
-                .single();
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              convId = (newConv as any)?.id ?? null;
+            const json = await res.json() as any;
+            if (!res.ok) {
+              Alert.alert("Error", json?.error ?? "Could not accept swap. Please try again.");
+              return;
             }
-          }
 
-          setSwaps((prev) =>
-            prev.map((s) =>
-              s.id === swapId ? { ...s, status: "Accepted", conversationId: convId } : s
-            )
-          );
+            const convId = json.conversationId ?? swap.conversationId;
+
+            // Refresh the full list so auto-declined swaps update too
+            await fetchSwaps();
+            setSwaps((prev) =>
+              prev.map((s) =>
+                s.id === swapId ? { ...s, status: "Accepted", conversationId: convId } : s
+              )
+            );
+          } catch {
+            Alert.alert("Error", "Could not accept swap. Check your connection and try again.");
+          }
         },
       },
     ]);
@@ -440,6 +438,7 @@ export default function MySwaps() {
   }
 
   async function cancelSwap(swapId: string) {
+    const swap = swaps.find((s) => s.id === swapId);
     Alert.alert(
       "Cancel Swap?",
       "When canceling a swap, make sure to communicate with your fellow member in your chat :)",
@@ -455,6 +454,17 @@ export default function MySwaps() {
             updateSwapItemStatus(swapId, "Available");
 
             setSwaps((prev) => prev.map((s) => s.id === swapId ? { ...s, status: "Declined" } : s));
+
+            if (swap) {
+              const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", userId).single();
+              notifyUser({
+                userId: swap.otherId,
+                type: "declined",
+                title: "Swap cancelled",
+                body: `${myProfile?.name ?? "Someone"} cancelled the swap.`,
+                swapId,
+              });
+            }
           },
         },
       ]
@@ -463,9 +473,10 @@ export default function MySwaps() {
 
   async function proposeDates(swapId: string, dates: string[]) {
     const swap = swaps.find((s) => s.id === swapId);
+    const timeToSave = proposedTime.trim() || null;
     const { error: insertError } = await supabase
       .from("scheduled_swaps")
-      .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d, proposed_by: userId })));
+      .insert(dates.map((d) => ({ swap_id: swapId, scheduled_date: d, scheduled_time: timeToSave, proposed_by: userId })));
 
     if (insertError) {
       console.error("Failed to propose dates:", insertError);
@@ -476,13 +487,14 @@ export default function MySwaps() {
     setSwaps((prev) =>
       prev.map((s) => {
         if (s.id !== swapId) return s;
-        const newDates = dates.map((d) => ({ id: d, date: d, proposedBy: userId ?? "" }));
+        const newDates = dates.map((d) => ({ id: d, date: d, time: timeToSave, proposedBy: userId ?? "" }));
         return { ...s, proposedDates: [...s.proposedDates, ...newDates] };
       })
     );
 
     setCalendarOpenFor(null);
     setSelectedDates(new Set());
+    setProposedTime("");
     await fetchSwaps();
 
     if (swap) {
@@ -517,6 +529,7 @@ export default function MySwaps() {
 
   function openCalendar(swapId: string) {
     setSelectedDates(new Set());
+    setProposedTime("");
     const d = new Date();
     d.setDate(1);
     d.setHours(0, 0, 0, 0);
@@ -533,7 +546,13 @@ export default function MySwaps() {
     });
   }
 
-  const filtered = activeTab === "All" ? swaps : swaps.filter((s) => s.status === activeTab);
+  const filtered = (activeTab === "All" ? swaps : swaps.filter((s) => s.status === activeTab))
+    .slice()
+    .sort((a, b) => {
+      const aDeclined = a.status === "Declined" ? 1 : 0;
+      const bDeclined = b.status === "Declined" ? 1 : 0;
+      return aDeclined - bDeclined;
+    });
   const countFor = (tab: SwapStatus | "All") => tab === "All" ? swaps.length : swaps.filter((s) => s.status === tab).length;
 
   return (
@@ -637,7 +656,7 @@ export default function MySwaps() {
                     <Text style={{ fontSize: 11, fontWeight: "700", color: "#4A3728", marginBottom: 8 }}>Proposed dates</Text>
                     {swap.proposedDates.map((pd) => (
                       <View key={pd.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F5F0E8", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 6 }}>
-                        <Text style={{ fontSize: 13, color: "#4A3728" }}>{formatDate(pd.date)}</Text>
+                        <Text style={{ fontSize: 13, color: "#4A3728" }}>{formatDate(pd.date)}{pd.time ? ` at ${pd.time}` : ""}</Text>
                         {pd.proposedBy !== userId && (
                           <TouchableOpacity
                             onPress={() => acceptDate(pd.id, swap.id)}
@@ -655,8 +674,37 @@ export default function MySwaps() {
                 {swap.status === "In Progress" && swap.proposedDates.length === 1 && (
                   <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#EDE8DF" }}>
                     <Text style={{ fontSize: 12, color: "#7A9E6E", fontWeight: "600" }}>
-                      Confirmed: {formatDate(swap.proposedDates[0].date)}
+                      Confirmed: {formatDate(swap.proposedDates[0].date)}{swap.proposedDates[0].time ? ` at ${swap.proposedDates[0].time}` : ""}
                     </Text>
+                  </View>
+                )}
+
+                {/* Missed swap check */}
+                {swap.status === "In Progress" && swap.proposedDates.length > 0 && (() => {
+                  const [y, m, d] = swap.proposedDates[0].date.split("-").map(Number);
+                  const swapDate = new Date(y, m - 1, d);
+                  const today = new Date(); today.setHours(0, 0, 0, 0);
+                  return swapDate < today;
+                })() && (
+                  <View style={{ marginTop: 12, backgroundColor: "#FFF8F0", borderWidth: 1, borderColor: "#E8D5BC", borderRadius: 14, padding: 14 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: "#4A3728", marginBottom: 4 }}>Did your swap happen?</Text>
+                    <Text style={{ fontSize: 12, color: "#8B7355", marginBottom: 12 }}>
+                      The scheduled date has passed. Let us know so we can keep your items up to date.
+                    </Text>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <TouchableOpacity
+                        onPress={() => confirmSwapHappened(swap.id)}
+                        style={{ flex: 1, backgroundColor: "#4A3728", borderRadius: 999, paddingVertical: 10, alignItems: "center" }}
+                      >
+                        <Text style={{ color: "#FAF7F2", fontSize: 12, fontWeight: "600" }}>Yes, we swapped!</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => cancelSwap(swap.id)}
+                        style={{ flex: 1, borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 999, paddingVertical: 10, alignItems: "center" }}
+                      >
+                        <Text style={{ color: "#A0624A", fontSize: 12, fontWeight: "500" }}>No, it didn't happen</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 )}
 
@@ -711,9 +759,21 @@ export default function MySwaps() {
                       month={calendarMonth}
                       onChangeMonth={setCalendarMonth}
                     />
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 }}>
+                      <Text style={{ fontSize: 12, color: "#8B7355", flexShrink: 0 }}>Time (optional)</Text>
+                      <TextInput
+                        value={proposedTime}
+                        onChangeText={setProposedTime}
+                        placeholder="e.g. 14:30"
+                        placeholderTextColor="#C4B9AA"
+                        keyboardType="numbers-and-punctuation"
+                        maxLength={5}
+                        style={{ flex: 1, fontSize: 13, color: "#4A3728", backgroundColor: "#F5F0E8", borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}
+                      />
+                    </View>
                     <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
                       <TouchableOpacity
-                        onPress={() => { setCalendarOpenFor(null); setSelectedDates(new Set()); }}
+                        onPress={() => { setCalendarOpenFor(null); setSelectedDates(new Set()); setProposedTime(""); }}
                         style={{ flex: 1, borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 999, paddingVertical: 10, alignItems: "center" }}
                       >
                         <Text style={{ fontSize: 12, color: "#6B5040", fontWeight: "500" }}>Cancel</Text>
