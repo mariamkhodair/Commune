@@ -83,7 +83,7 @@ export default function LikedStuff() {
             <p className="text-[#A09080]">Browse the search page and heart items you're interested in.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-3 portrait-grid-2">
             {items.map((item) => (
               <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
 

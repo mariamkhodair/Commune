@@ -255,7 +255,7 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
             <p className="text-[#A09080]">This member hasn't listed any items yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-3 portrait-grid-2">
             {items.map((item) => (
               <div
                 key={item.id}

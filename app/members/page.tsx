@@ -256,7 +256,7 @@ function MembersInner() {
                 <p className="text-[#A09080]">Try a different name.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-3 portrait-grid-2">
                 {filtered.map((member) => (
                   <MemberCard key={member.id} member={member} isLiked={liked.has(member.id)} />
                 ))}
@@ -283,7 +283,7 @@ function MembersInner() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-3 portrait-grid-2">
                 {likedMembers.map((member) => (
                   <MemberCard key={member.id} member={member} isLiked={true} />
                 ))}

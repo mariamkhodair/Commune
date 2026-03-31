@@ -214,7 +214,7 @@ export default function ProfilePage() {
             <Link href="/my-stuff" className="text-sm text-[#8B7355] hover:underline">Go to My Stuff to list an item →</Link>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-3 portrait-grid-2">
             {items.map((item) => (
               <Link key={item.id} href={`/items/${item.id}`} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm border border-[#EDE8DF] hover:shadow-md transition-shadow">
                 <div className="aspect-square bg-[#EDE8DF] flex items-center justify-center overflow-hidden">

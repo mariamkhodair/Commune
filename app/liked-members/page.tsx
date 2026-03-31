@@ -100,7 +100,7 @@ export default function LikedMembers() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-3 portrait-grid-2">
             {members.map((member) => (
               <div key={member.id} className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col items-center text-center gap-3 relative">
 
