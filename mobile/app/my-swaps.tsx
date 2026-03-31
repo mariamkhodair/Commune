@@ -25,6 +25,7 @@ type Swap = {
   receiverItems: SwapItem[];
   conversationId: string | null;
   proposedDates: ProposedDate[];
+  isDonation: boolean;
 };
 
 const STATUS_COLORS: Record<SwapStatus, { bg: string; text: string }> = {
@@ -280,7 +281,7 @@ export default function MySwaps() {
     try {
     const { data } = await supabase
       .from("swaps")
-      .select("id, proposer_id, receiver_id, status, swap_items(item_id, side)")
+      .select("id, proposer_id, receiver_id, status, is_donation, swap_items(item_id, side)")
       .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
       .order("created_at", { ascending: false });
 
@@ -325,6 +326,7 @@ export default function MySwaps() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           conversationId: (conv as any)?.id ?? null,
           proposedDates: [] as ProposedDate[],
+          isDonation: s.is_donation ?? false,
         } as Swap;
       })
     );
@@ -355,6 +357,39 @@ export default function MySwaps() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function donateSwap(swapId: string) {
+    const swap = swaps.find((s) => s.id === swapId);
+    if (!swap) return;
+    Alert.alert("Donate item?", "You'll give your item to them for free — no exchange needed.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Donate",
+        onPress: async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return;
+          try {
+            const res = await fetch("https://commune-neon.vercel.app/api/swap/" + swapId + "/donate", {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${session.access_token}` },
+            });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const json = await res.json() as any;
+            if (!res.ok) { Alert.alert("Error", json?.error ?? "Could not process donation."); return; }
+            const convId = json.conversationId ?? swap.conversationId;
+            await fetchSwaps();
+            setSwaps((prev) =>
+              prev.map((s) =>
+                s.id === swapId ? { ...s, status: "Accepted", isDonation: true, conversationId: convId } : s
+              )
+            );
+          } catch {
+            Alert.alert("Error", "Could not process donation. Check your connection.");
+          }
+        },
+      },
+    ]);
   }
 
   async function confirmSwapHappened(swapId: string) {
@@ -708,22 +743,37 @@ export default function MySwaps() {
                   </View>
                 )}
 
-                {/* Accept / Decline for incoming proposals */}
+                {/* Accept / Donate / Decline for incoming proposals */}
                 {swap.status === "Proposed" && swap.direction === "incoming" && (
-                  <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
-                    <TouchableOpacity
-                      onPress={() => acceptSwap(swap.id)}
-                      style={{ flex: 1, backgroundColor: "#4A3728", borderRadius: 999, paddingVertical: 11, alignItems: "center" }}
-                    >
-                      <Text style={{ color: "#FAF7F2", fontSize: 13, fontWeight: "600" }}>Accept</Text>
-                    </TouchableOpacity>
+                  <View style={{ gap: 8, marginTop: 14 }}>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <TouchableOpacity
+                        onPress={() => acceptSwap(swap.id)}
+                        style={{ flex: 1, backgroundColor: "#4A3728", borderRadius: 999, paddingVertical: 11, alignItems: "center" }}
+                      >
+                        <Text style={{ color: "#FAF7F2", fontSize: 13, fontWeight: "600" }}>Accept</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => donateSwap(swap.id)}
+                        style={{ flex: 1, backgroundColor: "#7A9E6E", borderRadius: 999, paddingVertical: 11, alignItems: "center" }}
+                      >
+                        <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }}>Donate 🎁</Text>
+                      </TouchableOpacity>
+                    </View>
                     <TouchableOpacity
                       onPress={() => declineSwap(swap.id)}
-                      style={{ flex: 1, borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 999, paddingVertical: 11, alignItems: "center" }}
+                      style={{ borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 999, paddingVertical: 10, alignItems: "center" }}
                     >
                       <Text style={{ color: "#A0624A", fontSize: 13, fontWeight: "600" }}>Decline</Text>
                     </TouchableOpacity>
                   </View>
+                )}
+
+                {/* Donation badge */}
+                {swap.isDonation && (
+                  <Text style={{ fontSize: 12, color: "#7A9E6E", fontWeight: "600", textAlign: "center", marginTop: 8 }}>
+                    🎁 This is a donation — no exchange needed
+                  </Text>
                 )}
 
                 {/* Message + Schedule for Accepted/In Progress */}

@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ swa
 
   const { data: swap } = await supabaseAdmin
     .from("swaps")
-    .select("id, proposer_id, receiver_id, status")
+    .select("id, proposer_id, receiver_id, status, is_donation")
     .eq("id", swapId)
     .single();
 
@@ -30,14 +30,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ swa
   // Mark swap as Completed
   await supabaseAdmin.from("swaps").update({ status: "Completed" }).eq("id", swapId);
 
-  // Ensure items stay Swapped
+  // Ensure items are in correct final state
   const { data: swapItems } = await supabaseAdmin
     .from("swap_items")
-    .select("item_id")
+    .select("item_id, side")
     .eq("swap_id", swapId);
-  const itemIds = (swapItems ?? []).map((si: { item_id: string }) => si.item_id);
-  if (itemIds.length > 0) {
-    await supabaseAdmin.from("items").update({ status: "Swapped" }).in("id", itemIds);
+
+  const receiverItemIds = (swapItems ?? [])
+    .filter((si: { side: string }) => si.side === "receiver")
+    .map((si: { item_id: string }) => si.item_id);
+  const proposerItemIds = (swapItems ?? [])
+    .filter((si: { side: string }) => si.side === "proposer")
+    .map((si: { item_id: string }) => si.item_id);
+
+  if ((swap as any).is_donation) {
+    // Donation: only receiver's items are given away; proposer keeps theirs
+    if (receiverItemIds.length > 0)
+      await supabaseAdmin.from("items").update({ status: "Swapped" }).in("id", receiverItemIds);
+  } else {
+    const allIds = [...receiverItemIds, ...proposerItemIds];
+    if (allIds.length > 0)
+      await supabaseAdmin.from("items").update({ status: "Swapped" }).in("id", allIds);
   }
 
   // Notify both members

@@ -26,6 +26,7 @@ type Swap = {
   receiverItems: SwapItem[];
   conversationId: string | null;
   proposedDates: ProposedDate[];
+  isDonation: boolean;
 };
 
 const statusStyles: Record<SwapStatus, string> = {
@@ -267,7 +268,7 @@ export default function MySwaps() {
     if (showSpinner) setLoading(true);
     const { data, error } = await supabase
       .from("swaps")
-      .select("id, proposer_id, receiver_id, status, swap_items(item_id, side)")
+      .select("id, proposer_id, receiver_id, status, is_donation, swap_items(item_id, side)")
       .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
       .order("created_at", { ascending: false });
 
@@ -328,6 +329,7 @@ export default function MySwaps() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           conversationId: (conv as any)?.id ?? null,
           proposedDates: [] as ProposedDate[],
+          isDonation: s.is_donation ?? false,
         } as Swap;
       })
     );
@@ -354,6 +356,27 @@ export default function MySwaps() {
 
     setSwaps(filtered);
     setLoading(false);
+  }
+
+  async function donateSwap(swapId: string) {
+    const swap = swaps.find((s) => s.id === swapId);
+    if (!swap) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const res = await fetch(`/api/swap/${swapId}/donate`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${session.access_token}` },
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = await res.json() as any;
+    if (!res.ok) return;
+    const convId = json.conversationId ?? swap.conversationId;
+    await fetchSwaps();
+    setSwaps((prev) =>
+      prev.map((s) =>
+        s.id === swapId ? { ...s, status: "Accepted", isDonation: true, conversationId: convId } : s
+      )
+    );
   }
 
   async function confirmSwapHappened(swapId: string) {
@@ -694,14 +717,20 @@ export default function MySwaps() {
                     </div>
                   )}
 
-                  {/* Accept / Decline for incoming proposals */}
+                  {/* Accept / Donate / Decline for incoming proposals */}
                   {swap.status === "Proposed" && swap.direction === "incoming" && (
-                    <div className="flex gap-3 mt-4">
+                    <div className="flex gap-2 mt-4">
                       <button
                         onClick={() => acceptSwap(swap.id)}
                         className="flex-1 rounded-full bg-[#4A3728] text-[#F5F0E8] py-2 text-sm font-medium hover:bg-[#6B5040] transition-colors"
                       >
                         Accept
+                      </button>
+                      <button
+                        onClick={() => donateSwap(swap.id)}
+                        className="flex-1 rounded-full bg-[#7A9E6E] text-white py-2 text-sm font-medium hover:bg-[#6A8E5E] transition-colors"
+                      >
+                        Donate 🎁
                       </button>
                       <button
                         onClick={() => declineSwap(swap.id)}
@@ -710,6 +739,11 @@ export default function MySwaps() {
                         Decline
                       </button>
                     </div>
+                  )}
+
+                  {/* Donation badge */}
+                  {swap.isDonation && (
+                    <p className="text-xs text-[#7A9E6E] font-semibold text-center mt-2">🎁 This is a donation — no exchange needed</p>
                   )}
 
                   {/* Message + Schedule buttons */}
