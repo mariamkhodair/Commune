@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, Modal, ScrollView,
   ActivityIndicator, Alert, Linking, StyleSheet,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 import { supabase } from "@/lib/supabase";
 import { notifyUser } from "@/lib/notifySwap";
@@ -38,6 +38,7 @@ const API_BASE = "https://commune-neon.vercel.app";
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function SwapSafetyControls({ swapId, otherName, otherId, userId, onComplete }: Props) {
+  const insets = useSafeAreaInsets();
   const [safetyState, setSafetyState] = useState<SafetyState>("idle");
   const [mapData, setMapData] = useState<MapData | null>(null);
   const [mapVisible, setMapVisible] = useState(false);
@@ -372,7 +373,7 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
 
       {/* ── Map modal ── */}
       <Modal visible={mapVisible} animationType="slide">
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
+        <View style={{ flex: 1, backgroundColor: "#FAF7F2", paddingTop: insets.top }}>
           <View style={styles.mapModalHeader}>
             <Text style={styles.mapModalTitle}>Your Swap Route</Text>
             <TouchableOpacity onPress={() => setMapVisible(false)} style={styles.mapCloseBtn}>
@@ -390,7 +391,7 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
             />
             <Text style={styles.mapRefreshNote}>Map updates every 60 seconds</Text>
           </ScrollView>
-        </SafeAreaView>
+        </View>
       </Modal>
     </>
   );
