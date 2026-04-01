@@ -36,12 +36,6 @@
         {
           "photosPermission": "Commune needs access to your photos to let you upload item photos."
         }
-      ],
-      [
-        "react-native-maps",
-        {
-          "useGoogleMapsOnAndroid": true
-        }
       ]
     ],
     "scheme": "commune",
