@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
@@ -29,6 +30,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 export default function MyStuff() {
+  const router = useRouter();
   const { userId, profile, loading: userLoading } = useUser();
   const [items, setItems] = useState<ItemWithLikes[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,6 +175,16 @@ export default function MyStuff() {
           <div className="grid grid-cols-4 gap-3 portrait-grid-2">
             {items.map((item) => (
               <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
+                <button
+                  onClick={() => router.push(`/my-stuff/${item.id}/edit`)}
+                  title="Edit item"
+                  className="absolute top-2 left-2 z-10 w-7 h-7 rounded-full bg-white/80 flex items-center justify-center text-[#C4B9AA] hover:text-[#4A3728] hover:bg-white transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
                 <button
                   onClick={() => setConfirmDelete(item.id)}
                   title="Delete item"

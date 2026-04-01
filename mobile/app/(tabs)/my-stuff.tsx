@@ -149,6 +149,14 @@ export default function MyStuff() {
                 ) : (
                   <Ionicons name="image-outline" size={28} color="#C4B9AA" />
                 )}
+                {item.status === "Available" && (
+                  <TouchableOpacity
+                    onPress={() => router.push({ pathname: "/edit-item", params: { id: item.id } })}
+                    className="absolute top-2 left-2 w-7 h-7 rounded-full bg-white/80 items-center justify-center"
+                  >
+                    <Ionicons name="create-outline" size={14} color="#4A3728" />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   onPress={() => confirmDelete(item.id, item.name)}
                   className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/80 items-center justify-center"

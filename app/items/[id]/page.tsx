@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
 import { supabase } from "@/lib/supabase";
@@ -23,6 +24,7 @@ type ItemData = {
 
 export default function ItemPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const { userId } = useUser();
   const [item, setItem] = useState<ItemData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,6 +180,20 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
               </svg>
             </Link>
           </div>
+
+          {/* Owner actions */}
+          {userId && item.owner_id === userId && (
+            <button
+              onClick={() => router.push(`/my-stuff/${item.id}/edit`)}
+              className="w-full rounded-full border border-[#4A3728] text-[#4A3728] py-3.5 font-semibold hover:bg-[#4A3728] hover:text-[#F5F0E8] transition-colors flex items-center justify-center gap-2"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              Edit Item
+            </button>
+          )}
 
           {/* Propose Swap CTA */}
           {userId && item.owner_id !== userId && (
