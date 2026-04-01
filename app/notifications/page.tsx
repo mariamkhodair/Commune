@@ -12,7 +12,11 @@ const TYPE_ICONS: Record<string, string> = {
   dates_proposed: "📅",
   date_confirmed: "🗓️",
   swap_check: "❓",
+  swap_incoming: "🚶",
+  swap_complete: "🤝🏽",
 };
+
+const SCHEDULED_SWAP_TYPES = new Set(["swap_incoming", "date_confirmed", "swap_check", "swap_complete"]);
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -71,7 +75,13 @@ export default function NotificationsPage() {
                 key={n.id}
                 onClick={() => {
                   markRead(n.id);
-                  if (n.swap_id) router.push("/my-swaps");
+                  if (n.swap_id) {
+                    if (SCHEDULED_SWAP_TYPES.has(n.type)) {
+                      router.push("/scheduled-swaps");
+                    } else {
+                      router.push("/my-swaps");
+                    }
+                  }
                 }}
                 className={`text-left w-full rounded-2xl px-5 py-4 flex items-start gap-4 transition-colors border ${
                   n.read
