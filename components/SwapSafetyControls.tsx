@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { notifyUser } from "@/lib/notifySwap";
 import SwapSafetyMap from "./SwapSafetyMap";
@@ -229,16 +230,24 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     <>
       <div className="flex flex-col gap-3">
 
-        {/* Map — shown after departure */}
+        {/* Map — shown after departure, tap to open full-screen tracking */}
         {safetyState === "departed" && (
-          <SwapSafetyMap
-            myLocation={mapData?.user1 ?? null}
-            theirLocation={mapData?.user2 ?? null}
-            midpoint={mapData?.midpoint ?? null}
-            routePolyline={mapData?.routePolyline ?? null}
-            estimatedDistance={mapData?.estimatedDistance ?? null}
-            estimatedTravelTime={mapData?.estimatedTravelTime ?? null}
-          />
+          <Link href={`/swap/${swapId}/map`} className="block relative group">
+            <SwapSafetyMap
+              myLocation={mapData?.user1 ?? null}
+              theirLocation={mapData?.user2 ?? null}
+              midpoint={mapData?.midpoint ?? null}
+              routePolyline={mapData?.routePolyline ?? null}
+              estimatedDistance={mapData?.estimatedDistance ?? null}
+              estimatedTravelTime={mapData?.estimatedTravelTime ?? null}
+            />
+            <div className="absolute bottom-10 right-2 bg-[#4A3728]/80 text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1 pointer-events-none">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-3 h-3">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+              </svg>
+              Expand
+            </div>
+          </Link>
         )}
 
         {/* Error message */}
