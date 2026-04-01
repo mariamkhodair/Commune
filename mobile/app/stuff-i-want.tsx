@@ -133,6 +133,7 @@ export default function StuffIWant() {
       }
     }
 
+    results.sort((a, b) => a.pointsDiff - b.pointsDiff);
     setRealMatches(results);
     setMatching(false);
     setShowMatchResults(true);
