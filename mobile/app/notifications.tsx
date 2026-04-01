@@ -13,6 +13,7 @@ const TYPE_ICONS: Record<string, string> = {
   dates_proposed: "calendar-outline",
   date_confirmed: "calendar-number-outline",
   swap_check: "help-circle-outline",
+  swap_incoming: "walk-outline",
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -22,7 +23,10 @@ const TYPE_COLORS: Record<string, string> = {
   dates_proposed: "#2A5060",
   date_confirmed: "#2D6A4F",
   swap_check: "#8B6030",
+  swap_incoming: "#2D6A4F",
 };
+
+const SCHEDULED_SWAP_TYPES = new Set(["swap_incoming", "date_confirmed", "swap_check"]);
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -83,7 +87,13 @@ export default function NotificationsScreen() {
                 key={n.id}
                 onPress={() => {
                   markRead(n.id);
-                  if (n.swap_id) router.push("/my-swaps" as any);
+                  if (n.swap_id) {
+                    if (SCHEDULED_SWAP_TYPES.has(n.type)) {
+                      router.push("/scheduled-swaps" as any);
+                    } else {
+                      router.push("/my-swaps" as any);
+                    }
+                  }
                 }}
                 style={{
                   flexDirection: "row",
