@@ -203,7 +203,10 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(coords),
       });
-      if (!res.ok) throw new Error("Failed to confirm completion");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `Failed to confirm completion (${res.status})`);
+      }
       const data: { bothConfirmed: boolean } = await res.json();
       if (data.bothConfirmed) {
         setSafetyState("done");
