@@ -49,6 +49,7 @@ export default function ScheduledSwaps() {
 
   async function fetchScheduled() {
     setLoading(true);
+    try {
 
     const { data: mySwaps } = await supabase
       .from("swaps")
@@ -62,7 +63,7 @@ export default function ScheduledSwaps() {
     const { data } = await supabase
       .from("scheduled_swaps")
       .select(`
-        id, swap_id, scheduled_date, scheduled_time,
+        id, swap_id, scheduled_date,
         swaps(proposer_id, receiver_id, status,
           swap_items(side, items(name))
         )
@@ -101,7 +102,7 @@ export default function ScheduledSwaps() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           otherAvatar: (profile as any)?.avatar_url ?? null,
           date: s.scheduled_date,
-          time: s.scheduled_time ?? null,
+          time: null,
           yourItems: yourItems || "Your items",
           theirItems: theirItems || "Their items",
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -113,6 +114,10 @@ export default function ScheduledSwaps() {
 
     setSwaps(enriched.filter((s) => s.otherName !== "Unknown"));
     setLoading(false);
+    } catch (e) {
+      console.error("fetchScheduled error:", e);
+      setLoading(false);
+    }
   }
 
   async function openChat(swap: ScheduledSwap) {
