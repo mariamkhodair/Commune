@@ -46,6 +46,7 @@ export default function NewItem() {
   const [pointsMode, setPointsMode] = useState<"ai" | "manual">("ai");
   const [manualPoints, setManualPoints] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -227,7 +228,7 @@ export default function NewItem() {
                   </div>
                 ))}
 
-                {/* Add photo slot — always visible, opens multi-select picker */}
+                {/* Gallery picker slot */}
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className="aspect-square rounded-xl border-2 border-dashed border-[#D9CFC4] bg-white/50 hover:border-[#4A3728] hover:bg-[#FAF7F2] flex flex-col items-center justify-center cursor-pointer transition-colors"
@@ -239,6 +240,18 @@ export default function NewItem() {
                     {photos.length < MIN_PHOTOS ? `${MIN_PHOTOS - photos.length} more needed` : "Add more"}
                   </p>
                 </div>
+
+                {/* Camera capture slot */}
+                <div
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="aspect-square rounded-xl border-2 border-dashed border-[#D9CFC4] bg-white/50 hover:border-[#4A3728] hover:bg-[#FAF7F2] flex flex-col items-center justify-center cursor-pointer transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="2" strokeLinecap="round" className="w-6 h-6 mb-1">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                  <p className="text-xs text-[#A09080] text-center px-1">Camera</p>
+                </div>
               </div>
 
               <input
@@ -249,7 +262,15 @@ export default function NewItem() {
                 className="hidden"
                 onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ""; }}
               />
-              <p className="text-xs text-[#A09080] mt-2">First photo will be the cover. Select multiple photos at once from your library, or drag & drop.</p>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ""; }}
+              />
+              <p className="text-xs text-[#A09080] mt-2">First photo will be the cover. Select multiple from library, drag & drop, or use camera (tap again to take more).</p>
             </div>
 
             {/* Item name */}

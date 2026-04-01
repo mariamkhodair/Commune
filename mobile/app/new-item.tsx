@@ -59,6 +59,44 @@ export default function NewItem() {
     }
   }
 
+  async function takePhoto() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Camera access needed", "Please allow camera access in your device settings.");
+      return;
+    }
+    await takePhotoLoop();
+  }
+
+  async function takePhotoLoop() {
+    // Keep a local ref to current count so we can check the cap without stale closure
+    let currentCount = 0;
+    setPhotos((prev) => { currentCount = prev.length; return prev; });
+    if (currentCount >= 6) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+
+    const a = result.assets[0];
+    const newPhoto = { uri: a.uri, type: a.mimeType ?? "image/jpeg", name: a.fileName ?? `photo_${Date.now()}.jpg` };
+    let updatedCount = 0;
+    setPhotos((prev) => {
+      const next = [...prev, newPhoto].slice(0, 6);
+      updatedCount = next.length;
+      return next;
+    });
+
+    if (updatedCount < 6) {
+      Alert.alert("Photo added!", `${updatedCount} photo${updatedCount !== 1 ? "s" : ""} so far.`, [
+        { text: "Add More Photos", onPress: () => takePhotoLoop() },
+        { text: "Done", style: "cancel" },
+      ]);
+    }
+  }
+
   function removePhoto(index: number) {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   }
@@ -162,16 +200,25 @@ export default function NewItem() {
                 </View>
               ))}
               {photos.length < 6 && (
-                <TouchableOpacity
-                  onPress={pickPhotos}
-                  style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: "#EDE8DF", borderWidth: 1, borderStyle: "dashed", borderColor: "#C4B9AA", alignItems: "center", justifyContent: "center" }}
-                >
-                  <Ionicons name="camera-outline" size={22} color="#8B7355" />
-                  <Text className="text-xs text-[#8B7355] mt-1">Add</Text>
-                </TouchableOpacity>
+                <View style={{ gap: 8, flexDirection: "row" }}>
+                  <TouchableOpacity
+                    onPress={takePhoto}
+                    style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: "#EDE8DF", borderWidth: 1, borderStyle: "dashed", borderColor: "#C4B9AA", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <Ionicons name="camera" size={22} color="#8B7355" />
+                    <Text className="text-xs text-[#8B7355] mt-1">Camera</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={pickPhotos}
+                    style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: "#EDE8DF", borderWidth: 1, borderStyle: "dashed", borderColor: "#C4B9AA", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <Ionicons name="images-outline" size={22} color="#8B7355" />
+                    <Text className="text-xs text-[#8B7355] mt-1">Gallery</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </ScrollView>
-            <Text className="text-xs text-[#A09080] mt-1">Select multiple photos at once · up to 6</Text>
+            <Text className="text-xs text-[#A09080] mt-1">Take photos with camera or select from gallery · up to 6</Text>
           </View>
 
           {/* Name */}
