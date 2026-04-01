@@ -234,6 +234,7 @@ export default function MySwaps() {
   const [swaps, setSwaps] = useState<Swap[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<SwapStatus | "All">("All");
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
   const [confirmingSwapId, setConfirmingSwapId] = useState<string | null>(null);
@@ -392,17 +393,19 @@ export default function MySwaps() {
   async function acceptSwap(swapId: string) {
     const swap = swaps.find((s) => s.id === swapId);
     if (!swap) return;
+    setActionError(null);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+    const token = refreshed?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token ?? "";
+    if (!token) { setActionError("Your session has expired — please refresh the page."); return; }
 
     const res = await fetch(`/api/swap/${swapId}/accept`, {
       method: "POST",
-      headers: { "Authorization": `Bearer ${session.access_token}` },
+      headers: { "Authorization": `Bearer ${token}` },
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const json = await res.json() as any;
-    if (!res.ok) return;
+    if (!res.ok) { setActionError(json.error ?? "Failed to accept swap. Please try again."); return; }
 
     const convId = json.conversationId ?? swap.conversationId;
 
@@ -718,6 +721,9 @@ export default function MySwaps() {
                   )}
 
                   {/* Accept / Donate / Decline for incoming proposals */}
+                  {actionError && swap.status === "Proposed" && swap.direction === "incoming" && (
+                    <p className="text-xs text-[#A0624A] mt-2">{actionError}</p>
+                  )}
                   {swap.status === "Proposed" && swap.direction === "incoming" && (
                     <div className="flex gap-2 mt-4">
                       <button
