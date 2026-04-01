@@ -14,6 +14,7 @@ const TYPE_ICONS: Record<string, string> = {
   date_confirmed: "calendar-number-outline",
   swap_check: "help-circle-outline",
   swap_incoming: "walk-outline",
+  swap_complete: "checkmark-done-outline",
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -24,9 +25,10 @@ const TYPE_COLORS: Record<string, string> = {
   date_confirmed: "#2D6A4F",
   swap_check: "#8B6030",
   swap_incoming: "#2D6A4F",
+  swap_complete: "#2D6A4F",
 };
 
-const SCHEDULED_SWAP_TYPES = new Set(["swap_incoming", "date_confirmed", "swap_check"]);
+const SCHEDULED_SWAP_TYPES = new Set(["swap_incoming", "date_confirmed", "swap_check", "swap_complete"]);
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
