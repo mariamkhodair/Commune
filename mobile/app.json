@@ -15,7 +15,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.commune.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Commune uses your location once when you tap 'Off to Swap' so your swap partner knows you're on the way. Your location is not tracked continuously and is deleted 24 hours after your swap."
       }
     },
     "android": {
@@ -35,6 +36,12 @@
         "expo-image-picker",
         {
           "photosPermission": "Commune needs access to your photos to let you upload item photos."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Commune uses your location once when you tap 'Off to Swap' so your swap partner knows you're on the way. Your location is not tracked continuously and is deleted 24 hours after your swap."
         }
       ]
     ],
