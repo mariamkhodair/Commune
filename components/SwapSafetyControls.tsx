@@ -99,7 +99,9 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
 
   async function getAuthToken(): Promise<string> {
     const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token ?? "";
+    if (session?.access_token) return session.access_token;
+    const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+    return refreshed?.access_token ?? "";
   }
 
   async function fetchMapData() {
