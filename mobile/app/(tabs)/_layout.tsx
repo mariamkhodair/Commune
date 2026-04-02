@@ -24,6 +24,7 @@ const SECTIONS: { heading: string; items: MenuItem[] }[] = [
       { label: "Notifications",      icon: "notifications-outline",       route: "/notifications" },
       { label: "My Swaps",           icon: "swap-horizontal-outline",     route: "/my-swaps" },
       { label: "Scheduled Swaps",    icon: "calendar-outline",            route: "/scheduled-swaps" },
+      { label: "Communes",           icon: "triangle-outline",            route: "/communes" },
       { label: "Stuff I Want",       icon: "star-outline",                route: "/stuff-i-want" },
     ],
   },

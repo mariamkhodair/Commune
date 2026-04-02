@@ -14,9 +14,14 @@ const TYPE_ICONS: Record<string, string> = {
   swap_check: "❓",
   swap_incoming: "🚶",
   swap_complete: "🤝🏽",
+  commune_proposed: "🔺",
+  commune_accepted: "🔺",
+  commune_declined: "🔺",
+  commune_active: "🔺",
 };
 
 const SCHEDULED_SWAP_TYPES = new Set(["swap_incoming", "date_confirmed", "swap_check", "swap_complete"]);
+const COMMUNE_TYPES = new Set(["commune_proposed", "commune_accepted", "commune_declined", "commune_active"]);
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -76,7 +81,9 @@ export default function NotificationsPage() {
                 onClick={() => {
                   markRead(n.id);
                   if (n.swap_id) {
-                    if (SCHEDULED_SWAP_TYPES.has(n.type)) {
+                    if (COMMUNE_TYPES.has(n.type)) {
+                      router.push("/communes");
+                    } else if (SCHEDULED_SWAP_TYPES.has(n.type)) {
                       router.push("/scheduled-swaps");
                     } else {
                       router.push("/my-swaps");

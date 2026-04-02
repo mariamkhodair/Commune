@@ -15,6 +15,10 @@ const TYPE_ICONS: Record<string, string> = {
   swap_check: "help-circle-outline",
   swap_incoming: "walk-outline",
   swap_complete: "checkmark-done-outline",
+  commune_proposed: "triangle-outline",
+  commune_accepted: "triangle-outline",
+  commune_declined: "triangle-outline",
+  commune_active: "triangle-outline",
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -26,9 +30,14 @@ const TYPE_COLORS: Record<string, string> = {
   swap_check: "#8B6030",
   swap_incoming: "#2D6A4F",
   swap_complete: "#2D6A4F",
+  commune_proposed: "#4A3728",
+  commune_accepted: "#4A6640",
+  commune_declined: "#8B3A2A",
+  commune_active: "#2D6A4F",
 };
 
 const SCHEDULED_SWAP_TYPES = new Set(["swap_incoming", "date_confirmed", "swap_check", "swap_complete"]);
+const COMMUNE_TYPES = new Set(["commune_proposed", "commune_accepted", "commune_declined", "commune_active"]);
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -90,7 +99,9 @@ export default function NotificationsScreen() {
                 onPress={() => {
                   markRead(n.id);
                   if (n.swap_id) {
-                    if (SCHEDULED_SWAP_TYPES.has(n.type)) {
+                    if (COMMUNE_TYPES.has(n.type)) {
+                      router.push("/communes" as any);
+                    } else if (SCHEDULED_SWAP_TYPES.has(n.type)) {
                       router.push("/scheduled-swaps" as any);
                     } else {
                       router.push("/my-swaps" as any);
