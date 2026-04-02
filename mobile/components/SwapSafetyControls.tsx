@@ -45,6 +45,7 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
   const [loading, setLoading] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const watchRef = useRef<Location.LocationSubscription | null>(null);
 
   // ── On mount: restore state from existing session ─────────────────────────
   useEffect(() => {
@@ -70,13 +71,44 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     init();
   }, [userId, swapId]);
 
-  // ── Poll map data every 60 s while departed ───────────────────────────────
+  // ── Poll map data every 15 s while departed ───────────────────────────────
   useEffect(() => {
     if (safetyState === "departed") {
-      pollRef.current = setInterval(fetchMapData, 60_000);
+      pollRef.current = setInterval(fetchMapData, 15_000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [safetyState]);
+
+  // ── Watch live position while departed, push updates to server ────────────
+  useEffect(() => {
+    if (safetyState !== "departed") {
+      watchRef.current?.remove();
+      watchRef.current = null;
+      return;
+    }
+
+    (async () => {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== "granted") return;
+
+      watchRef.current = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, timeInterval: 20_000, distanceInterval: 10 },
+        async (loc) => {
+          const token = await getAuthToken();
+          fetch(`${API_BASE}/api/swap/${swapId}/location`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ lat: loc.coords.latitude, lng: loc.coords.longitude }),
+          }).catch(() => {});
+        }
+      );
+    })();
+
+    return () => {
+      watchRef.current?.remove();
+      watchRef.current = null;
+    };
+  }, [safetyState, swapId]);
 
   // ── Realtime: detect when other user completes while we're waiting ─────────
   useEffect(() => {
@@ -349,11 +381,11 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
             </Text>
             {/* ↓ Update this list if you want to change the privacy explanation */}
             {[
-              ["What we collect", "your GPS location at the moment you tap \"Off to Swap\""],
+              ["What we collect", "your live GPS location while you're on the way"],
               ["Who sees it", `only ${otherName}`],
               ["When it's deleted", "24 hours after your swap is marked complete"],
-              ["Not continuous", "we do not track your location after that moment"],
-            ].map(([label, detail]) => (
+              ["Tracking stops", "as soon as you tap \"Swapped & Safe\""],
+            ] as [string, string][]).map(([label, detail]) => (
               <Text key={label} style={styles.privacyRow}>
                 ✓ <Text style={{ fontWeight: "600" }}>{label}:</Text> {detail}
               </Text>
@@ -389,7 +421,7 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
               estimatedDistance={mapData?.estimatedDistance ?? null}
               estimatedTravelTime={mapData?.estimatedTravelTime ?? null}
             />
-            <Text style={styles.mapRefreshNote}>Map updates every 60 seconds</Text>
+            <Text style={styles.mapRefreshNote}>Map updates every 15 seconds</Text>
           </ScrollView>
         </View>
       </Modal>

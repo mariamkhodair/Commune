@@ -65,20 +65,30 @@ export async function GET(
   // ── Fetch both sessions ───────────────────────────────────────────────────
   const { data: sessions } = await supabaseAdmin
     .from("swap_safety_sessions")
-    .select("user_id, departure_lat, departure_lng, departed_at, completed_at")
+    .select("user_id, departure_lat, departure_lng, departed_at, completed_at, current_lat, current_lng, location_updated_at")
     .eq("swap_id", swapId);
 
   const mySession = (sessions ?? []).find((s: { user_id: string }) => s.user_id === user.id) ?? null;
   const otherId = swap.proposer_id === user.id ? swap.receiver_id : swap.proposer_id;
   const theirSession = (sessions ?? []).find((s: { user_id: string }) => s.user_id === otherId) ?? null;
 
-  // ── Build response ────────────────────────────────────────────────────────
+  // ── Build response — prefer live current_lat/lng over static departure ────
   const user1 = mySession?.departure_lat != null
-    ? { lat: mySession.departure_lat, lng: mySession.departure_lng, departedAt: mySession.departed_at }
+    ? {
+        lat: mySession.current_lat ?? mySession.departure_lat,
+        lng: mySession.current_lng ?? mySession.departure_lng,
+        departedAt: mySession.departed_at,
+        updatedAt: mySession.location_updated_at ?? mySession.departed_at,
+      }
     : null;
 
   const user2 = theirSession?.departure_lat != null
-    ? { lat: theirSession.departure_lat, lng: theirSession.departure_lng, departedAt: theirSession.departed_at }
+    ? {
+        lat: theirSession.current_lat ?? theirSession.departure_lat,
+        lng: theirSession.current_lng ?? theirSession.departure_lng,
+        departedAt: theirSession.departed_at,
+        updatedAt: theirSession.location_updated_at ?? theirSession.departed_at,
+      }
     : null;
 
   // Midpoint between the two departure points

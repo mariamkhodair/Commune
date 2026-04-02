@@ -41,6 +41,7 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
   const [showOffConfirm, setShowOffConfirm] = useState(false);
   const [showDoneConfirm, setShowDoneConfirm] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   // ── On mount: restore state from existing session ─────────────────────────
   useEffect(() => {
@@ -66,13 +67,38 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     init();
   }, [userId, swapId]);
 
-  // ── Poll map data every 60 s while departed ───────────────────────────────
+  // ── Poll map data every 15 s while departed ───────────────────────────────
   useEffect(() => {
     if (safetyState === "departed") {
-      pollRef.current = setInterval(fetchMapData, 60_000);
+      pollRef.current = setInterval(fetchMapData, 15_000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [safetyState]);
+
+  // ── Watch live position while departed, push updates every ~20 s ──────────
+  useEffect(() => {
+    if (safetyState !== "departed" || !navigator.geolocation) return;
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      async (pos) => {
+        const token = await getAuthToken();
+        fetch(`/api/swap/${swapId}/location`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        }).catch(() => {});
+      },
+      () => {}, // non-fatal — map just shows last known position
+      { maximumAge: 0, timeout: 10_000 }
+    );
+
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
+  }, [safetyState, swapId]);
 
   // ── When other user completes while we're in "waiting", go to "done" ──────
   useEffect(() => {
@@ -336,10 +362,10 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
             </p>
             {/* ↓ Update this text if you want to change the privacy explanation */}
             <ul className="text-xs text-[#6B5040] space-y-2 mb-5">
-              <li>✓ <strong>What</strong> we collect: your GPS location at the moment you tap &quot;Off to Swap&quot;</li>
+              <li>✓ <strong>What</strong> we collect: your live GPS location while you&apos;re on the way</li>
               <li>✓ <strong>Who</strong> sees it: only the person you&apos;re swapping with</li>
               <li>✓ <strong>When</strong> it&apos;s deleted: 24 hours after your swap is marked complete</li>
-              <li>✓ We do <strong>not</strong> track your location continuously</li>
+              <li>✓ Tracking <strong>stops</strong> once you tap &quot;Swapped &amp; Safe&quot;</li>
             </ul>
             <p className="text-xs text-[#A09080] mb-5">You can cancel the swap instead of sharing your location if you prefer.</p>
             <div className="flex gap-3">

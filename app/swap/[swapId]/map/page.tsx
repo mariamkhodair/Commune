@@ -69,7 +69,7 @@ export default function SwapMapPage({ params }: { params: Promise<{ swapId: stri
   useEffect(() => {
     fetchMapData();
     fetchNames();
-    const interval = setInterval(fetchMapData, 30_000);
+    const interval = setInterval(fetchMapData, 15_000);
     return () => clearInterval(interval);
   }, [swapId]);
 
@@ -134,7 +134,7 @@ export default function SwapMapPage({ params }: { params: Promise<{ swapId: stri
               </div>
             </div>
 
-            <p className="text-xs text-center text-[#A09080]">Refreshes every 30 seconds</p>
+            <p className="text-xs text-center text-[#A09080]">Refreshes every 15 seconds</p>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
