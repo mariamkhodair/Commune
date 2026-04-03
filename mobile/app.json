@@ -22,7 +22,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FAF7F2"
+        "backgroundColor": "#4A3728"
       },
       "package": "com.commune.app",
       "permissions": [
