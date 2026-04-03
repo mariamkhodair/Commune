@@ -380,7 +380,7 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
               To help you and {otherName} feel safe meeting up, we&apos;ll share your approximate departure location — and theirs with you.
             </Text>
             {/* ↓ Update this list if you want to change the privacy explanation */}
-            {[
+            {([
               ["What we collect", "your live GPS location while you're on the way"],
               ["Who sees it", `only ${otherName}`],
               ["When it's deleted", "24 hours after your swap is marked complete"],
