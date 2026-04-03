@@ -55,6 +55,7 @@ const TOUR: TourStepDef[] = [
   { type: "tab",     key: "more",              text: "Tap here to open the full menu." },
   { type: "drawer",  key: "my-swaps",          text: "Accept or decline swaps — then propose meeting dates." },
   { type: "drawer",  key: "scheduled-swaps",   text: "Confirmed meetup dates show up here." },
+  { type: "drawer",  key: "communes",          text: "Communes are three-way swaps — A wants B's item, B wants C's, and C wants A's. Tap 'Find' to discover triangle matches!" },
   { type: "drawer",  key: "stuff-i-want",      text: "Add items to your wish list — we'll find matches." },
   { type: "drawer",  key: "notifications",     text: "Stay on top of all swap activity." },
   { type: "drawer",  key: "browse-members",    text: "Discover who's in your community." },

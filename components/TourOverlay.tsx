@@ -16,6 +16,7 @@ const STEPS: Step[] = [
   { targetId: "tour-messages",        text: "Once a swap is accepted, chat here to coordinate the details." },
   { targetId: "tour-my-swaps",        text: "Track all your swap proposals — accept, decline, or propose meeting dates." },
   { targetId: "tour-scheduled-swaps", text: "Confirmed meetup dates appear here. Tap 'Off to Swap' when you're on your way!" },
+  { targetId: "tour-communes",        text: "Communes are three-way swaps — A wants B's item, B wants C's, and C wants A's. Tap 'Find Commune' to discover triangle matches!" },
   { targetId: "tour-notifications",   text: "All swap activity shows up here — proposals, messages, and confirmations." },
   { text: "You're all set! Start by listing your first item, or browse what your neighbours have to offer." },
 ];
