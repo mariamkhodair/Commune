@@ -6,6 +6,9 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUUID(v: unknown): v is string { return typeof v === "string" && UUID_RE.test(v); }
+
 async function notify(userId: string, title: string, body: string, communeId: string) {
   await supabaseAdmin.from("notifications").insert({
     user_id: userId,
@@ -83,8 +86,8 @@ export async function POST(req: NextRequest) {
   if (!body) return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
 
   const { memberBId, memberCId, itemAId, itemBId, itemCId } = body;
-  if (!memberBId || !memberCId || !itemAId || !itemBId || !itemCId) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  if (!isUUID(memberBId) || !isUUID(memberCId) || !isUUID(itemAId) || !isUUID(itemBId) || !isUUID(itemCId)) {
+    return NextResponse.json({ error: "Invalid or missing fields" }, { status: 400 });
   }
 
   // Verify all items are still Available

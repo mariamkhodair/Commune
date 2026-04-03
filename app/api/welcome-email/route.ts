@@ -5,8 +5,11 @@ export async function POST(req: NextRequest) {
   const resend = new Resend(process.env.RESEND_API_KEY);
   try {
     const { name, email } = await req.json();
-    if (!name || !email) {
-      return NextResponse.json({ error: "Missing name or email" }, { status: 400 });
+    if (typeof name !== "string" || name.length === 0 || name.length > 100) {
+      return NextResponse.json({ error: "Invalid name" }, { status: 400 });
+    }
+    if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 
     const safeName = name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
