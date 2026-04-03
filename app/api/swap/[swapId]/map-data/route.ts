@@ -30,27 +30,16 @@ async function getDirections(lat1: number, lng1: number, lat2: number, lng2: num
   }
 }
 
-/**
- * GET /api/swap/:swapId/map-data
- *
- * Returns the current safety-session state for both swap participants:
- * departure coordinates, midpoint, a Google Directions route polyline,
- * and estimated distance / travel time.
- *
- * Called by <SwapSafetyMap /> every 60 s while the swap is active.
- */
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ swapId: string }> }
 ) {
-  // ── Auth ──────────────────────────────────────────────────────────────────
   const token = req.headers.get("authorization")?.replace("Bearer ", "") ?? "";
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { swapId } = await params;
 
-  // ── Verify participant ────────────────────────────────────────────────────
   const { data: swap } = await supabaseAdmin
     .from("swaps")
     .select("id, proposer_id, receiver_id")
@@ -62,7 +51,6 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // ── Fetch both sessions ───────────────────────────────────────────────────
   const { data: sessions } = await supabaseAdmin
     .from("swap_safety_sessions")
     .select("user_id, departure_lat, departure_lng, departed_at, completed_at, current_lat, current_lng, location_updated_at")
@@ -72,7 +60,7 @@ export async function GET(
   const otherId = swap.proposer_id === user.id ? swap.receiver_id : swap.proposer_id;
   const theirSession = (sessions ?? []).find((s: { user_id: string }) => s.user_id === otherId) ?? null;
 
-  // ── Build response — prefer live current_lat/lng over static departure ────
+  // Prefer live GPS coords over the static departure point if the user is still moving
   const user1 = mySession?.departure_lat != null
     ? {
         lat: mySession.current_lat ?? mySession.departure_lat,
@@ -91,12 +79,10 @@ export async function GET(
       }
     : null;
 
-  // Midpoint between the two departure points
   const midpoint = user1 && user2
     ? { lat: (user1.lat + user2.lat) / 2, lng: (user1.lng + user2.lng) / 2 }
     : null;
 
-  // Route only when both have departed
   let routeData = { routePolyline: null as string | null, estimatedDistance: null as string | null, estimatedTravelTime: null as string | null };
   if (user1 && user2) {
     routeData = await getDirections(user1.lat, user1.lng, user2.lat, user2.lng);

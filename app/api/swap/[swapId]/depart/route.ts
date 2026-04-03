@@ -6,7 +6,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-/** Call Google Directions API server-side to protect the API key. */
 async function getDirections(lat1: number, lng1: number, lat2: number, lng2: number) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!apiKey) return { estimatedDistance: null, estimatedTravelTime: null, routePolyline: null };
@@ -31,24 +30,14 @@ async function getDirections(lat1: number, lng1: number, lat2: number, lng2: num
   }
 }
 
-/**
- * POST /api/swap/:swapId/depart
- * Body: { lat: number, lng: number }
- *
- * Records the current user's departure coordinates.
- * If the other swap participant has already departed, returns their location
- * plus a Google Directions route between the two departure points.
- */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ swapId: string }> }
 ) {
-  // ── Auth ──────────────────────────────────────────────────────────────────
   const token = req.headers.get("authorization")?.replace("Bearer ", "") ?? "";
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // ── Body ──────────────────────────────────────────────────────────────────
   let body: { lat: number; lng: number };
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }); }
@@ -60,7 +49,6 @@ export async function POST(
 
   const { swapId } = await params;
 
-  // ── Verify swap & participant ─────────────────────────────────────────────
   const { data: swap } = await supabaseAdmin
     .from("swaps")
     .select("id, proposer_id, receiver_id, status")
@@ -75,7 +63,6 @@ export async function POST(
     return NextResponse.json({ error: "Swap already completed" }, { status: 409 });
   }
 
-  // ── Upsert this user's departure session ──────────────────────────────────
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const { error: upsertError } = await supabaseAdmin
     .from("swap_safety_sessions")
@@ -95,7 +82,6 @@ export async function POST(
     return NextResponse.json({ error: "Failed to record departure" }, { status: 500 });
   }
 
-  // ── Check if other participant has departed ───────────────────────────────
   const otherId = swap.proposer_id === user.id ? swap.receiver_id : swap.proposer_id;
   const { data: otherSession } = await supabaseAdmin
     .from("swap_safety_sessions")
@@ -109,7 +95,6 @@ export async function POST(
     return NextResponse.json({ success: true, otherUserDepartureLocation: null });
   }
 
-  // ── Both departed — fetch route ───────────────────────────────────────────
   const directions = await getDirections(
     lat, lng,
     otherSession.departure_lat,

@@ -6,8 +6,6 @@ import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
 type ItemSnap = { id: string; name: string; points: number; photos: string[] | null; category: string | null };
 type ProfileSnap = { id: string; name: string; avatar_url: string | null };
 
@@ -25,8 +23,6 @@ type Commune = {
   profileA: ProfileSnap; profileB: ProfileSnap; profileC: ProfileSnap;
   acceptances: string[];
 };
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
 
 async function getToken() {
   const { data: { session: refreshed } } = await supabase.auth.refreshSession();
@@ -64,8 +60,6 @@ function ptsLabel(a: number, b: number, c: number) {
   const diff = Math.max(a, b, c) - Math.min(a, b, c);
   return diff === 0 ? "Perfectly balanced" : `±${diff} pts spread`;
 }
-
-// ── Match card (from find results) ────────────────────────────────────────────
 
 function MatchCard({ match, userId, onPropose }: { match: CommuneMatch; userId: string; onPropose: (m: CommuneMatch) => void }) {
   const isA = match.memberAId === userId;
@@ -105,8 +99,6 @@ function MatchCard({ match, userId, onPropose }: { match: CommuneMatch; userId: 
     </div>
   );
 }
-
-// ── Active commune card ────────────────────────────────────────────────────────
 
 function CommuneCard({ commune, userId, onAction }: { commune: Commune; userId: string; onAction: () => void }) {
   const [acting, setActing] = useState(false);
@@ -229,8 +221,6 @@ function CommuneCard({ commune, userId, onAction }: { commune: Commune; userId: 
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function CommunesPage() {
   const { userId } = useUser();
   const [communes, setCommunes] = useState<Commune[]>([]);
@@ -305,7 +295,7 @@ export default function CommunesPage() {
         <div className="flex items-start justify-between mb-6 max-w-2xl">
           <div>
             <h1 className="text-3xl font-light text-[#4A3728] mb-1 font-[family-name:var(--font-jost)]">Communes</h1>
-            <p className="text-[#8B7355]">Three-way swaps — A wants B&apos;s, B wants C&apos;s, C wants A&apos;s.</p>
+            <p className="text-[#8B7355]">Three-way swaps.</p>
           </div>
           <button
             onClick={findCommune}

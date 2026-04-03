@@ -102,7 +102,6 @@ export default function TabLayout() {
     });
   }
 
-  // ── TOUR ──────────────────────────────────────────────────────────────────
   const drawerItemRefs = useRef<Record<string, any>>({});
   const [tourStep, setTourStep] = useState(-1);
   const [spotRect, setSpotRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -193,8 +192,6 @@ export default function TabLayout() {
   } else {
     bubbleTop = SH / 2 - 120;
   }
-  // ── END TOUR ──────────────────────────────────────────────────────────────
-
   const totalMoreBadge = unreadNotifications;
 
   return (

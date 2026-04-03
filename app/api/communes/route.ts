@@ -48,25 +48,25 @@ export async function GET(req: NextRequest) {
     supabaseAdmin.from("items").select("id, name, points, photos, category").in("id", itemIds),
   ]);
 
-  const pm = Object.fromEntries((profiles ?? []).map((p: { id: string }) => [p.id, p]));
-  const im = Object.fromEntries((items ?? []).map((i: { id: string }) => [i.id, i]));
-  const accMap = new Map<string, string[]>();
+  const profileMap = Object.fromEntries((profiles ?? []).map((p: { id: string }) => [p.id, p]));
+  const itemMap = Object.fromEntries((items ?? []).map((i: { id: string }) => [i.id, i]));
+  const acceptanceMap = new Map<string, string[]>();
   for (const acc of (acceptances ?? []) as { commune_id: string; user_id: string }[]) {
-    if (!accMap.has(acc.commune_id)) accMap.set(acc.commune_id, []);
-    accMap.get(acc.commune_id)!.push(acc.user_id);
+    if (!acceptanceMap.has(acc.commune_id)) acceptanceMap.set(acc.commune_id, []);
+    acceptanceMap.get(acc.commune_id)!.push(acc.user_id);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type CommuneRow = { id: string; member_a_id: string; member_b_id: string; member_c_id: string; item_a_id: string; item_b_id: string; item_c_id: string };
   return NextResponse.json({
-    communes: communes.map((c: any) => ({
+    communes: (communes as CommuneRow[]).map((c) => ({
       ...c,
-      profileA: pm[c.member_a_id] ?? null,
-      profileB: pm[c.member_b_id] ?? null,
-      profileC: pm[c.member_c_id] ?? null,
-      itemA: im[c.item_a_id] ?? null,
-      itemB: im[c.item_b_id] ?? null,
-      itemC: im[c.item_c_id] ?? null,
-      acceptances: accMap.get(c.id) ?? [],
+      profileA: profileMap[c.member_a_id] ?? null,
+      profileB: profileMap[c.member_b_id] ?? null,
+      profileC: profileMap[c.member_c_id] ?? null,
+      itemA: itemMap[c.item_a_id] ?? null,
+      itemB: itemMap[c.item_b_id] ?? null,
+      itemC: itemMap[c.item_c_id] ?? null,
+      acceptances: acceptanceMap.get(c.id) ?? [],
     }))
   });
 }

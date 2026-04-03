@@ -9,8 +9,6 @@ import { supabase } from "@/lib/supabase";
 import { notifyUser } from "@/lib/notifySwap";
 import SwapSafetyMap from "./SwapSafetyMap";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 type SafetyState = "idle" | "departed" | "waiting" | "done";
 
 interface MapData {
@@ -35,8 +33,6 @@ interface Props {
 
 const API_BASE = "https://commune-neon.vercel.app";
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function SwapSafetyControls({ swapId, otherName, otherId, userId, onComplete }: Props) {
   const insets = useSafeAreaInsets();
   const [safetyState, setSafetyState] = useState<SafetyState>("idle");
@@ -47,7 +43,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const watchRef = useRef<Location.LocationSubscription | null>(null);
 
-  // ── On mount: restore state from existing session ─────────────────────────
   useEffect(() => {
     if (!userId) return;
     async function init() {
@@ -71,7 +66,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     init();
   }, [userId, swapId]);
 
-  // ── Poll map data every 15 s while departed ───────────────────────────────
   useEffect(() => {
     if (safetyState === "departed") {
       pollRef.current = setInterval(fetchMapData, 15_000);
@@ -79,7 +73,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [safetyState]);
 
-  // ── Watch live position while departed, push updates to server ────────────
   useEffect(() => {
     if (safetyState !== "departed") {
       watchRef.current?.remove();
@@ -110,7 +103,7 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     };
   }, [safetyState, swapId]);
 
-  // ── Realtime: detect when other user completes while we're waiting ─────────
+  // Realtime: flip to "done" as soon as the other user confirms on their end
   useEffect(() => {
     if (safetyState !== "waiting") return;
     const channel = supabase
@@ -130,8 +123,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [safetyState, swapId, userId, onComplete]);
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
 
   async function getAuthToken(): Promise<string> {
     const { data: { session } } = await supabase.auth.getSession();
@@ -195,7 +186,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     }
   }
 
-  // ── Privacy acceptance ────────────────────────────────────────────────────
 
   async function handleOffToSwapPress() {
     const { data: profile } = await supabase
@@ -217,7 +207,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     confirmAndDepart();
   }
 
-  // ── Departure ─────────────────────────────────────────────────────────────
 
   function confirmAndDepart() {
     Alert.alert(
@@ -267,7 +256,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     }
   }
 
-  // ── Completion ────────────────────────────────────────────────────────────
 
   function handleSwappedAndSafePress() {
     Alert.alert(
@@ -310,7 +298,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>

@@ -4,13 +4,10 @@
  * Scale: 1–1000 points mapped via logarithmic curve over EGP 50–15,000.
  */
 
-// ─── Scale constants ───────────────────────────────────────────────────────────
 const EGP_MIN = 50;
 const EGP_MAX = 15_000;
 const POINTS_MIN = 1;
 const POINTS_MAX = 1_000;
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
 
 export type Condition = "New" | "Like New" | "Good" | "Fair" | "Poor";
 
@@ -76,8 +73,6 @@ export interface SuggestedCategory {
   egpRange: { min: number; max: number };
 }
 
-// ─── Condition multipliers ──────────────────────────────────────────────────────
-
 const CONDITION_MULTIPLIERS: Record<Condition, number> = {
   New: 1.0,
   "Like New": 0.85,
@@ -86,9 +81,7 @@ const CONDITION_MULTIPLIERS: Record<Condition, number> = {
   Poor: 0.25,
 };
 
-// ─── Depreciation rates (monthly exponential decay) ────────────────────────────
-// Electronics depreciate fast; books and furniture depreciate slowly.
-
+// Monthly exponential decay rates — electronics depreciate fast, books/furniture slowly
 const DEPRECIATION_RATES: Record<string, number> = {
   smartphones: 0.010,   // ~10% value loss after ~10 months
   laptops: 0.009,
@@ -103,8 +96,6 @@ const DEPRECIATION_RATES: Record<string, number> = {
   stationery: 0.002,
   default: 0.003,
 };
-
-// ─── Brand tier multipliers ─────────────────────────────────────────────────────
 
 const BRAND_TIER_MULTIPLIERS: Record<BrandTier, number> = {
   international_premium: 1.15,
@@ -178,9 +169,7 @@ const BRAND_TIER_MAP: Record<string, BrandTier> = {
   "gad": "local_known",
 };
 
-// ─── Price lookup table (Egyptian market, EGP) ─────────────────────────────────
-// Prices sourced from OLX Egypt, Amazon.eg, and Souq typical listings.
-
+// Prices sourced from OLX Egypt, Amazon.eg, and Souq typical listings
 interface PriceRange {
   min: number;
   max: number;
@@ -285,8 +274,6 @@ const CATEGORY_PRICES: Record<string, Record<string, PriceRange>> = {
   },
 };
 
-// ─── Core helpers ───────────────────────────────────────────────────────────────
-
 /** Convert an EGP value to a 1–1000 point score using a logarithmic curve. */
 export function egpToPoints(egp: number): number {
   const clamped = Math.max(EGP_MIN, Math.min(egp, EGP_MAX * 3));
@@ -339,8 +326,6 @@ function lookupPriceRange(category: string, subcategory?: string): PriceRange {
   return generalFallback ? generalFallback[1] : Object.values(catData)[0];
 }
 
-// ─── Main valuation function ────────────────────────────────────────────────────
-
 export function valuateItem(input: ValuationInput): ValuationResult {
   const priceRange = lookupPriceRange(input.category, input.subcategory);
 
@@ -388,8 +373,6 @@ export function valuateItem(input: ValuationInput): ValuationResult {
     },
   };
 }
-
-// ─── Trade fairness comparison ──────────────────────────────────────────────────
 
 /**
  * Compare two sides of a trade.
@@ -457,8 +440,6 @@ function buildSuggestion(side1Points: number, side2Points: number): TradeSuggest
     suggestedCategories: suggestions.slice(0, 5),
   };
 }
-
-// ─── Category catalogue (for frontend dropdowns) ────────────────────────────────
 
 export interface CategoryCatalogue {
   category: string;

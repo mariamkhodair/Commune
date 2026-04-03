@@ -29,7 +29,6 @@ export async function GET(req: NextRequest) {
   const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
   const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
 
-  // ── Fetch all active safety sessions grouped by swap ──────────────────────
   const { data: sessions, error } = await supabaseAdmin
     .from("swap_safety_sessions")
     .select("swap_id, user_id, departed_at, completed_at, expires_at")
@@ -53,7 +52,7 @@ export async function GET(req: NextRequest) {
     const confirmed = swapSessions.filter(s => s.completed_at);
     const notConfirmed = swapSessions.filter(s => !s.completed_at);
 
-    // ── Check 1: one person confirmed 30+ min ago, other hasn't ──────────────
+    // Nudge the unconfirmed partner if the other person has been waiting 30+ min
     if (confirmed.length === 1 && notConfirmed.length === 1) {
       const confirmedSession = confirmed[0];
       if (confirmedSession.completed_at! < thirtyMinutesAgo) {
@@ -68,7 +67,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── Check 2: neither confirmed and 3+ hours since first departure ─────────
+    // Neither confirmed and it's been 3+ hours — check in on both
     if (confirmed.length === 0 && swapSessions.length >= 1) {
       const earliest = swapSessions.reduce((a, b) =>
         a.departed_at! < b.departed_at! ? a : b

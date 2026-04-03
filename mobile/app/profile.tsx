@@ -95,7 +95,6 @@ export default function ProfilePage() {
   const joined = new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   const initials = (profile.name ?? "?").charAt(0).toUpperCase();
 
-  // ── EDIT MODE ──────────────────────────────────────────────
   if (editing) {
     return (
       <SafeAreaView style={{ flex: 1 }}>
@@ -142,7 +141,6 @@ export default function ProfilePage() {
     );
   }
 
-  // ── VIEW MODE ──────────────────────────────────────────────
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView

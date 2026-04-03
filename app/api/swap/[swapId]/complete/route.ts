@@ -16,26 +16,14 @@ async function notify(userId: string, title: string, body: string, swapId: strin
   });
 }
 
-/**
- * POST /api/swap/:swapId/complete
- * Body: { lat: number, lng: number }
- *
- * Records the current user's safe-arrival confirmation.
- * - If the other participant has also confirmed → marks swap Completed, notifies both.
- * - If only this user has confirmed → sends a gentle reminder to the other.
- *
- * Response: { success: boolean, bothConfirmed: boolean }
- */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ swapId: string }> }
 ) {
-  // ── Auth ──────────────────────────────────────────────────────────────────
   const token = req.headers.get("authorization")?.replace("Bearer ", "") ?? "";
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // ── Body ──────────────────────────────────────────────────────────────────
   let body: { lat: number; lng: number };
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }); }
@@ -47,7 +35,6 @@ export async function POST(
 
   const { swapId } = await params;
 
-  // ── Verify swap & participant ─────────────────────────────────────────────
   const { data: swap } = await supabaseAdmin
     .from("swaps")
     .select("id, proposer_id, receiver_id, status")
@@ -62,7 +49,6 @@ export async function POST(
     return NextResponse.json({ success: true, bothConfirmed: true });
   }
 
-  // ── Record this user's completion ─────────────────────────────────────────
   const { error: updateError } = await supabaseAdmin
     .from("swap_safety_sessions")
     .upsert(
@@ -80,7 +66,6 @@ export async function POST(
     return NextResponse.json({ error: "Failed to record completion" }, { status: 500 });
   }
 
-  // ── Check if other participant has also confirmed ─────────────────────────
   const otherId = swap.proposer_id === user.id ? swap.receiver_id : swap.proposer_id;
   const { data: otherSession } = await supabaseAdmin
     .from("swap_safety_sessions")
@@ -93,10 +78,8 @@ export async function POST(
   const bothConfirmed = !!otherSession?.completed_at;
 
   if (bothConfirmed) {
-    // Both safe — mark swap complete and update item statuses
     await supabaseAdmin.from("swaps").update({ status: "Completed" }).eq("id", swapId);
 
-    // Fetch names for notification messages
     const { data: profiles } = await supabaseAdmin
       .from("profiles")
       .select("id, name")
@@ -108,7 +91,6 @@ export async function POST(
       notify(otherId, "Swap complete! 🤝🏽", `You and ${nameMap[user.id] ?? "your partner"} both confirmed. Don't forget to leave a rating!`, swapId),
     ]);
   } else {
-    // Only this user confirmed — nudge the other
     const { data: myProfile } = await supabaseAdmin
       .from("profiles")
       .select("name")

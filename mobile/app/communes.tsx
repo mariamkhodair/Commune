@@ -11,8 +11,6 @@ import { useUser } from "@/lib/useUser";
 
 const API_BASE = "https://commune-neon.vercel.app";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
 type ItemSnap = { id: string; name: string; points: number; photos: string[] | null };
 type ProfileSnap = { id: string; name: string; avatar_url: string | null };
 
@@ -29,8 +27,6 @@ type Commune = {
   profileA: ProfileSnap; profileB: ProfileSnap; profileC: ProfileSnap;
   acceptances: string[];
 };
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
 
 async function getToken(): Promise<string> {
   const { data: { session: refreshed } } = await supabase.auth.refreshSession();
@@ -66,8 +62,6 @@ function ptsLabel(a: number, b: number, c: number) {
   const diff = Math.max(a, b, c) - Math.min(a, b, c);
   return diff === 0 ? "Perfectly balanced" : `±${diff} pts spread`;
 }
-
-// ── Match card ─────────────────────────────────────────────────────────────────
 
 function MatchCard({ match, userId, onPropose }: { match: CommuneMatch; userId: string; onPropose: (m: CommuneMatch) => void }) {
   const rows = [
@@ -107,8 +101,6 @@ function MatchCard({ match, userId, onPropose }: { match: CommuneMatch; userId: 
     </View>
   );
 }
-
-// ── Active commune card ────────────────────────────────────────────────────────
 
 function CommuneCard({ commune, userId, onAction }: { commune: Commune; userId: string; onAction: () => void }) {
   const [acting, setActing] = useState(false);
@@ -236,8 +228,6 @@ function CommuneCard({ commune, userId, onAction }: { commune: Commune; userId: 
     </View>
   );
 }
-
-// ── Screen ─────────────────────────────────────────────────────────────────────
 
 export default function CommunesScreen() {
   const router = useRouter();

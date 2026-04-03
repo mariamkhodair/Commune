@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const todayStr = now.toISOString().split("T")[0];
   const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-  // ── Phase 1: Auto-revert swaps where reminder was sent 24h+ ago ──────────
+  // Phase 1: auto-revert swaps where the reminder was sent 24h+ ago with no response
   const { data: overdueSwaps } = await supabaseAdmin
     .from("swaps")
     .select("id, proposer_id, receiver_id")
@@ -28,7 +28,6 @@ export async function GET(req: NextRequest) {
 
   let reverted = 0;
   for (const swap of overdueSwaps ?? []) {
-    // Revert all items in this swap back to Available
     const { data: swapItems } = await supabaseAdmin
       .from("swap_items")
       .select("item_id")
@@ -39,10 +38,8 @@ export async function GET(req: NextRequest) {
       await supabaseAdmin.from("items").update({ status: "Available" }).in("id", itemIds);
     }
 
-    // Decline the swap
     await supabaseAdmin.from("swaps").update({ status: "Declined" }).eq("id", swap.id);
 
-    // Notify both members
     await supabaseAdmin.from("notifications").insert([
       {
         user_id: swap.proposer_id,
@@ -63,9 +60,7 @@ export async function GET(req: NextRequest) {
     reverted++;
   }
 
-  // ── Phase 2: Send "did your swap happen?" reminder for newly missed swaps ─
-  // Find In Progress swaps with a scheduled date that has already passed
-  // and where we haven't sent the reminder yet.
+  // Phase 2: send "did your swap happen?" for in-progress swaps whose scheduled date has passed
   const { data: missedScheduled } = await supabaseAdmin
     .from("scheduled_swaps")
     .select("swap_id, scheduled_date, swaps!inner(id, proposer_id, receiver_id, status, missed_reminder_sent_at)")
@@ -73,14 +68,13 @@ export async function GET(req: NextRequest) {
     .is("swaps.missed_reminder_sent_at", null)
     .lt("scheduled_date", todayStr);
 
-  // Filter out any swaps where either user already departed (safety session exists)
   const candidateSwapIds = [...new Set(
     (missedScheduled ?? []).map((row: any) => row.swap_id)
   )];
 
   let reminded = 0;
   if (candidateSwapIds.length > 0) {
-    // Exclude swaps where someone already used "Off to Swap"
+    // Don't remind swaps where someone already tapped "Off to Swap"
     const { data: activeSessions } = await supabaseAdmin
       .from("swap_safety_sessions")
       .select("swap_id")
@@ -97,7 +91,6 @@ export async function GET(req: NextRequest) {
         weekday: "long", day: "numeric", month: "long",
       });
 
-      // Send in-app notifications to both members
       await supabaseAdmin.from("notifications").insert([
         {
           user_id: swap.proposer_id,
@@ -115,7 +108,6 @@ export async function GET(req: NextRequest) {
         },
       ]);
 
-      // Mark reminder as sent
       await supabaseAdmin
         .from("swaps")
         .update({ missed_reminder_sent_at: now.toISOString() })

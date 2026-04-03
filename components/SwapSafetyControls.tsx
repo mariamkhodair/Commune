@@ -6,8 +6,6 @@ import { supabase } from "@/lib/supabase";
 import { notifyUser } from "@/lib/notifySwap";
 import SwapSafetyMap from "./SwapSafetyMap";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 type SafetyState = "idle" | "departed" | "waiting" | "done";
 
 interface MapData {
@@ -30,8 +28,6 @@ interface Props {
   onComplete: () => void;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function SwapSafetyControls({ swapId, otherName, otherId, userId, onComplete }: Props) {
   const [safetyState, setSafetyState] = useState<SafetyState>("idle");
   const [mapData, setMapData] = useState<MapData | null>(null);
@@ -43,7 +39,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
-  // ── On mount: restore state from existing session ─────────────────────────
   useEffect(() => {
     if (!userId) return;
     async function init() {
@@ -67,7 +62,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     init();
   }, [userId, swapId]);
 
-  // ── Poll map data every 15 s while departed ───────────────────────────────
   useEffect(() => {
     if (safetyState === "departed") {
       pollRef.current = setInterval(fetchMapData, 15_000);
@@ -75,7 +69,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [safetyState]);
 
-  // ── Watch live position while departed, push updates every ~20 s ──────────
   useEffect(() => {
     if (safetyState !== "departed" || !navigator.geolocation) return;
 
@@ -100,10 +93,9 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     };
   }, [safetyState, swapId]);
 
-  // ── When other user completes while we're in "waiting", go to "done" ──────
+  // Realtime: flip to "done" as soon as the other user confirms on their end
   useEffect(() => {
     if (safetyState !== "waiting") return;
-    // Subscribe to realtime inserts/updates on swap_safety_sessions for this swap
     const channel = supabase
       .channel(`safety-${swapId}`)
       .on("postgres_changes", {
@@ -121,8 +113,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [safetyState, swapId, userId, onComplete]);
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
 
   async function getAuthToken(): Promise<string> {
     const { data: { session: refreshed } } = await supabase.auth.refreshSession();
@@ -161,8 +151,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     });
   }
 
-  // ── Privacy acceptance check before first ever departure ─────────────────
-
   async function handleOffToSwapClick() {
     const { data: profile } = await supabase
       .from("profiles")
@@ -178,13 +166,10 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
   }
 
   async function acceptPrivacyAndContinue() {
-    // Persist acceptance so this modal never shows again
     await supabase.from("profiles").update({ location_privacy_accepted: true }).eq("id", userId);
     setShowPrivacyModal(false);
     setShowOffConfirm(true);
   }
-
-  // ── Departure ─────────────────────────────────────────────────────────────
 
   async function doDepart() {
     setShowOffConfirm(false);
@@ -202,7 +187,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
         throw new Error((err as { error?: string }).error ?? "Failed to record departure");
       }
       setSafetyState("departed");
-      // Notify partner
       const { data: me } = await supabase.from("profiles").select("name").eq("id", userId).single();
       notifyUser({
         userId: otherId,
@@ -218,8 +202,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
       setLoading(false);
     }
   }
-
-  // ── Completion ────────────────────────────────────────────────────────────
 
   async function doComplete() {
     setShowDoneConfirm(false);
@@ -250,13 +232,10 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
     <>
       <div className="flex flex-col gap-3">
 
-        {/* Map — shown after departure, tap to open full-screen tracking */}
         {safetyState === "departed" && (
           <Link href={`/swap/${swapId}/map`} className="block relative group">
             <SwapSafetyMap
@@ -276,14 +255,12 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
           </Link>
         )}
 
-        {/* Error message */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
             {error}
           </div>
         )}
 
-        {/* ── IDLE: Off to Swap button ── */}
         {safetyState === "idle" && (
           <button
             onClick={handleOffToSwapClick}
@@ -303,7 +280,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
           </button>
         )}
 
-        {/* ── DEPARTED: status dot + Swapped & Safe button ── */}
         {safetyState === "departed" && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-center gap-2 py-1">
@@ -329,7 +305,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
           </div>
         )}
 
-        {/* ── WAITING: other user hasn't confirmed yet ── */}
         {safetyState === "waiting" && (
           <div className="flex flex-col items-center gap-2 py-3">
             <div className="flex items-center gap-2">
@@ -340,7 +315,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
           </div>
         )}
 
-        {/* ── DONE: celebration ── */}
         {safetyState === "done" && (
           <div className="flex flex-col items-center gap-2 bg-[#D8E4D0] rounded-xl p-4 text-center">
             <span className="text-2xl">🤝🏽</span>
@@ -351,7 +325,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
 
       </div>
 
-      {/* ── Privacy notice modal (shown once, ever) ── */}
       {showPrivacyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" />
@@ -360,7 +333,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
             <p className="text-xs text-[#8B7355] mb-4 leading-relaxed">
               To help you and {otherName} feel safe meeting up, we&apos;ll share your approximate departure location with them — and theirs with you.
             </p>
-            {/* ↓ Update this text if you want to change the privacy explanation */}
             <ul className="text-xs text-[#6B5040] space-y-2 mb-5">
               <li>✓ <strong>What</strong> we collect: your live GPS location while you&apos;re on the way</li>
               <li>✓ <strong>Who</strong> sees it: only the person you&apos;re swapping with</li>
@@ -386,7 +358,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
         </div>
       )}
 
-      {/* ── Off to Swap confirmation modal ── */}
       {showOffConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setShowOffConfirm(false)} />
@@ -407,7 +378,6 @@ export default function SwapSafetyControls({ swapId, otherName, otherId, userId,
         </div>
       )}
 
-      {/* ── Swapped & Safe confirmation modal ── */}
       {showDoneConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setShowDoneConfirm(false)} />
