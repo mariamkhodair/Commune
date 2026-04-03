@@ -58,13 +58,25 @@ export default function RootLayout() {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        // Stale or invalid refresh token — clear it and send to login
+        supabase.auth.signOut();
+        setSession(false);
+        setUserId(null);
+        return;
+      }
       setSession(!!session);
       setUserId(session?.user?.id ?? null);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(!!s);
-      setUserId(s?.user?.id ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN") {
+        setSession(true);
+        setUserId(s?.user?.id ?? null);
+      } else if (event === "SIGNED_OUT") {
+        setSession(false);
+        setUserId(null);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
