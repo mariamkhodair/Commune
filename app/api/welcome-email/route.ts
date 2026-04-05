@@ -167,7 +167,7 @@ function welcomeEmail(name: string): string {
 
               <!-- Section 7 -->
               <h3 style="margin:0 0 8px 0;font-size:14px;font-weight:600;color:#4A3728;">7. Subscription and Membership</h3>
-              <p style="margin:0 0 0 0;font-size:13px;color:#6B5040;line-height:1.7;">Membership is billed annually at 500 EGP per year. You may cancel at any time from your account settings; your access will continue until the end of the current billing period. Commune is currently available in Egypt only.</p>
+              <p style="margin:0 0 0 0;font-size:13px;color:#6B5040;line-height:1.7;">Membership is available as an annual plan at 500 EGP per year, or a monthly plan at 70 EGP per month. You may cancel at any time from your account settings; your access will continue until the end of the current billing period. Commune is currently available in Egypt only.</p>
             </td>
           </tr>
 

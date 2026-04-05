@@ -26,6 +26,7 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [showCharityModal, setShowCharityModal] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [plan, setPlan] = useState<"annual" | "monthly">("annual");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Restore draft on mount
@@ -284,13 +285,35 @@ export default function SignUp() {
           {/* Subscription & Payment */}
           <div className="flex flex-col gap-4">
 
+            {/* Plan selector */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPlan("annual")}
+                className={`rounded-xl px-4 py-3 text-left transition-colors border ${plan === "annual" ? "bg-[#4A3728] border-[#4A3728]" : "bg-[#FAF7F2] border-[#D9CFC4] hover:border-[#4A3728]"}`}
+              >
+                <p className={`text-xs font-semibold mb-0.5 ${plan === "annual" ? "text-[#C4B9AA]" : "text-[#8B7355]"}`}>Annual</p>
+                <p className={`text-base font-bold ${plan === "annual" ? "text-[#F5F0E8]" : "text-[#4A3728]"}`}>500 <span className="text-xs font-normal">EGP</span></p>
+                <p className={`text-xs mt-0.5 ${plan === "annual" ? "text-[#C4B9AA]" : "text-[#A09080]"}`}>~41 EGP/month</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPlan("monthly")}
+                className={`rounded-xl px-4 py-3 text-left transition-colors border ${plan === "monthly" ? "bg-[#4A3728] border-[#4A3728]" : "bg-[#FAF7F2] border-[#D9CFC4] hover:border-[#4A3728]"}`}
+              >
+                <p className={`text-xs font-semibold mb-0.5 ${plan === "monthly" ? "text-[#C4B9AA]" : "text-[#8B7355]"}`}>Monthly</p>
+                <p className={`text-base font-bold ${plan === "monthly" ? "text-[#F5F0E8]" : "text-[#4A3728]"}`}>70 <span className="text-xs font-normal">EGP</span></p>
+                <p className={`text-xs mt-0.5 ${plan === "monthly" ? "text-[#C4B9AA]" : "text-[#A09080]"}`}>per month</p>
+              </button>
+            </div>
+
             {/* Plan summary */}
             <div className="rounded-xl bg-[#4A3728] px-5 py-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#F5F0E8]">Annual Membership</p>
-                <p className="text-xs text-[#C4B9AA] mt-0.5">Full access · renews every year</p>
+                <p className="text-sm font-semibold text-[#F5F0E8]">{plan === "annual" ? "Annual" : "Monthly"} Membership</p>
+                <p className="text-xs text-[#C4B9AA] mt-0.5">Full access · renews every {plan === "annual" ? "year" : "month"}</p>
               </div>
-              <p className="text-lg font-bold text-[#F5F0E8]">500 <span className="text-sm font-normal text-[#C4B9AA]">EGP</span></p>
+              <p className="text-lg font-bold text-[#F5F0E8]">{plan === "annual" ? "500" : "70"} <span className="text-sm font-normal text-[#C4B9AA]">EGP</span></p>
             </div>
 
             {/* Charity note */}
@@ -400,7 +423,7 @@ export default function SignUp() {
             disabled={loading || success || !agreedToTerms}
             className="mt-2 w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? "Creating account..." : "Join Commune · 500 EGP / year"}
+            {loading ? "Creating account..." : `Join Commune · ${plan === "annual" ? "500 EGP / year" : "70 EGP / month"}`}
           </button>
 
         </form>
