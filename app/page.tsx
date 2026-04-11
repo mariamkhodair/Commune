@@ -44,6 +44,9 @@ export default function Home() {
           <h1 className="text-6xl text-[#4A3728] font-[family-name:var(--font-permanent-marker)]">Commune</h1>
         </div>
         <div className="flex gap-4 absolute right-8 top-8">
+          <a href="/browse" className="px-5 py-2 rounded-full border-2 border-[#4A3728] text-[#4A3728] font-medium hover:bg-[#4A3728] hover:text-[#F5F0E8] transition-colors">
+            Browse
+          </a>
           <a href="/login" className="px-5 py-2 rounded-full border-2 border-[#4A3728] text-[#4A3728] font-medium hover:bg-[#4A3728] hover:text-[#F5F0E8] transition-colors">
             Log In
           </a>
@@ -73,8 +76,12 @@ export default function Home() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="text-center py-6 text-[#8B7355] text-sm relative z-10">
-        © 2026 Commune. All rights reserved.
+      <footer className="text-center py-6 text-[#8B7355] text-sm relative z-10 flex flex-col gap-1">
+        <span>© 2026 Commune. All rights reserved.</span>
+        <span className="flex gap-4 justify-center text-xs">
+          <a href="/privacy" className="hover:text-[#4A3728] transition-colors">Privacy Policy</a>
+          <a href="/support" className="hover:text-[#4A3728] transition-colors">Support</a>
+        </span>
       </footer>
 
     </div>

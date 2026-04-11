@@ -27,10 +27,11 @@ type Match = {
   itemId: string;
   member: string;
   memberId: string;
-  theirItem: { name: string; category: string; points: number };
+  theirItem: { name: string; category: string; points: number; photo: string | null };
   matchedWant: string;
-  yourItem: { id: string; name: string; points: number } | null;
+  yourItem: { id: string; name: string; points: number; photo: string | null } | null;
   pointsDiff: number;
+  isMutual: boolean;
 };
 
 type LikedItem = {
@@ -140,32 +141,57 @@ export default function StuffIWant() {
 
     const { data: myItems } = await supabase
       .from("items")
-      .select("id, name, points")
+      .select("id, name, points, photos")
       .eq("owner_id", userId)
       .eq("status", "Available");
+
+    function extractKeywords(name: string): string[] {
+      return name.toLowerCase()
+        .split(/\s+/)
+        .map(w => w.replace(/[^a-z0-9]/g, ""))
+        .filter(w => w.length >= 3);
+    }
+
+    // Two words match if they are the same, one is a plural of the other,
+    // or they share a common stem (first 4+ chars). This prevents "ring"
+    // from matching "earring" while still matching "rings".
+    function wordsMatch(a: string, b: string): boolean {
+      if (a === b) return true;
+      if (a + "s" === b || b + "s" === a) return true;
+      if (a + "es" === b || b + "es" === a) return true;
+      const stem = Math.min(a.length, b.length);
+      return stem >= 4 && a.slice(0, stem) === b.slice(0, stem);
+    }
+
+    function namesMatch(a: string, b: string): boolean {
+      const aKws = extractKeywords(a);
+      const bKws = extractKeywords(b);
+      return aKws.some(ak => bKws.some(bk => wordsMatch(ak, bk)));
+    }
 
     const results: Match[] = [];
     const seenIds = new Set<string>();
 
     for (const want of wanted) {
+      const keywords = extractKeywords(want.name);
       const filters: string[] = [];
       if (want.category) filters.push(`category.eq.${want.category}`);
-      const keywords = want.name.split(/\s+/).filter((w) => w.length > 3).slice(0, 2);
       for (const kw of keywords) {
-        const safe = kw.replace(/[^a-zA-Z0-9]/g, "");
-        if (safe) filters.push(`name.ilike.%${safe}%`);
+        filters.push(`name.ilike.%${kw}%`);
       }
       if (!filters.length) continue;
 
       const { data: matched } = await supabase
         .from("items")
-        .select("id, name, category, points, owner_id")
+        .select("id, name, category, points, owner_id, photos")
         .neq("owner_id", userId)
         .eq("status", "Available")
         .or(filters.join(","))
-        .limit(5);
+        .limit(10);
 
       for (const item of matched ?? []) {
+        // Require at least one keyword to actually appear in the item name
+        if (keywords.length > 0 && !namesMatch(want.name, item.name)) continue;
         if (seenIds.has(item.id)) continue;
         seenIds.add(item.id);
 
@@ -179,15 +205,37 @@ export default function StuffIWant() {
           itemId: item.id,
           member: p?.name ?? "Unknown",
           memberId: item.owner_id,
-          theirItem: { name: item.name, category: item.category ?? "", points: item.points },
+          theirItem: { name: item.name, category: item.category ?? "", points: item.points, photo: (item.photos as string[])?.[0] ?? null },
           matchedWant: want.name,
-          yourItem: bestOffer ?? null,
+          yourItem: bestOffer ? { ...bestOffer, photo: (bestOffer.photos as string[])?.[0] ?? null } : null,
           pointsDiff: bestOffer ? Math.abs(bestOffer.points - item.points) : 0,
+          isMutual: false,
         });
       }
     }
 
-    results.sort((a, b) => a.pointsDiff - b.pointsDiff);
+    // Check mutual interest in one batch: does each matched member also want something A has?
+    const memberIds = [...new Set(results.map(r => r.memberId))];
+    if (memberIds.length > 0) {
+      const { data: allTheirWanted } = await supabase
+        .from("wanted_items")
+        .select("user_id, name")
+        .in("user_id", memberIds);
+
+      for (const result of results) {
+        const theirWanted = (allTheirWanted ?? []).filter(w => w.user_id === result.memberId);
+        result.isMutual = theirWanted.some(tw =>
+          (myItems ?? []).some(mi => namesMatch(tw.name, mi.name))
+        );
+      }
+    }
+
+    // Mutual matches first, then by points proximity
+    results.sort((a, b) => {
+      if (b.isMutual !== a.isMutual) return (b.isMutual ? 1 : 0) - (a.isMutual ? 1 : 0);
+      return a.pointsDiff - b.pointsDiff;
+    });
+
     setRealMatches(results);
     setMatching(false);
     setShowMatchResults(true);
@@ -528,8 +576,13 @@ export default function StuffIWant() {
                         <span className="text-xs text-[#A09080]">has your wanted: <em>{match.matchedWant}</em></span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${match.pointsDiff <= 50 ? "bg-[#D8E4D0] text-[#4A6640]" : "bg-[#EDE8DF] text-[#6B5040]"}`}>
-                          {match.pointsDiff === 0 ? "Exact match" : `±${match.pointsDiff} pts`}
+                        {match.isMutual && (
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#D8E4D0] text-[#4A6640]">
+                            Exact Match
+                          </span>
+                        )}
+                        <span className="text-xs text-[#A09080]">
+                          {match.pointsDiff === 0 ? "same pts" : `±${match.pointsDiff} pts`}
                         </span>
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "border-[#4A3728] bg-[#4A3728]" : "border-[#D9CFC4]"}`}>
                           {isSelected && (
@@ -540,24 +593,49 @@ export default function StuffIWant() {
                         </div>
                       </div>
                     </div>
-                    <div className="px-5 py-4 flex gap-4">
-                      <div className="flex-1">
-                        <p className="text-xs text-[#A09080] mb-1">They offer</p>
-                        <p className="text-sm font-medium text-[#4A3728]">{match.theirItem.name}</p>
-                        <p className="text-xs text-[#8B7355]">{match.theirItem.category}</p>
-                        <p className="text-xs font-semibold text-[#4A3728] mt-1">{match.theirItem.points} pts</p>
+                    <div className="px-5 py-4 flex gap-3 items-center">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-14 h-14 rounded-xl bg-[#EDE8DF] overflow-hidden shrink-0">
+                          {match.theirItem.photo ? (
+                            <img src={match.theirItem.photo} alt={match.theirItem.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-5 h-5">
+                                <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs text-[#A09080] mb-0.5">They offer</p>
+                          <p className="text-sm font-medium text-[#4A3728] leading-tight">{match.theirItem.name}</p>
+                          <p className="text-xs font-semibold text-[#4A3728] mt-0.5">{match.theirItem.points} pts</p>
+                        </div>
                       </div>
-                      <div className="flex items-center text-[#C4B9AA]">
+                      <div className="text-[#C4B9AA] shrink-0">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
                           <path d="M8 3L4 7l4 4M16 3l4 4-4 4M4 7h16M4 17h16M8 13l-4 4 4 4M16 13l4 4-4 4" />
                         </svg>
                       </div>
-                      <div className="flex-1 text-right">
-                        <p className="text-xs text-[#A09080] mb-1">You offer</p>
+                      <div className="flex items-center gap-3 flex-1 justify-end">
                         {match.yourItem ? (
                           <>
-                            <p className="text-sm font-medium text-[#4A3728]">{match.yourItem.name}</p>
-                            <p className="text-xs font-semibold text-[#4A3728]">{match.yourItem.points} pts</p>
+                            <div className="text-right">
+                              <p className="text-xs text-[#A09080] mb-0.5">You offer</p>
+                              <p className="text-sm font-medium text-[#4A3728] leading-tight">{match.yourItem.name}</p>
+                              <p className="text-xs font-semibold text-[#4A3728] mt-0.5">{match.yourItem.points} pts</p>
+                            </div>
+                            <div className="w-14 h-14 rounded-xl bg-[#EDE8DF] overflow-hidden shrink-0">
+                              {match.yourItem.photo ? (
+                                <img src={match.yourItem.photo} alt={match.yourItem.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-5 h-5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
                           </>
                         ) : (
                           <p className="text-xs text-[#A09080]">List items first</p>

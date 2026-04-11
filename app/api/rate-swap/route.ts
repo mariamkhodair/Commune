@@ -21,6 +21,29 @@ export async function POST(req: NextRequest) {
 
   const raterId = user.id;
 
+  // Validate score range
+  if (typeof score !== "number" || !Number.isInteger(score) || score < 1 || score > 5) {
+    return NextResponse.json({ error: "Score must be an integer between 1 and 5" }, { status: 400 });
+  }
+
+  // Verify caller and ratedId are the two parties in this swap
+  const { data: swap, error: swapErr } = await supabaseAdmin
+    .from("swaps")
+    .select("proposer_id, receiver_id")
+    .eq("id", swapId)
+    .maybeSingle();
+
+  if (swapErr || !swap) return NextResponse.json({ error: "Swap not found" }, { status: 404 });
+
+  const parties = [swap.proposer_id, swap.receiver_id];
+  if (!parties.includes(raterId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const expectedRatedId = swap.proposer_id === raterId ? swap.receiver_id : swap.proposer_id;
+  if (ratedId !== expectedRatedId) {
+    return NextResponse.json({ error: "Invalid ratedId" }, { status: 403 });
+  }
+
   // Check if this user already rated this swap
   const { data: existing } = await supabaseAdmin
     .from("ratings")

@@ -54,10 +54,11 @@ const SECTIONS = [
     ],
   },
   {
-    title: "7. Subscription and Membership",
+    title: "7. Membership",
     body: [
-      "Membership is billed annually at 500 EGP per year. You may cancel at any time from your account settings; your access will continue until the end of the current billing period.",
-      "Commune is currently available in Egypt only. A valid Egyptian phone number is required to sign up.",
+      "Commune is a membership-based platform. For details about current plans and pricing, visit commune-eg.com.",
+      "You may cancel at any time from your account settings; your access will continue until the end of the current billing period.",
+      "Commune is currently available in Egypt only.",
     ],
   },
 ];

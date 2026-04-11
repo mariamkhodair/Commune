@@ -14,7 +14,7 @@ export type SwapTargetItem = {
   ownerId?: string;
 };
 
-type MyItem = { id: string; name: string; category: string; points: number };
+type MyItem = { id: string; name: string; category: string; points: number; photo: string | null };
 
 // Finds the subset of items whose points total is closest to the target
 function suggestBundle(target: number, items: MyItem[]): Set<string> {
@@ -70,7 +70,7 @@ export default function ProposeSwapModal({
       const [{ data: myItemsData }, { data: wantedData }] = await Promise.all([
         supabase
           .from("items")
-          .select("id, name, category, points")
+          .select("id, name, category, points, photos")
           .eq("owner_id", myId)
           .neq("status", "Swapped"),
         receiverId
@@ -78,7 +78,10 @@ export default function ProposeSwapModal({
           : Promise.resolve({ data: [] }),
       ]);
 
-      const fetched = (myItemsData ?? []) as MyItem[];
+      const fetched: MyItem[] = (myItemsData ?? []).map((i: any) => ({
+        ...i,
+        photo: (i.photos as string[])?.[0] ?? null,
+      }));
       const wanted = ((wantedData ?? []) as { name: string }[]).map((w) => w.name.toLowerCase());
 
       setMyItems(fetched);
@@ -132,7 +135,7 @@ export default function ProposeSwapModal({
     // Notify receiver
     const { data: myProfile } = await supabase.from("profiles").select("name").eq("id", insertId).single();
     const proposerName = myProfile?.name ?? "Someone";
-    notifyUser({
+    await notifyUser({
       userId: receiverId,
       type: "proposal",
       title: "New swap proposal",
@@ -267,20 +270,31 @@ export default function ProposeSwapModal({
                   <button
                     key={myItem.id}
                     onClick={() => toggleItem(myItem.id)}
-                    className={`flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors ${
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl border text-left transition-colors ${
                       isSelected ? "border-[#4A3728] bg-[#4A3728]/5"
                       : wantedByThem ? "border-[#7A9E6E] bg-[#D8E4D0]/40 hover:border-[#4A3728]"
                       : "border-[#D9CFC4] bg-white/60 hover:border-[#4A3728]"
                     }`}
                   >
-                    <div>
+                    <div className="w-10 h-10 rounded-lg bg-[#EDE8DF] overflow-hidden shrink-0">
+                      {myItem.photo ? (
+                        <img src={myItem.photo} alt={myItem.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-4 h-4">
+                            <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-medium text-[#4A3728]">{myItem.name}</p>
-                        {wantedByThem && <span className="text-xs">🤝🏽</span>}
+                        <p className="text-sm font-medium text-[#4A3728] truncate">{myItem.name}</p>
+                        {wantedByThem && <span className="text-xs shrink-0">🤝🏽</span>}
                       </div>
                       <p className="text-xs text-[#8B7355]">{myItem.category}</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0">
                       <span className="text-xs font-semibold text-[#4A3728]">{myItem.points} pts</span>
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "border-[#4A3728] bg-[#4A3728]" : "border-[#D9CFC4]"}`}>
                         {isSelected && (

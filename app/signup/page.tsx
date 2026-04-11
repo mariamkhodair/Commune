@@ -24,9 +24,7 @@ export default function SignUp() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showCharityModal, setShowCharityModal] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [plan, setPlan] = useState<"annual" | "monthly">("annual");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Restore draft on mount
@@ -185,7 +183,7 @@ export default function SignUp() {
               name="name"
               type="text"
               required
-              placeholder="Mariam Khodair"
+              placeholder="Mark Ruffalo"
               value={form.name}
               onChange={handleChange}
               className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
@@ -282,118 +280,6 @@ export default function SignUp() {
             </div>
           </div>
 
-          {/* Subscription & Payment */}
-          <div className="flex flex-col gap-4">
-
-            {/* Plan selector */}
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setPlan("annual")}
-                className={`rounded-xl px-4 py-3 text-left transition-colors border ${plan === "annual" ? "bg-[#4A3728] border-[#4A3728]" : "bg-[#FAF7F2] border-[#D9CFC4] hover:border-[#4A3728]"}`}
-              >
-                <p className={`text-xs font-semibold mb-0.5 ${plan === "annual" ? "text-[#C4B9AA]" : "text-[#8B7355]"}`}>Annual</p>
-                <p className={`text-base font-bold ${plan === "annual" ? "text-[#F5F0E8]" : "text-[#4A3728]"}`}>500 <span className="text-xs font-normal">EGP</span></p>
-                <p className={`text-xs mt-0.5 ${plan === "annual" ? "text-[#C4B9AA]" : "text-[#A09080]"}`}>~41 EGP/month</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPlan("monthly")}
-                className={`rounded-xl px-4 py-3 text-left transition-colors border ${plan === "monthly" ? "bg-[#4A3728] border-[#4A3728]" : "bg-[#FAF7F2] border-[#D9CFC4] hover:border-[#4A3728]"}`}
-              >
-                <p className={`text-xs font-semibold mb-0.5 ${plan === "monthly" ? "text-[#C4B9AA]" : "text-[#8B7355]"}`}>Monthly</p>
-                <p className={`text-base font-bold ${plan === "monthly" ? "text-[#F5F0E8]" : "text-[#4A3728]"}`}>70 <span className="text-xs font-normal">EGP</span></p>
-                <p className={`text-xs mt-0.5 ${plan === "monthly" ? "text-[#C4B9AA]" : "text-[#A09080]"}`}>per month</p>
-              </button>
-            </div>
-
-            {/* Plan summary */}
-            <div className="rounded-xl bg-[#4A3728] px-5 py-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-[#F5F0E8]">{plan === "annual" ? "Annual" : "Monthly"} Membership</p>
-                <p className="text-xs text-[#C4B9AA] mt-0.5">Full access · renews every {plan === "annual" ? "year" : "month"}</p>
-              </div>
-              <p className="text-lg font-bold text-[#F5F0E8]">{plan === "annual" ? "500" : "70"} <span className="text-sm font-normal text-[#C4B9AA]">EGP</span></p>
-            </div>
-
-            {/* Charity note */}
-            <p className="text-xs text-center text-[#8B7355]">
-              30% of proceeds are donated to{" "}
-              <button
-                type="button"
-                onClick={() => setShowCharityModal(true)}
-                className="text-[#4A3728] font-semibold underline underline-offset-2 hover:text-[#6B5040] transition-colors"
-              >
-                charity
-              </button>
-            </p>
-
-            {/* Apple Pay — placeholder, will be activated via Stripe */}
-            <button
-              type="button"
-              className="w-full rounded-xl bg-black text-white py-3 flex items-center justify-center gap-2 font-medium text-sm opacity-50 cursor-not-allowed"
-              disabled
-            >
-              <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-              </svg>
-              Apple Pay
-              <span className="text-xs text-gray-400 ml-1">(coming soon)</span>
-            </button>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-[#D9CFC4]" />
-              <span className="text-xs text-[#A09080]">or pay with card</span>
-              <div className="flex-1 h-px bg-[#D9CFC4]" />
-            </div>
-
-            {/* Demo disclaimer */}
-            <div className="flex items-start gap-2 bg-[#FFF8E7] border border-[#F0D080] rounded-xl px-4 py-3">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#B8860B" strokeWidth="2" strokeLinecap="round" className="w-4 h-4 shrink-0 mt-0.5">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-              <p className="text-xs text-[#7A5C00] leading-relaxed">
-                <span className="font-semibold">This is a demo — Sign up for free!</span> Do not enter any real card information.
-              </p>
-            </div>
-
-            {/* Card fields — will be replaced with Stripe Elements once API key is set up */}
-            <div className="flex flex-col gap-3">
-              <input
-                type="text"
-                placeholder="Name on card"
-                className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
-              />
-              <input
-                type="text"
-                placeholder="Card number"
-                maxLength={19}
-                className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  placeholder="MM / YY"
-                  maxLength={7}
-                  className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
-                />
-                <input
-                  type="text"
-                  placeholder="CVV"
-                  maxLength={4}
-                  className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
-                />
-              </div>
-              <p className="text-xs text-[#A09080] flex items-center gap-1.5">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-3.5 h-3.5 shrink-0">
-                  <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                Secure payment powered by Stripe — your card details are never stored on our servers.
-              </p>
-            </div>
-
-          </div>
 
           {/* Terms agreement */}
           <div className="flex flex-col gap-2">
@@ -423,7 +309,7 @@ export default function SignUp() {
             disabled={loading || success || !agreedToTerms}
             className="mt-2 w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? "Creating account..." : `Join Commune · ${plan === "annual" ? "500 EGP / year" : "70 EGP / month"}`}
+            {loading ? "Creating account..." : "Join Commune"}
           </button>
 
         </form>
@@ -436,33 +322,6 @@ export default function SignUp() {
         </p>
       </div>
 
-      {/* Charity modal */}
-      {showCharityModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setShowCharityModal(false)} />
-          <div className="relative w-full max-w-sm bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg">
-
-            <button
-              onClick={() => setShowCharityModal(false)}
-              className="absolute top-4 right-4 w-7 h-7 rounded-full bg-[#EDE8DF] flex items-center justify-center text-[#8B7355] hover:bg-[#D9CFC4] transition-colors"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </button>
-
-            <p className="text-2xl mb-4">🤝🏽</p>
-            <h3 className="text-lg font-semibold text-[#4A3728] mb-3">Swapping for Good</h3>
-            <p className="text-sm text-[#6B5040] leading-relaxed mb-4">
-              30% of every annual subscription fee is donated to charity. We partner with local NGOs across Egypt to fund hospitals and build schools in underserved communities.
-            </p>
-            <p className="text-sm text-[#6B5040] leading-relaxed">
-              When you join Commune, you're not just decluttering your home or saving money — you're directly contributing to something bigger. Every membership counts.
-            </p>
-
-          </div>
-        </div>
-      )}
 
     </div>
   );

@@ -15,9 +15,15 @@ export async function POST(req: NextRequest) {
     const safeName = name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     const { error } = await resend.emails.send({
       from: "Commune <hello@commune-eg.com>",
+      replyTo: "commune.eg@gmail.com",
       to: email,
       subject: "Welcome to Commune 🤝🏽",
       html: welcomeEmail(safeName),
+      text: `Hi ${safeName},\n\nWelcome to Commune! You've joined a community of people who believe in giving things a second life.\n\nGet started: https://commune-eg.com\n\n© 2026 Commune. Cairo, Egypt.`,
+      headers: {
+        "List-Unsubscribe": "<mailto:commune.eg@gmail.com?subject=unsubscribe>",
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
     });
 
     if (error) {
@@ -177,7 +183,8 @@ function welcomeEmail(name: string): string {
           <!-- Footer -->
           <tr>
             <td align="center" style="padding:24px 0;border-top:1px solid #EDE8DF;">
-              <p style="margin:0 0 8px 0;font-size:13px;color:#8B7355;">Questions? Email us at <a href="mailto:commune.eg@gmail.com" style="color:#4A3728;">commune.eg@gmail.com</a></p>
+              <p style="margin:0 0 6px 0;font-size:13px;color:#8B7355;">Questions? Email us at <a href="mailto:commune.eg@gmail.com" style="color:#4A3728;">commune.eg@gmail.com</a></p>
+              <p style="margin:0 0 6px 0;font-size:12px;color:#A09080;">To make sure you receive our emails, add <strong>hello@commune-eg.com</strong> to your contacts.</p>
               <p style="margin:0;font-size:12px;color:#A09080;">© 2026 Commune. Cairo, Egypt.</p>
             </td>
           </tr>

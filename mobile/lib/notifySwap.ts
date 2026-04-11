@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-const API_BASE = "https://commune-neon.vercel.app";
+const API_BASE = "https://commune-eg.com";
 
 export async function notifyUser(params: {
   userId: string;

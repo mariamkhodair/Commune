@@ -9,9 +9,12 @@ export async function notifyUser(params: {
 }) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      console.warn("notifyUser: no session, skipping notification for", params.type);
+      return;
+    }
 
-    await fetch("/api/notify", {
+    const res = await fetch("/api/notify", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -19,7 +22,10 @@ export async function notifyUser(params: {
       },
       body: JSON.stringify(params),
     });
-  } catch {
-    // Fire and forget — never block the main action
+    if (!res.ok) {
+      console.error("notifyUser: server responded", res.status, await res.text());
+    }
+  } catch (err) {
+    console.error("notifyUser: fetch failed", err);
   }
 }

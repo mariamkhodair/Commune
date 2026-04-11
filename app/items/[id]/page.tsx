@@ -195,26 +195,37 @@ export default function ItemPage({ params }: { params: Promise<{ id: string }> }
             </button>
           )}
 
-          {/* Propose Swap CTA */}
+          {/* Propose Swap + Message CTAs */}
           {userId && item.owner_id !== userId && (
-            item.status === "Swapped" ? (
-              <div className="w-full rounded-full bg-[#EDE8DF] text-[#A09080] py-3.5 font-semibold flex items-center justify-center gap-2 text-sm">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
-                </svg>
-                Already Swapped
-              </div>
-            ) : (
-              <button
-                onClick={() => setProposing(true)}
-                className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3.5 font-semibold hover:bg-[#6B5040] transition-colors flex items-center justify-center gap-2"
+            <div className="flex flex-col gap-3">
+              {item.status === "Swapped" ? (
+                <div className="w-full rounded-full bg-[#EDE8DF] text-[#A09080] py-3.5 font-semibold flex items-center justify-center gap-2 text-sm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                    <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
+                  </svg>
+                  Already Swapped
+                </div>
+              ) : (
+                <button
+                  onClick={() => setProposing(true)}
+                  className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3.5 font-semibold hover:bg-[#6B5040] transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                    <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
+                  </svg>
+                  Propose Swap
+                </button>
+              )}
+              <Link
+                href={`/messages/${item.owner_id}`}
+                className="w-full rounded-full border-2 border-[#4A3728] text-[#4A3728] py-3.5 font-semibold hover:bg-[#4A3728] hover:text-[#F5F0E8] transition-colors flex items-center justify-center gap-2"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
-                Propose Swap
-              </button>
-            )
+                Message {item.ownerName.split(" ")[0]}
+              </Link>
+            </div>
           )}
 
           {/* Description */}

@@ -11,7 +11,7 @@ import { updateSwapItemStatus } from "@/lib/updateSwapItems";
 
 type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Declined";
 
-type SwapItem = { name: string; points: number };
+type SwapItem = { name: string; points: number; photo: string | null };
 
 type ProposedDate = { id: string; date: string; time: string | null; proposedBy: string };
 
@@ -138,13 +138,26 @@ function ItemList({ label, items }: { label: string; items: SwapItem[] }) {
   return (
     <div className="flex-1 bg-[#F5F0E8] rounded-xl p-3">
       <p className="text-xs text-[#A09080] mb-2">{label}</p>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         {items.map((item, i) => (
-          <div key={i} className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-[#4A3728] leading-tight">{item.name}</p>
-            {item.points > 0 && (
-              <p className="text-xs text-[#8B7355] shrink-0">{item.points} pts</p>
-            )}
+          <div key={i} className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-lg bg-[#EDE8DF] overflow-hidden shrink-0">
+              {item.photo ? (
+                <img src={item.photo} alt={item.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-4 h-4">
+                    <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between gap-2 flex-1 min-w-0">
+              <p className="text-sm font-medium text-[#4A3728] leading-tight truncate">{item.name}</p>
+              {item.points > 0 && (
+                <p className="text-xs text-[#8B7355] shrink-0">{item.points} pts</p>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -294,7 +307,7 @@ export default function MySwaps() {
         const [{ data: p }, { data: itemsData }, { data: conv }] = await Promise.all([
           supabase.from("profiles").select("name, avatar_url").eq("id", otherId).single(),
           allItemIds.length > 0
-            ? supabase.from("items").select("id, name, points").in("id", allItemIds)
+            ? supabase.from("items").select("id, name, points, photos").in("id", allItemIds)
             : Promise.resolve({ data: [] }),
           supabase
             .from("conversations")
@@ -312,10 +325,12 @@ export default function MySwaps() {
         const proposerItems: SwapItem[] = proposerIds.map((id) => ({
           name: itemMap[id]?.name ?? "Unknown",
           points: itemMap[id]?.points ?? 0,
+          photo: (itemMap[id]?.photos as string[])?.[0] ?? null,
         }));
         const receiverItems: SwapItem[] = receiverIds.map((id) => ({
           name: itemMap[id]?.name ?? "Unknown",
           points: itemMap[id]?.points ?? 0,
+          photo: (itemMap[id]?.photos as string[])?.[0] ?? null,
         }));
 
         return {
@@ -659,7 +674,7 @@ export default function MySwaps() {
                       items={
                         swap.proposerItems.length
                           ? swap.proposerItems
-                          : [{ name: "—", points: 0 }]
+                          : [{ name: "—", points: 0, photo: null }]
                       }
                     />
                     <svg
@@ -678,7 +693,7 @@ export default function MySwaps() {
                       items={
                         swap.receiverItems.length
                           ? swap.receiverItems
-                          : [{ name: "—", points: 0 }]
+                          : [{ name: "—", points: 0, photo: null }]
                       }
                     />
                   </div>
