@@ -13,7 +13,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.commune.app",
+      "bundleIdentifier": "com.communeeg.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Commune uses your location once when you tap 'Off to Swap' so your swap partner knows you're on the way. Your location is not tracked continuously and is deleted 24 hours after your swap."
