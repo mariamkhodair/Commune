@@ -101,7 +101,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (session === null) return;
     const inAuth = segments[0] === "(auth)";
-    if (!session && !inAuth) router.replace("/(auth)/login");
+    if (!session && !inAuth) router.replace("/(auth)/");
     if (session && inAuth) router.replace("/(tabs)");
   }, [session, segments]);
 
