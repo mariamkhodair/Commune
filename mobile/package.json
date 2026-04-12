@@ -10,6 +10,7 @@
     "build:android": "eas build --platform android"
   },
   "dependencies": {
+    "@expo-google-fonts/permanent-marker": "^0.4.0",
     "@expo/ngrok": "^4.1.0",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "^2.1.2",

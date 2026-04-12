@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useFonts, PermanentMarker_400Regular } from "@expo-google-fonts/permanent-marker";
 import { supabase } from "@/lib/supabase";
 
 const { width } = Dimensions.get("window");
@@ -29,6 +30,7 @@ export default function Landing() {
   const [category, setCategory] = useState("All");
   const [items, setItems] = useState<BrowseItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fontsLoaded] = useFonts({ PermanentMarker_400Regular });
 
   useEffect(() => {
     (async () => {
@@ -68,7 +70,7 @@ export default function Landing() {
 
         {/* Header */}
         <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 }}>
-          <Text style={{ fontSize: 32, fontWeight: "300", color: "#4A3728", letterSpacing: -0.5 }}>commune</Text>
+          <Text style={{ fontSize: 32, color: "#4A3728", fontFamily: fontsLoaded ? "PermanentMarker_400Regular" : undefined }}>Commune</Text>
           <Text style={{ fontSize: 13, color: "#8B7355", marginTop: 2 }}>swap what you don't need</Text>
         </View>
 
@@ -93,12 +95,13 @@ export default function Landing() {
               key={c}
               onPress={() => setCategory(c)}
               style={{
-                paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999,
+                paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
                 backgroundColor: category === c ? "#4A3728" : "#fff",
                 borderWidth: 1, borderColor: category === c ? "#4A3728" : "#D9CFC4",
+                alignItems: "center", justifyContent: "center",
               }}
             >
-              <Text style={{ fontSize: 13, color: category === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
+              <Text style={{ fontSize: 13, color: category === c ? "#FAF7F2" : "#6B5040", flexShrink: 0 }} numberOfLines={1}>{c}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
