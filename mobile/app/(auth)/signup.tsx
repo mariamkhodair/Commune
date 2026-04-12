@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
@@ -60,11 +61,12 @@ export default function Signup() {
   }
 
   return (
+    <SafeAreaView style={{ flex: 1 }}>
     <KeyboardAvoidingView
-      className="flex-1"
+      style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView contentContainerClassName="px-6 py-12">
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 48 }}>
         <View className="items-center mb-8">
           <View className="w-12 h-12 rounded-full bg-[#4A3728] items-center justify-center mb-3">
             <Text className="text-[#FAF7F2] text-xl font-bold">C</Text>
@@ -207,5 +209,6 @@ export default function Signup() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
