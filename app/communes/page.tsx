@@ -143,7 +143,6 @@ function CommuneCard({ commune, userId, onAction }: { commune: Commune; userId: 
     <div className="bg-white rounded-2xl border border-[#EDE8DF] overflow-hidden shadow-sm">
       <div className="px-5 py-3 border-b border-[#EDE8DF] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-base">🔺</span>
           <span className="text-sm font-semibold text-[#4A3728]">Commune</span>
         </div>
         <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[commune.status] ?? "bg-[#F5F0E8] text-[#8B7355] border-[#EDE8DF]"}`}>
@@ -304,7 +303,7 @@ export default function CommunesPage() {
           >
             {findLoading
               ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Finding…</>
-              : <>🔺 Find Commune</>}
+              : <>Find Commune</>}
           </button>
         </div>
 
@@ -344,7 +343,6 @@ export default function CommunesPage() {
           </div>
         ) : communes.length === 0 && findResults === null ? (
           <div className="flex flex-col items-center justify-center py-28 text-center max-w-sm mx-auto">
-            <span className="text-5xl mb-4">🔺</span>
             <p className="text-xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">No communes yet</p>
             <p className="text-[#A09080] text-sm leading-relaxed mb-6">
               A commune is a three-way swap — three members each giving one item to form a perfect circle. Tap &quot;Find Commune&quot; to discover matches.
