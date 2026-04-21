@@ -7,6 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import SwapSafetyControls from "@/components/SwapSafetyControls";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 type ScheduledSwap = {
   id: string;
@@ -39,6 +40,7 @@ function isUpcoming(dateStr: string) {
 export default function ScheduledSwaps() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t } = useLang();
   const [swaps, setSwaps] = useState<ScheduledSwap[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -140,9 +142,9 @@ export default function ScheduledSwaps() {
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
         <h1 className="text-3xl font-light text-[#4A3728] mb-1 font-[family-name:var(--font-jost)]">
-          Scheduled Swaps
+          {t("scheduled.header")}
         </h1>
-        <p className="text-[#8B7355] mb-6">Your confirmed swap dates.</p>
+        <p className="text-[#8B7355] mb-6">{t("scheduled.subheader")}</p>
 
         {loading ? (
           <div className="flex items-center justify-center py-32">
@@ -153,15 +155,13 @@ export default function ScheduledSwaps() {
             <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" strokeLinecap="round" className="w-12 h-12 mb-4">
               <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
             </svg>
-            <p className="text-xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">Nothing scheduled yet</p>
-            <p className="text-[#A09080] max-w-xs mb-6">
-              Go to My Swaps, accept a swap, then propose dates. Once the other member confirms a date it&apos;ll appear here.
-            </p>
+            <p className="text-xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">{t("scheduled.emptyTitle")}</p>
+            <p className="text-[#A09080] max-w-xs mb-6">{t("scheduled.emptyHint")}</p>
             <Link
               href="/my-swaps"
               className="px-6 py-3 rounded-full bg-[#4A3728] text-[#F5F0E8] text-sm font-semibold hover:bg-[#6B5040] transition-colors"
             >
-              Go to My Swaps
+              {t("scheduled.goToMySwaps")}
             </Link>
           </div>
         ) : (
@@ -181,7 +181,7 @@ export default function ScheduledSwaps() {
                       </svg>
                       <div>
                         <p className={`text-xs ${isDone ? "text-[#4A6640]" : "text-[#C4B9AA]"}`}>
-                          {isDone ? "Completed" : upcoming ? "Confirmed date" : "Past date"}
+                          {isDone ? t("scheduled.completed") : upcoming ? t("scheduled.confirmed") : t("scheduled.pastDate")}
                         </p>
                         <p className={`font-semibold ${isDone ? "text-[#2D5030]" : "text-[#FAF7F2]"}`}>
                           {formatDate(swap.date)}{swap.time ? ` at ${swap.time}` : ""}
@@ -211,27 +211,27 @@ export default function ScheduledSwaps() {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                         </svg>
-                        Message
+                        {t("common.message")}
                       </button>
                     </div>
 
                     {/* Items */}
                     <div className="flex items-center gap-3">
                       <div className="flex-1 bg-[#F5F0E8] rounded-xl p-3">
-                        <p className="text-xs text-[#A09080] mb-1">You&apos;re giving</p>
+                        <p className="text-xs text-[#A09080] mb-1">{t("scheduled.youGiving")}</p>
                         <p className="text-sm font-medium text-[#4A3728]">{swap.yourItems}</p>
                       </div>
                       <svg viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" className="w-5 h-5 shrink-0">
                         <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" />
                       </svg>
                       <div className="flex-1 bg-[#F5F0E8] rounded-xl p-3">
-                        <p className="text-xs text-[#A09080] mb-1">You&apos;re getting</p>
+                        <p className="text-xs text-[#A09080] mb-1">{t("scheduled.youGetting")}</p>
                         <p className="text-sm font-medium text-[#4A3728]">{swap.theirItems}</p>
                       </div>
                     </div>
 
                     <Link href="/my-swaps" className="text-xs text-[#8B7355] underline hover:text-[#4A3728] transition-colors">
-                      View in My Swaps →
+                      {t("scheduled.viewInMySwaps")}
                     </Link>
 
                     {/* Swap Safety System — Off to Swap / Swapped & Safe / map */}

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 type Convo = {
   id: string;
@@ -18,6 +19,7 @@ type Convo = {
 export default function Messages() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t } = useLang();
   const [convos, setConvos] = useState<Convo[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -90,8 +92,8 @@ export default function Messages() {
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
 
-        <h1 className="text-3xl font-light text-[#4A3728] mb-1 font-[family-name:var(--font-jost)]">Messages</h1>
-        <p className="text-[#8B7355] mb-6">Chat with members about swaps.</p>
+        <h1 className="text-3xl font-light text-[#4A3728] mb-1 font-[family-name:var(--font-jost)]">{t("messages.header")}</h1>
+        <p className="text-[#8B7355] mb-6">{t("messages.emptyHint")}</p>
 
         {loading ? (
           <div className="flex items-center justify-center py-32">
@@ -99,8 +101,8 @@ export default function Messages() {
           </div>
         ) : convos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
-            <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">No messages yet</p>
-            <p className="text-[#A09080]">When you propose or get matched for a swap, you can chat here.</p>
+            <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">{t("messages.emptyTitle")}</p>
+            <p className="text-[#A09080]">{t("messages.emptyHint")}</p>
           </div>
         ) : (
           <div className="flex flex-col gap-2 max-w-2xl">

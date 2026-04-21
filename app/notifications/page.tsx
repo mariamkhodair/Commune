@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useNotifications } from "@/lib/notificationContext";
+import { useLang } from "@/lib/languageContext";
 
 const TYPE_ICONS: Record<string, string> = {
   proposal: "🤝🏽",
@@ -36,6 +37,7 @@ function timeAgo(dateStr: string) {
 export default function NotificationsPage() {
   const router = useRouter();
   const { notifications, markRead, markAllRead } = useNotifications();
+  const { t } = useLang();
 
   // Mark all read when page mounts
   useEffect(() => {
@@ -51,16 +53,16 @@ export default function NotificationsPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-light text-[#4A3728] mb-1 font-[family-name:var(--font-jost)]">
-              Notifications
+              {t("notif.header")}
             </h1>
-            <p className="text-[#8B7355]">Stay updated on your swaps.</p>
+            <p className="text-[#8B7355]">{t("notif.subheader")}</p>
           </div>
           {notifications.some((n) => !n.read) && (
             <button
               onClick={markAllRead}
               className="text-sm text-[#8B7355] hover:text-[#4A3728] underline transition-colors"
             >
-              Mark all as read
+              {t("notif.markAllRead")}
             </button>
           )}
         </div>
@@ -69,9 +71,9 @@ export default function NotificationsPage() {
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <p className="text-5xl mb-4">🔔</p>
             <p className="text-xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">
-              No notifications yet
+              {t("notif.emptyTitle")}
             </p>
-            <p className="text-[#A09080]">You'll be notified when someone proposes, accepts, or schedules a swap.</p>
+            <p className="text-[#A09080]">{t("notif.emptyHint")}</p>
           </div>
         ) : (
           <div className="flex flex-col gap-2 max-w-2xl">
