@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import TourOverlay from "@/components/TourOverlay";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 const categories = [
   "Apparel",
@@ -20,6 +21,7 @@ const categories = [
 export default function Dashboard() {
   const router = useRouter();
   const { userId, profile } = useUser();
+  const { t } = useLang();
   const [openPanel, setOpenPanel] = useState<"categories" | "members" | "stuff" | null>(null);
   const [memberQuery, setMemberQuery] = useState("");
   const [stuffQuery, setStuffQuery] = useState("");
@@ -60,9 +62,9 @@ export default function Dashboard() {
       <main className="flex-1 px-8 py-8 overflow-y-auto">
 
         <h1 className="text-3xl font-light text-[#4A3728] mb-1 font-[family-name:var(--font-jost)]">
-          Welcome back{profile?.name ? `, ${profile.name.split(" ")[0]}` : ""}
+          {t("dashboard.welcome", { name: profile?.name ? `, ${profile.name.split(" ")[0]}` : "" })}
         </h1>
-        <p className="text-[#8B7355] mb-10">What are you looking for today?</p>
+        <p className="text-[#8B7355] mb-10">{t("dashboard.subtitle")}</p>
 
         <div className="flex flex-col gap-3 max-w-xl">
 
@@ -78,7 +80,7 @@ export default function Dashboard() {
                     <path d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </div>
-                <span className="text-sm font-medium text-[#4A3728]">Search in Categories</span>
+                <span className="text-sm font-medium text-[#4A3728]">{t("dashboard.searchCategories")}</span>
               </div>
               <svg
                 viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round"
@@ -115,7 +117,7 @@ export default function Dashboard() {
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                 </div>
-                <span className="text-sm font-medium text-[#4A3728]">Search by Member</span>
+                <span className="text-sm font-medium text-[#4A3728]">{t("dashboard.searchMember")}</span>
               </div>
               <svg
                 viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round"
@@ -133,7 +135,7 @@ export default function Dashboard() {
                   </svg>
                   <input
                     type="text"
-                    placeholder="Type a name..."
+                    placeholder={t("dashboard.typeName")}
                     value={memberQuery}
                     onChange={(e) => setMemberQuery(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && memberQuery.trim()) router.push(`/members?q=${encodeURIComponent(memberQuery)}`); }}
@@ -154,13 +156,13 @@ export default function Dashboard() {
                   </button>
                 ))}
                 {memberQuery && filteredMembers.length === 0 && (
-                  <p className="text-xs text-[#A09080] px-3 py-2">No members found.</p>
+                  <p className="text-xs text-[#A09080] px-3 py-2">{t("dashboard.noMembersFound")}</p>
                 )}
                 <button
                   onClick={() => router.push(memberQuery ? `/members?q=${encodeURIComponent(memberQuery)}` : "/members")}
                   className="mt-1 w-full rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-xs font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
                 >
-                  Browse all members →
+                  {t("dashboard.browseAllMembers")}
                 </button>
               </div>
             )}
@@ -178,7 +180,7 @@ export default function Dashboard() {
                     <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                   </svg>
                 </div>
-                <span className="text-sm font-medium text-[#4A3728]">Search in Stuff</span>
+                <span className="text-sm font-medium text-[#4A3728]">{t("dashboard.searchStuff")}</span>
               </div>
               <svg
                 viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round"
@@ -197,7 +199,7 @@ export default function Dashboard() {
                     </svg>
                     <input
                       type="text"
-                      placeholder="e.g. Vintage jacket, Canon camera..."
+                      placeholder={t("dashboard.searchItem")}
                       value={stuffQuery}
                       onChange={(e) => setStuffQuery(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter" && stuffQuery.trim()) router.push(`/search?q=${encodeURIComponent(stuffQuery)}`); }}
@@ -210,14 +212,14 @@ export default function Dashboard() {
                     onClick={() => router.push(`/search?q=${encodeURIComponent(stuffQuery)}`)}
                     className="px-4 rounded-full bg-[#4A3728] text-[#F5F0E8] text-sm font-medium hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    Search
+                    {t("common.search")}
                   </button>
                 </div>
                 <button
                   onClick={() => router.push("/search")}
                   className="w-full rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-xs font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
                 >
-                  Browse all stuff →
+                  {t("dashboard.browseAllStuff")}
                 </button>
               </div>
             )}
@@ -225,7 +227,7 @@ export default function Dashboard() {
 
         </div>
 
-        <p className="mt-10 text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)]">Welcome to the Commune! Start Swapping :)</p>
+        <p className="mt-10 text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)]">{t("dashboard.welcomeMsg")}</p>
 
       </main>
     </div>

@@ -4,9 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useLang } from "@/lib/languageContext";
+import LangToggle from "@/components/LangToggle";
 
 export default function Login() {
   const router = useRouter();
+  const { t, isRTL } = useLang();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,7 +29,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center relative overflow-hidden px-4 pt-10">
+    <div className="min-h-screen flex flex-col items-center relative overflow-hidden px-4 pt-10" dir={isRTL ? "rtl" : "ltr"}>
 
 
       {/* ── T-shirt — top left ── */}
@@ -63,15 +66,18 @@ export default function Login() {
         <path d="M28,20 Q35,18 42,20 Q35,30 28,20 Z" fill="#4A7080" opacity="0.2" />
       </svg>
 
-      {/* ── Logo ── */}
-      <Link href="/" className="mb-8 text-5xl text-[#4A3728] font-[family-name:var(--font-permanent-marker)] hover:opacity-80 transition-opacity">
-        Commune
-      </Link>
+      {/* Logo */}
+      <div className="mb-8 flex flex-col items-center gap-3">
+        <Link href="/" className="text-5xl text-[#4A3728] font-[family-name:var(--font-permanent-marker)] hover:opacity-80 transition-opacity">
+          Commune
+        </Link>
+        <LangToggle />
+      </div>
 
-      {/* ── Card ── */}
+      {/* Card */}
       <div className="w-full max-w-md bg-white/60 backdrop-blur-sm rounded-3xl px-8 py-10 shadow-sm">
-        <h2 className="text-2xl font-semibold text-[#4A3728] mb-2">Welcome back</h2>
-        <p className="text-sm text-[#8B7355] mb-8">Log in to continue swapping.</p>
+        <h2 className="text-2xl font-semibold text-[#4A3728] mb-2">{t("login.welcome")}</h2>
+        <p className="text-sm text-[#8B7355] mb-8">{t("login.subtitle")}</p>
 
         {error && (
           <div className="mb-6 rounded-xl bg-[#A0624A]/15 border border-[#A0624A] px-4 py-3 text-sm text-[#4A3728]">
@@ -83,7 +89,7 @@ export default function Login() {
 
           {/* Email */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-[#6B5040]">Email</label>
+            <label className="text-sm text-[#6B5040]">{t("login.email")}</label>
             <input
               name="email"
               type="email"
@@ -98,19 +104,19 @@ export default function Login() {
 
           {/* Password */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-[#6B5040]">Password</label>
+            <label className="text-sm text-[#6B5040]">{t("login.password")}</label>
             <input
               name="password"
               type="password"
               required
               autoComplete="current-password"
-              placeholder="Your password"
+              placeholder={t("login.password")}
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError(""); }}
               className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
             />
-            <Link href="/forgot-password" className="text-xs text-[#8B7355] hover:underline self-end mt-1">
-              Forgot password?
+            <Link href="/forgot-password" className={`text-xs text-[#8B7355] hover:underline ${isRTL ? "self-start" : "self-end"} mt-1`}>
+              {t("login.forgotPassword")}
             </Link>
           </div>
 
@@ -120,15 +126,15 @@ export default function Login() {
             disabled={loading}
             className="mt-2 w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? "Logging in..." : "Log In"}
+            {loading ? t("login.loggingIn") : t("login.logIn")}
           </button>
 
         </form>
 
         <p className="text-center text-sm text-[#8B7355] mt-6">
-          Don't have an account?{" "}
+          {t("login.noAccount")}{" "}
           <Link href="/signup" className="text-[#4A3728] font-medium hover:underline">
-            Sign up
+            {t("login.signUp")}
           </Link>
         </p>
       </div>

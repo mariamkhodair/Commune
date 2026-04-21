@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Mitr, Permanent_Marker, Jost } from "next/font/google";
+import { Mitr, Permanent_Marker, Jost, Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 
@@ -21,6 +21,12 @@ const jost = Jost({
   weight: ["300", "400"],
 });
 
+const notoArabic = Noto_Sans_Arabic({
+  variable: "--font-noto-arabic",
+  subsets: ["arabic"],
+  weight: ["300", "400", "500", "600"],
+});
+
 export const metadata: Metadata = {
   title: "Commune",
   description: "Trade freely. Live lightly. Together.",
@@ -34,9 +40,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${mitr.variable} ${permanentMarker.variable} ${jost.variable} h-full antialiased`}
+      className={`${mitr.variable} ${permanentMarker.variable} ${jost.variable} ${notoArabic.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-[family-name:var(--font-mitr)] bg-[#F5F0E8]">
+      <body className="min-h-full flex flex-col font-[family-name:var(--font-mitr)] bg-[#F5F0E8]" style={{ fontFamily: "var(--font-mitr), var(--font-noto-arabic), sans-serif" }}>
         {/* ── Global leaf motif ── */}
         <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
           <svg className="absolute top-0 left-0 w-64 h-64" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">

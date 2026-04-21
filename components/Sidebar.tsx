@@ -7,10 +7,18 @@ import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { useUnread } from "@/lib/unreadContext";
 import { useNotifications } from "@/lib/notificationContext";
+import { useLang } from "@/lib/languageContext";
 
-const sidebarItems = [
+type SidebarItemDef = {
+  labelKey: "sidebar.notifications" | "sidebar.members" | "sidebar.search" | "sidebar.myStuff" | "sidebar.stuffIWant" | "sidebar.messages" | "sidebar.mySwaps" | "sidebar.scheduledSwaps" | "sidebar.communes" | "sidebar.getHelp" | "sidebar.about" | "sidebar.guidelines";
+  href: string;
+  id?: string;
+  icon: React.ReactNode;
+};
+
+const SIDEBAR_ITEMS: SidebarItemDef[] = [
   {
-    label: "Notifications",
+    labelKey: "sidebar.notifications",
     href: "/notifications",
     id: "tour-notifications",
     icon: (
@@ -20,7 +28,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "Members",
+    labelKey: "sidebar.members",
     href: "/members",
     id: "tour-members",
     icon: (
@@ -30,7 +38,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "Search",
+    labelKey: "sidebar.search",
     href: "/search",
     id: "tour-search",
     icon: (
@@ -40,7 +48,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "My Stuff",
+    labelKey: "sidebar.myStuff",
     href: "/my-stuff",
     id: "tour-my-stuff",
     icon: (
@@ -50,7 +58,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "Stuff I Want",
+    labelKey: "sidebar.stuffIWant",
     href: "/stuff-i-want",
     id: "tour-stuff-i-want",
     icon: (
@@ -60,7 +68,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "Messages",
+    labelKey: "sidebar.messages",
     href: "/messages",
     id: "tour-messages",
     icon: (
@@ -70,7 +78,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "My Swaps",
+    labelKey: "sidebar.mySwaps",
     href: "/my-swaps",
     id: "tour-my-swaps",
     icon: (
@@ -80,7 +88,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "Scheduled Swaps",
+    labelKey: "sidebar.scheduledSwaps",
     href: "/scheduled-swaps",
     id: "tour-scheduled-swaps",
     icon: (
@@ -90,7 +98,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "Communes",
+    labelKey: "sidebar.communes",
     href: "/communes",
     id: "tour-communes",
     icon: (
@@ -100,7 +108,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "Get Help",
+    labelKey: "sidebar.getHelp",
     href: "/help",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -109,7 +117,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "About Commune",
+    labelKey: "sidebar.about",
     href: "/about",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -118,7 +126,7 @@ const sidebarItems = [
     ),
   },
   {
-    label: "Community Guidelines",
+    labelKey: "sidebar.guidelines",
     href: "/terms",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -136,6 +144,7 @@ export default function Sidebar() {
   const { userId, profile } = useUser();
   const { unreadMessages, clearAllMessages } = useUnread();
   const { unreadCount: unreadNotifications, markAllRead } = useNotifications();
+  const { t, lang, setLang } = useLang();
 
   // Collapse sidebar and lock it closed on portrait mobile
   useEffect(() => {
@@ -217,16 +226,16 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex flex-col gap-1 px-2 mt-2 flex-1 overflow-y-auto">
-        {sidebarItems.map((item) => {
+        {SIDEBAR_ITEMS.map((item) => {
           const active = pathname === item.href;
-          const isMessages = item.label === "Messages";
-          const isNotifications = item.label === "Notifications";
+          const isMessages = item.labelKey === "sidebar.messages";
+          const isNotifications = item.labelKey === "sidebar.notifications";
           const badgeCount = isMessages ? unreadMessages : isNotifications ? unreadNotifications : 0;
           const showBadge = badgeCount > 0;
           const badgeColor = "bg-[#A0624A]";
           return (
             <Link
-              key={item.label}
+              key={item.href}
               href={item.href}
               id={(item as any).id}
               className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-colors ${active ? "bg-[#4A3728] text-[#F5F0E8]" : "text-[#6B5040] hover:bg-[#F5F0E8] hover:text-[#4A3728]"}`}
@@ -241,7 +250,7 @@ export default function Sidebar() {
               </span>
               {open && (
                 <span className="flex items-center gap-2 flex-1">
-                  <span className="text-sm font-medium whitespace-nowrap">{item.label}</span>
+                  <span className="text-sm font-medium whitespace-nowrap">{t(item.labelKey)}</span>
                   {showBadge && (
                     <span className={`ml-auto min-w-[20px] h-5 rounded-full ${badgeColor} text-white text-xs font-bold flex items-center justify-center px-1`}>
                       {badgeCount}
@@ -264,8 +273,23 @@ export default function Sidebar() {
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
             </span>
-            {open && <span className="text-sm font-medium whitespace-nowrap">Admin</span>}
+            {open && <span className="text-sm font-medium whitespace-nowrap">{t("sidebar.admin")}</span>}
           </Link>
+        )}
+
+        {/* Language toggle */}
+        {open && (
+          <button
+            onClick={() => setLang(lang === "en" ? "ar" : "en")}
+            className="mt-2 mx-1 flex items-center gap-3 px-3 py-3 rounded-xl transition-colors text-[#6B5040] hover:bg-[#F5F0E8] hover:text-[#4A3728]"
+          >
+            <span className="shrink-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </span>
+            <span className="text-sm font-medium whitespace-nowrap">{t("sidebar.language")}</span>
+          </button>
         )}
       </nav>
 

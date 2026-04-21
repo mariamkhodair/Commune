@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 import type { Item, Profile } from "@/lib/database.types";
 
 const statusStyles: Record<string, string> = {
@@ -32,6 +33,7 @@ function Stars({ rating }: { rating: number }) {
 export default function MyStuff() {
   const router = useRouter();
   const { userId, profile, loading: userLoading } = useUser();
+  const { t } = useLang();
   const [items, setItems] = useState<ItemWithLikes[]>([]);
   const [loading, setLoading] = useState(true);
   const [likersModal, setLikersModal] = useState<{ itemName: string; likedBy: { id: string; name: string }[] } | null>(null);
@@ -134,8 +136,8 @@ export default function MyStuff() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">My Stuff</h1>
-            <p className="text-[#8B7355] mt-1 mb-1">{items.length} item{items.length !== 1 ? "s" : ""} listed</p>
+            <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">{t("myStuff.header")}</h1>
+            <p className="text-[#8B7355] mt-1 mb-1">{t("myStuff.listed", { n: items.length, s: items.length !== 1 ? "s" : "" })}</p>
             {rating && <Stars rating={rating.score} />}
             {rating && <span className="text-xs text-[#A09080] ml-1">({rating.count} rating{rating.count !== 1 ? "s" : ""})</span>}
           </div>
@@ -146,7 +148,7 @@ export default function MyStuff() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-4 h-4">
               <path d="M12 5v14M5 12h14" />
             </svg>
-            List an Item
+            {t("myStuff.listItem")}
           </Link>
         </div>
 
@@ -160,13 +162,13 @@ export default function MyStuff() {
         {/* Items grid */}
         {!loading && !userLoading && items.length === 0 && (
           <div className="flex flex-col items-center justify-center py-32 text-center">
-            <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">Nothing here yet</p>
-            <p className="text-[#A09080] mb-6">List your first item and start swapping.</p>
+            <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">{t("myStuff.emptyTitle")}</p>
+            <p className="text-[#A09080] mb-6">{t("myStuff.emptyHint")}</p>
             <Link
               href="/my-stuff/new"
               className="px-6 py-3 rounded-full bg-[#4A3728] text-[#F5F0E8] font-medium hover:bg-[#6B5040] transition-colors"
             >
-              List an Item
+              {t("myStuff.listItem")}
             </Link>
           </div>
         )}
@@ -223,7 +225,7 @@ export default function MyStuff() {
                     <svg viewBox="0 0 24 24" fill={item.likedBy.length > 0 ? "#A0624A" : "none"} stroke="#A0624A" strokeWidth="2" className="w-3.5 h-3.5">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                     </svg>
-                    {item.likedBy.length === 0 ? "No likes yet" : `${item.likedBy.length} ${item.likedBy.length === 1 ? "like" : "likes"}`}
+                    {item.likedBy.length === 0 ? t("myStuff.noLikes") : t("myStuff.likes", { n: item.likedBy.length, s: item.likedBy.length !== 1 ? "s" : "" })}
                   </button>
                 </div>
               </div>
@@ -237,20 +239,20 @@ export default function MyStuff() {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
           <div className="relative w-full max-w-xs bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg text-center">
-            <p className="text-base font-semibold text-[#4A3728] mb-2">Delete this item?</p>
-            <p className="text-sm text-[#8B7355] mb-6">This can't be undone.</p>
+            <p className="text-base font-semibold text-[#4A3728] mb-2">{t("myStuff.deleteTitle")}</p>
+            <p className="text-sm text-[#8B7355] mb-6">{t("myStuff.deleteHint")}</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDelete(null)}
                 className="flex-1 py-2.5 rounded-full border border-[#D9CFC4] text-[#6B5040] text-sm hover:bg-[#EDE8DF] transition-colors"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={() => deleteItem(confirmDelete)}
                 className="flex-1 py-2.5 rounded-full bg-[#A0624A] text-white text-sm hover:bg-[#8B4D38] transition-colors"
               >
-                Delete
+                {t("common.delete")}
               </button>
             </div>
           </div>
@@ -275,12 +277,12 @@ export default function MyStuff() {
               <svg viewBox="0 0 24 24" fill="#A0624A" stroke="#A0624A" strokeWidth="2" className="w-4 h-4">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
-              <h3 className="text-base font-semibold text-[#4A3728]">Liked by</h3>
+              <h3 className="text-base font-semibold text-[#4A3728]">{t("myStuff.likedBy")}</h3>
             </div>
             <p className="text-xs text-[#8B7355] mb-5 truncate">{likersModal.itemName}</p>
 
             {likersModal.likedBy.length === 0 ? (
-              <p className="text-sm text-[#A09080] text-center py-4">No one has liked this item yet.</p>
+              <p className="text-sm text-[#A09080] text-center py-4">{t("myStuff.noOneLiked")}</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {likersModal.likedBy.map((member) => (

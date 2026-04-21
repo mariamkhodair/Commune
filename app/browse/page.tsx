@@ -4,19 +4,27 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useLang } from "@/lib/languageContext";
+import LangToggle from "@/components/LangToggle";
 
-const categories = [
-  "All Stuff",
-  "Apparel",
-  "Electronics",
-  "Books",
-  "Cosmetics",
-  "Furniture & Home Decor",
-  "Stationery & Art Supplies",
-  "Miscellaneous",
+const CATEGORY_KEYS = [
+  { key: "cat.all" as const, value: "All Stuff" },
+  { key: "cat.apparel" as const, value: "Apparel" },
+  { key: "cat.electronics" as const, value: "Electronics" },
+  { key: "cat.books" as const, value: "Books" },
+  { key: "cat.cosmetics" as const, value: "Cosmetics" },
+  { key: "cat.furniture" as const, value: "Furniture & Home Decor" },
+  { key: "cat.stationery" as const, value: "Stationery & Art Supplies" },
+  { key: "cat.misc" as const, value: "Miscellaneous" },
 ];
 
-const conditions = ["Any", "New", "Like New", "Good", "Fair"];
+const CONDITION_KEYS = [
+  { key: "common.any" as const, value: "Any" },
+  { key: "common.new" as const, value: "New" },
+  { key: "common.likeNew" as const, value: "Like New" },
+  { key: "common.good" as const, value: "Good" },
+  { key: "common.fair" as const, value: "Fair" },
+];
 
 type BrowseItem = {
   id: string;
@@ -32,6 +40,7 @@ type BrowseItem = {
 
 function BrowseInner() {
   const searchParams = useSearchParams();
+  const { t, isRTL } = useLang();
 
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [category, setCategory] = useState(searchParams.get("category") ?? "All Stuff");
@@ -94,7 +103,7 @@ function BrowseInner() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
+    <div className="min-h-screen flex flex-col bg-[#FAF7F2]" dir={isRTL ? "rtl" : "ltr"}>
 
       {/* Sticky header */}
       <header className="sticky top-0 z-30 bg-[#FAF7F2]/90 backdrop-blur-sm border-b border-[#EDE8DF] px-8 py-4 flex items-center justify-between">
@@ -102,17 +111,18 @@ function BrowseInner() {
           Commune
         </Link>
         <div className="flex items-center gap-3">
+          <LangToggle />
           <Link
             href="/login"
             className="px-5 py-2 rounded-full border-2 border-[#4A3728] text-[#4A3728] font-medium hover:bg-[#4A3728] hover:text-[#F5F0E8] transition-colors text-sm"
           >
-            Log In
+            {t("home.logIn")}
           </Link>
           <Link
             href="/signup"
             className="px-5 py-2 rounded-full bg-[#4A3728] text-[#F5F0E8] font-medium hover:bg-[#6B5040] transition-colors text-sm"
           >
-            Sign Up
+            {t("home.signUp")}
           </Link>
         </div>
       </header>
@@ -121,17 +131,17 @@ function BrowseInner() {
 
         {/* Search bar */}
         <div className="px-8 pt-8 pb-4">
-          <h1 className="text-3xl font-light text-[#4A3728] mb-4 font-[family-name:var(--font-jost)]">Browse</h1>
+          <h1 className="text-3xl font-light text-[#4A3728] mb-4 font-[family-name:var(--font-jost)]">{t("browse.header")}</h1>
           <div className="relative">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#A09080" strokeWidth="2" strokeLinecap="round" className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#A09080" strokeWidth="2" strokeLinecap="round" className={`w-5 h-5 absolute ${isRTL ? "right-4" : "left-4"} top-1/2 -translate-y-1/2`}>
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
             <input
               type="text"
-              placeholder="Search for anything..."
+              placeholder={t("browse.searchPlaceholder")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full rounded-2xl border border-[#D9CFC4] bg-white/60 pl-12 pr-4 py-3.5 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors text-lg"
+              className={`w-full rounded-2xl border border-[#D9CFC4] bg-white/60 ${isRTL ? "pr-12 pl-4" : "pl-12 pr-4"} py-3.5 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors text-lg`}
             />
           </div>
         </div>
@@ -143,7 +153,7 @@ function BrowseInner() {
             onChange={(e) => setCategory(e.target.value)}
             className="rounded-full border border-[#D9CFC4] bg-white/60 px-4 py-2 text-sm text-[#6B5040] focus:outline-none focus:border-[#4A3728] transition-colors appearance-none"
           >
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            {CATEGORY_KEYS.map((c) => <option key={c.value} value={c.value}>{t(c.key)}</option>)}
           </select>
 
           <select
@@ -151,13 +161,13 @@ function BrowseInner() {
             onChange={(e) => setCondition(e.target.value)}
             className="rounded-full border border-[#D9CFC4] bg-white/60 px-4 py-2 text-sm text-[#6B5040] focus:outline-none focus:border-[#4A3728] transition-colors appearance-none"
           >
-            {conditions.map((c) => <option key={c} value={c}>{c}</option>)}
+            {CONDITION_KEYS.map((c) => <option key={c.value} value={c.value}>{t(c.key)}</option>)}
           </select>
 
           <div className="flex items-center gap-2">
             <input
               type="number"
-              placeholder="Min pts"
+              placeholder={t("browse.minPts")}
               value={minPoints}
               onChange={(e) => setMinPoints(e.target.value)}
               className="w-24 rounded-full border border-[#D9CFC4] bg-white/60 px-4 py-2 text-sm text-[#6B5040] focus:outline-none focus:border-[#4A3728] transition-colors"
@@ -165,14 +175,14 @@ function BrowseInner() {
             <span className="text-[#A09080] text-sm">–</span>
             <input
               type="number"
-              placeholder="Max pts"
+              placeholder={t("browse.maxPts")}
               value={maxPoints}
               onChange={(e) => setMaxPoints(e.target.value)}
               className="w-24 rounded-full border border-[#D9CFC4] bg-white/60 px-4 py-2 text-sm text-[#6B5040] focus:outline-none focus:border-[#4A3728] transition-colors"
             />
           </div>
 
-          <span className="text-sm text-[#A09080] ml-auto">{sorted.length} result{sorted.length !== 1 ? "s" : ""}</span>
+          <span className="text-sm text-[#A09080] ml-auto">{t("browse.result", { n: sorted.length, s: sorted.length !== 1 ? "s" : "" })}</span>
         </div>
 
         {/* Results */}
@@ -183,8 +193,8 @@ function BrowseInner() {
             </div>
           ) : sorted.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-32 text-center">
-              <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">No results found</p>
-              <p className="text-[#A09080]">Try adjusting your filters.</p>
+              <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">{t("browse.noResults")}</p>
+              <p className="text-[#A09080]">{t("browse.noResultsHint")}</p>
             </div>
           ) : (
             <div className="grid grid-cols-4 gap-3 portrait-grid-2">
@@ -209,17 +219,17 @@ function BrowseInner() {
                       {item.owner}{" · "}{item.condition}
                     </p>
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
+                      <span className="text-xs font-semibold text-[#4A3728]">{item.points} {t("common.pts")}</span>
                       {item.status === "Swapped" ? (
                         <span className="text-xs px-3 py-1 rounded-full bg-[#EDE8DF] text-[#A09080] border border-[#D9CFC4]">
-                          Swapped
+                          {t("browse.swapped")}
                         </span>
                       ) : (
                         <Link
                           href="/signup"
                           className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
                         >
-                          Sign up to swap
+                          {t("browse.signUpToSwap")}
                         </Link>
                       )}
                     </div>

@@ -5,11 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { toJpegBlob } from "@/lib/imageUtils";
+import { useLang } from "@/lib/languageContext";
+import LangToggle from "@/components/LangToggle";
 
 const DRAFT_KEY = "signup_draft";
 
 export default function SignUp() {
   const router = useRouter();
+  const { t, isRTL } = useLang();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -96,7 +99,7 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center relative overflow-hidden px-4 pt-10">
+    <div className="min-h-screen flex flex-col items-center relative overflow-hidden px-4 pt-10" dir={isRTL ? "rtl" : "ltr"}>
 
 
       {/* ── T-shirt — top left ── */}
@@ -134,14 +137,17 @@ export default function SignUp() {
       </svg>
 
       {/* Logo */}
-      <Link href="/" className="mb-8 text-5xl text-[#4A3728] font-[family-name:var(--font-permanent-marker)] hover:opacity-80 transition-opacity">
-        Commune
-      </Link>
+      <div className="mb-8 flex flex-col items-center gap-3">
+        <Link href="/" className="text-5xl text-[#4A3728] font-[family-name:var(--font-permanent-marker)] hover:opacity-80 transition-opacity">
+          Commune
+        </Link>
+        <LangToggle />
+      </div>
 
       {/* Card */}
       <div className="w-full max-w-md bg-white/60 backdrop-blur-sm rounded-3xl px-8 py-10 shadow-sm">
-        <h2 className="text-2xl font-semibold text-[#4A3728] mb-2">Create your account</h2>
-        <p className="text-sm text-[#8B7355] mb-8">Join the community and start swapping.</p>
+        <h2 className="text-2xl font-semibold text-[#4A3728] mb-2">{t("signup.createAccount")}</h2>
+        <p className="text-sm text-[#8B7355] mb-8">{t("signup.subtitle")}</p>
 
         {success && (
           <div className="mb-6 rounded-xl bg-[#7A9E6E]/20 border border-[#7A9E6E] px-4 py-3 text-sm text-[#4A3728]">
@@ -178,7 +184,7 @@ export default function SignUp() {
 
           {/* Name */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-[#6B5040]">Full Name</label>
+            <label className="text-sm text-[#6B5040]">{t("signup.fullName")}</label>
             <input
               name="name"
               type="text"
@@ -192,7 +198,7 @@ export default function SignUp() {
 
           {/* Email */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-[#6B5040]">Email</label>
+            <label className="text-sm text-[#6B5040]">{t("signup.email")}</label>
             <input
               name="email"
               type="email"
@@ -206,7 +212,7 @@ export default function SignUp() {
 
           {/* Password */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-[#6B5040]">Password</label>
+            <label className="text-sm text-[#6B5040]">{t("signup.password")}</label>
             <input
               name="password"
               type="password"
@@ -221,7 +227,7 @@ export default function SignUp() {
 
           {/* Phone */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-[#6B5040]">Mobile Number</label>
+            <label className="text-sm text-[#6B5040]">{t("signup.phone")}</label>
             <div className="flex rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] overflow-hidden focus-within:border-[#4A3728] transition-colors">
               <span className="px-4 py-3 text-[#8B7355] border-r border-[#D9CFC4] text-sm flex items-center">+20</span>
               <input
@@ -291,13 +297,13 @@ export default function SignUp() {
                 className="mt-0.5 w-4 h-4 accent-[#4A3728] shrink-0"
               />
               <span className="text-sm text-[#6B5040] leading-relaxed">
-                I have read and agree to Commune's{" "}
+                {t("signup.agreePrefix")}{" "}
                 <Link
                   href="/community-guidelines"
                   target="_blank"
                   className="text-[#4A3728] font-medium underline hover:text-[#6B5040] transition-colors"
                 >
-                  Community Guidelines
+                  {t("signup.guidelines")}
                 </Link>
               </span>
             </label>
@@ -309,15 +315,15 @@ export default function SignUp() {
             disabled={loading || success || !agreedToTerms}
             className="mt-2 w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? "Creating account..." : "Join Commune"}
+            {loading ? t("signup.creating") : t("signup.createBtn")}
           </button>
 
         </form>
 
         <p className="text-center text-sm text-[#8B7355] mt-6">
-          Already have an account?{" "}
+          {t("signup.haveAccount")}{" "}
           <Link href="/login" className="text-[#4A3728] font-medium hover:underline">
-            Log in
+            {t("signup.signIn")}
           </Link>
         </p>
       </div>
