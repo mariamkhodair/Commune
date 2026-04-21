@@ -198,7 +198,7 @@ function MembersInner() {
             <p className="text-xs text-[#A09080]">{t("members.memberSince", { date: member.joined })}</p>
           </div>
           <span className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040]">
-            View Their Stuff
+            {t("sidebar.myStuff")}
           </span>
         </Link>
       </div>
