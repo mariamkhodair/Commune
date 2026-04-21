@@ -8,6 +8,9 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts, PermanentMarker_400Regular } from "@expo-google-fonts/permanent-marker";
 import { supabase } from "@/lib/supabase";
+import { useLang } from "@/lib/languageContext";
+import { LangToggle } from "@/components/LangToggle";
+import { CATEGORY_KEYS } from "@/lib/translations";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2;
@@ -26,6 +29,7 @@ type BrowseItem = {
 
 export default function Landing() {
   const router = useRouter();
+  const { t, isRTL } = useLang();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [items, setItems] = useState<BrowseItem[]>([]);
@@ -70,38 +74,42 @@ export default function Landing() {
 
         {/* Header */}
         <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 }}>
-          <Text style={{ fontSize: 32, color: "#4A3728", fontFamily: fontsLoaded ? "PermanentMarker_400Regular" : undefined }}>Commune</Text>
-          <Text style={{ fontSize: 13, color: "#8B7355", marginTop: 2 }}>swap what you don't need</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={{ fontSize: 32, color: "#4A3728", fontFamily: fontsLoaded ? "PermanentMarker_400Regular" : undefined }}>
+              Commune
+            </Text>
+            <LangToggle />
+          </View>
+          <Text style={{ fontSize: 13, color: "#8B7355", marginTop: 2, textAlign: isRTL ? "right" : "left" }}>
+            {t("landing.tagline")}
+          </Text>
         </View>
 
         {/* Search */}
         <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, borderWidth: 1, borderColor: "#D9CFC4", paddingHorizontal: 14, paddingVertical: 10, gap: 10 }}>
+          <View style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, borderWidth: 1, borderColor: "#D9CFC4", paddingHorizontal: 14, paddingVertical: 10, gap: 10 }}>
             <Ionicons name="search-outline" size={18} color="#A09080" />
             <TextInput
-              placeholder="Search for anything..."
+              placeholder={t("landing.searchPlaceholder")}
               placeholderTextColor="#C4B9AA"
               value={query}
               onChangeText={setQuery}
-              style={{ flex: 1, fontSize: 15, color: "#4A3728" }}
+              style={{ flex: 1, fontSize: 15, color: "#4A3728", textAlign: isRTL ? "right" : "left" }}
             />
           </View>
         </View>
 
         {/* Category chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexShrink: 0 }} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8, alignItems: "center" }}>
           {CATEGORIES.map((c) => (
             <TouchableOpacity
               key={c}
               onPress={() => setCategory(c)}
-              style={{
-                paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
-                backgroundColor: category === c ? "#4A3728" : "#fff",
-                borderWidth: 1, borderColor: category === c ? "#4A3728" : "#D9CFC4",
-                alignItems: "center", justifyContent: "center",
-              }}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: category === c ? "#4A3728" : "#D9CFC4", backgroundColor: category === c ? "#4A3728" : "white", flexDirection: "row", alignItems: "center" }}
             >
-              <Text style={{ fontSize: 13, color: category === c ? "#FAF7F2" : "#6B5040", flexShrink: 0 }} numberOfLines={1}>{c}</Text>
+              <Text style={{ fontSize: 13, fontWeight: "500", color: category === c ? "#FAF7F2" : "#6B5040" }}>
+                {t(CATEGORY_KEYS[c])}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -113,7 +121,7 @@ export default function Landing() {
           </View>
         ) : filtered.length === 0 ? (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: "#A09080", fontSize: 15 }}>No items found</Text>
+            <Text style={{ color: "#A09080", fontSize: 15 }}>{t("landing.noItems")}</Text>
           </View>
         ) : (
           <FlatList
@@ -139,9 +147,9 @@ export default function Landing() {
                   )}
                 </View>
                 <View style={{ padding: 10 }}>
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: "#4A3728" }} numberOfLines={1}>{item.name}</Text>
-                  <Text style={{ fontSize: 11, color: "#8B7355", marginTop: 2 }} numberOfLines={1}>{item.owner} · {item.condition}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: "#4A3728", marginTop: 4 }}>{item.points} pts</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: "#4A3728", textAlign: isRTL ? "right" : "left" }} numberOfLines={1}>{item.name}</Text>
+                  <Text style={{ fontSize: 11, color: "#8B7355", marginTop: 2, textAlign: isRTL ? "right" : "left" }} numberOfLines={1}>{item.owner} · {item.condition}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: "#4A3728", marginTop: 4, textAlign: isRTL ? "right" : "left" }}>{item.points} {t("common.pts")}</Text>
                 </View>
               </TouchableOpacity>
             )}
@@ -152,18 +160,18 @@ export default function Landing() {
 
       {/* Sticky bottom bar */}
       <SafeAreaView edges={["bottom"]} style={{ backgroundColor: "#FAF7F2", borderTopWidth: 1, borderTopColor: "#EDE8DF" }}>
-        <View style={{ flexDirection: "row", gap: 12, paddingHorizontal: 20, paddingVertical: 14 }}>
+        <View style={{ flexDirection: isRTL ? "row-reverse" : "row", gap: 12, paddingHorizontal: 20, paddingVertical: 14 }}>
           <TouchableOpacity
             onPress={() => router.push("/(auth)/login")}
             style={{ flex: 1, paddingVertical: 14, borderRadius: 999, borderWidth: 1.5, borderColor: "#4A3728", alignItems: "center" }}
           >
-            <Text style={{ color: "#4A3728", fontWeight: "600", fontSize: 15 }}>Log In</Text>
+            <Text style={{ color: "#4A3728", fontWeight: "600", fontSize: 15 }}>{t("landing.logIn")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push("/(auth)/signup")}
             style={{ flex: 1, paddingVertical: 14, borderRadius: 999, backgroundColor: "#4A3728", alignItems: "center" }}
           >
-            <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 15 }}>Sign Up</Text>
+            <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 15 }}>{t("landing.signUp")}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

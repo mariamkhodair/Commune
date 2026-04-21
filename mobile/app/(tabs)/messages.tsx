@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { useUnread } from "@/lib/unreadContext";
+import { useLang } from "@/lib/languageContext";
 
 type Convo = { id: string; otherId: string; otherName: string; otherAvatar: string | null; lastMessage: string; lastAt: string };
 
@@ -14,6 +15,7 @@ export default function Messages() {
   const router = useRouter();
   const { userId } = useUser();
   const { clearAllMessages } = useUnread();
+  const { t, isRTL } = useLang();
   const [convos, setConvos] = useState<Convo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -72,9 +74,11 @@ export default function Messages() {
           otherAvatar: (p as any)?.avatar_url ?? null,
           lastMessage: lastMessage ?? "No messages yet",
           lastAt: lastAt ? new Date(lastAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "",
+          _ts: lastAt ? new Date(lastAt).getTime() : 0,
         };
       })
     );
+    enriched.sort((a, b) => b._ts - a._ts);
     setConvos(enriched);
     setLoading(false);
   }
@@ -82,7 +86,7 @@ export default function Messages() {
   return (
     <SafeAreaView className="flex-1">
       <View className="px-5 pt-4 pb-4">
-        <Text className="text-2xl font-light text-[#4A3728]">Messages</Text>
+        <Text style={{ textAlign: isRTL ? "right" : "left" }} className="text-2xl font-light text-[#4A3728]">{t("messages.header")}</Text>
       </View>
 
       {loading ? (
@@ -92,8 +96,8 @@ export default function Messages() {
       ) : convos.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="chatbubble-outline" size={40} color="#C4B9AA" />
-          <Text className="text-[#8B7355] text-base mt-3 mb-1">No messages yet</Text>
-          <Text className="text-[#A09080] text-sm text-center">Start a conversation by proposing a swap.</Text>
+          <Text className="text-[#8B7355] text-base mt-3 mb-1">{t("messages.emptyTitle")}</Text>
+          <Text className="text-[#A09080] text-sm text-center">{t("messages.emptyHint")}</Text>
         </View>
       ) : (
         <FlatList

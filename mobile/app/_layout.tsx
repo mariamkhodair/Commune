@@ -7,6 +7,7 @@ import * as Notifications from "expo-notifications";
 import { supabase } from "@/lib/supabase";
 import { UnreadProvider } from "@/lib/unreadContext";
 import { NotificationProvider } from "@/lib/notificationContext";
+import { LanguageProvider } from "@/lib/languageContext";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -106,14 +107,16 @@ export default function RootLayout() {
   }, [session, segments]);
 
   return (
-    <UnreadProvider>
-      <NotificationProvider userId={userId}>
-        <View style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
-          <StatusBar style="dark" backgroundColor="transparent" translucent />
-          <Stack screenOptions={{ headerShown: false }} />
-          <LeafBackground />
-        </View>
-      </NotificationProvider>
-    </UnreadProvider>
+    <LanguageProvider>
+      <UnreadProvider>
+        <NotificationProvider userId={userId}>
+          <View style={{ flex: 1, backgroundColor: "#FAF7F2" }}>
+            <StatusBar style="dark" backgroundColor="transparent" translucent />
+            <Stack screenOptions={{ headerShown: false }} />
+            <LeafBackground />
+          </View>
+        </NotificationProvider>
+      </UnreadProvider>
+    </LanguageProvider>
   );
 }

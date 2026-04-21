@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 type Member = { id: string; name: string; area: string; city: string; itemCount: number; joined: string; followed: boolean; avatar_url: string | null };
 type LikedMember = { id: string; name: string; area: string; city: string; itemCount: number; joined: string; avatar_url: string | null };
@@ -12,6 +13,7 @@ type LikedMember = { id: string; name: string; area: string; city: string; itemC
 export default function Members() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t } = useLang();
   const [tab, setTab] = useState<"all" | "liked">("all");
 
   // All members state
@@ -127,23 +129,23 @@ export default function Members() {
           <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
             <Ionicons name="arrow-back" size={18} color="#4A3728" />
           </TouchableOpacity>
-          <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>Members</Text>
+          <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>{t("members.header")}</Text>
         </View>
 
         {/* Tabs */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8, alignItems: "center" }}>
-          {(["all", "liked"] as const).map((t) => (
+          {(["all", "liked"] as const).map((tabKey) => (
             <TouchableOpacity
-              key={t}
-              onPress={() => setTab(t)}
+              key={tabKey}
+              onPress={() => setTab(tabKey)}
               style={{
                 paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999, borderWidth: 1,
-                borderColor: tab === t ? "#4A3728" : "#D9CFC4",
-                backgroundColor: tab === t ? "#4A3728" : "white",
+                borderColor: tab === tabKey ? "#4A3728" : "#D9CFC4",
+                backgroundColor: tab === tabKey ? "#4A3728" : "white",
               }}
             >
-              <Text style={{ fontSize: 13, fontWeight: "500", color: tab === t ? "#FAF7F2" : "#6B5040" }}>
-                {t === "all" ? "All Members" : `Liked Members${followedCount > 0 ? ` (${followedCount})` : ""}`}
+              <Text style={{ fontSize: 13, fontWeight: "500", color: tab === tabKey ? "#FAF7F2" : "#6B5040" }}>
+                {tabKey === "all" ? t("members.allMembers") : `${t("members.likedMembers")}${followedCount > 0 ? ` (${followedCount})` : ""}`}
               </Text>
             </TouchableOpacity>
           ))}
@@ -157,7 +159,7 @@ export default function Members() {
             <Ionicons name="search-outline" size={18} color="#C4B9AA" />
             <TextInput
               style={{ flex: 1, paddingVertical: 12, marginLeft: 8, color: "#4A3728", fontSize: 14 }}
-              placeholder="Search members..."
+              placeholder={t("members.searchPlaceholder")}
               placeholderTextColor="#C4B9AA"
               value={query}
               onChangeText={setQuery}

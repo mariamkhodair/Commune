@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNotifications } from "@/lib/notificationContext";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 const TYPE_ICONS: Record<string, string> = {
   proposal: "swap-horizontal-outline",
@@ -53,6 +54,7 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const { notifications, markRead, markAllRead } = useNotifications();
   const { userId } = useUser();
+  const { t, isRTL } = useLang();
 
   useEffect(() => {
     if (!userId) return;
@@ -69,13 +71,13 @@ export default function NotificationsScreen() {
             <Ionicons name="arrow-back" size={18} color="#4A3728" />
           </TouchableOpacity>
           <View>
-            <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>Notifications</Text>
-            <Text style={{ fontSize: 12, color: "#8B7355" }}>Your swap updates</Text>
+            <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>{t("notif.header")}</Text>
+            <Text style={{ fontSize: 12, color: "#8B7355" }}>{t("notif.subheader")}</Text>
           </View>
         </View>
         {notifications.some((n) => !n.read) && (
           <TouchableOpacity onPress={markAllRead}>
-            <Text style={{ fontSize: 12, color: "#8B7355", textDecorationLine: "underline" }}>Mark all read</Text>
+            <Text style={{ fontSize: 12, color: "#8B7355", textDecorationLine: "underline" }}>{t("notif.markAllRead")}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -83,10 +85,8 @@ export default function NotificationsScreen() {
       {notifications.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
           <Ionicons name="notifications-outline" size={48} color="#C4B9AA" />
-          <Text style={{ color: "#8B7355", fontSize: 16, marginTop: 12, marginBottom: 4 }}>No notifications yet</Text>
-          <Text style={{ color: "#A09080", fontSize: 13, textAlign: "center" }}>
-            You'll be notified when someone proposes, accepts, or schedules a swap.
-          </Text>
+          <Text style={{ color: "#8B7355", fontSize: 16, marginTop: 12, marginBottom: 4 }}>{t("notif.emptyTitle")}</Text>
+          <Text style={{ color: "#A09080", fontSize: 13, textAlign: isRTL ? "right" : "center" }}>{t("notif.emptyHint")}</Text>
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 8 }}>

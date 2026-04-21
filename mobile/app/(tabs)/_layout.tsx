@@ -11,55 +11,57 @@ import { useNotifications } from "@/lib/notificationContext";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { tourState } from "@/lib/tourState";
+import { useLang } from "@/lib/languageContext";
+import { LangToggle } from "@/components/LangToggle";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 const DRAWER_WIDTH = SW * 0.78;
 
-type MenuItem = { label: string; icon: keyof typeof Ionicons.glyphMap; route: string };
+type MenuItem = { labelKey: string; icon: keyof typeof Ionicons.glyphMap; route: string };
 
-const SECTIONS: { heading: string; items: MenuItem[] }[] = [
+const SECTIONS: { headingKey: string; items: MenuItem[] }[] = [
   {
-    heading: "My Activity",
+    headingKey: "drawer.myActivity",
     items: [
-      { label: "Notifications",      icon: "notifications-outline",       route: "/notifications" },
-      { label: "My Swaps",           icon: "swap-horizontal-outline",     route: "/my-swaps" },
-      { label: "Scheduled Swaps",    icon: "calendar-outline",            route: "/scheduled-swaps" },
-      { label: "Communes",           icon: "triangle-outline",            route: "/communes" },
-      { label: "Stuff I Want",       icon: "star-outline",                route: "/stuff-i-want" },
+      { labelKey: "drawer.notifications",   icon: "notifications-outline",       route: "/notifications" },
+      { labelKey: "drawer.mySwaps",         icon: "swap-horizontal-outline",     route: "/my-swaps" },
+      { labelKey: "drawer.scheduledSwaps",  icon: "calendar-outline",            route: "/scheduled-swaps" },
+      { labelKey: "drawer.communes",        icon: "triangle-outline",            route: "/communes" },
+      { labelKey: "drawer.stuffIWant",      icon: "star-outline",                route: "/stuff-i-want" },
     ],
   },
   {
-    heading: "Discover",
+    headingKey: "drawer.discover",
     items: [
-      { label: "Browse Members",     icon: "person-outline",              route: "/members" },
+      { labelKey: "drawer.browseMembers",   icon: "person-outline",              route: "/members" },
     ],
   },
   {
-    heading: "Support",
+    headingKey: "drawer.support",
     items: [
-      { label: "Get Help",           icon: "help-circle-outline",         route: "/help" },
-      { label: "About Commune",      icon: "information-circle-outline",  route: "/about" },
-      { label: "Community Guidelines", icon: "document-text-outline",     route: "/terms" },
+      { labelKey: "drawer.getHelp",         icon: "help-circle-outline",         route: "/help" },
+      { labelKey: "drawer.about",           icon: "information-circle-outline",  route: "/about" },
+      { labelKey: "drawer.guidelines",      icon: "document-text-outline",       route: "/terms" },
     ],
   },
 ];
 
-type TourStepDef = { type: "center" | "tab" | "drawer"; key?: string; text: string };
+type TourStepDef = { type: "center" | "tab" | "drawer"; key?: string; textKey: string };
 
 const TOUR: TourStepDef[] = [
-  { type: "center",  text: "Welcome to Commune! Let's take a quick tour of the app." },
-  { type: "tab",     key: "home",              text: "Your home feed — search items by category, member, or name." },
-  { type: "tab",     key: "search",            text: "Browse all items your neighbours are offering." },
-  { type: "tab",     key: "mystuff",           text: "List the items you want to swap here." },
-  { type: "tab",     key: "messages",          text: "Chat with your swap partners after a swap is accepted." },
-  { type: "tab",     key: "more",              text: "Tap here to open the full menu." },
-  { type: "drawer",  key: "my-swaps",          text: "Accept or decline swaps — then propose meeting dates." },
-  { type: "drawer",  key: "scheduled-swaps",   text: "Confirmed meetup dates show up here." },
-  { type: "drawer",  key: "communes",          text: "Communes are three-way swaps — A wants B's item, B wants C's, and C wants A's. Tap 'Find' to discover triangle matches!" },
-  { type: "drawer",  key: "stuff-i-want",      text: "Add items to your wish list — we'll find matches." },
-  { type: "drawer",  key: "notifications",     text: "Stay on top of all swap activity." },
-  { type: "drawer",  key: "browse-members",    text: "Discover who's in your community." },
-  { type: "center",  text: "You're all set! Start by listing your first item." },
+  { type: "center",  textKey: "tour.step0" },
+  { type: "tab",     key: "home",              textKey: "tour.step1" },
+  { type: "tab",     key: "search",            textKey: "tour.step2" },
+  { type: "tab",     key: "mystuff",           textKey: "tour.step3" },
+  { type: "tab",     key: "messages",          textKey: "tour.step4" },
+  { type: "tab",     key: "more",              textKey: "tour.step5" },
+  { type: "drawer",  key: "my-swaps",          textKey: "tour.step6" },
+  { type: "drawer",  key: "scheduled-swaps",   textKey: "tour.step7" },
+  { type: "drawer",  key: "communes",          textKey: "tour.step8" },
+  { type: "drawer",  key: "stuff-i-want",      textKey: "tour.step9" },
+  { type: "drawer",  key: "notifications",     textKey: "tour.step10" },
+  { type: "drawer",  key: "browse-members",    textKey: "tour.step11" },
+  { type: "center",  textKey: "tour.step12" },
 ];
 
 function TabIcon({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focused: boolean }) {
@@ -72,6 +74,7 @@ export default function TabLayout() {
   const { unreadMessages } = useUnread();
   const { unreadCount: unreadNotifications, markAllRead } = useNotifications();
   const { userId, profile } = useUser();
+  const { t, isRTL } = useLang();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(DRAWER_WIDTH)).current;
@@ -160,7 +163,6 @@ export default function TabLayout() {
     if (drawerOpen) closeDrawer();
   }
 
-  // Spotlight padding
   const PAD = 8;
   const sp = spotRect ? {
     x: spotRect.x - PAD,
@@ -169,14 +171,13 @@ export default function TabLayout() {
     h: spotRect.h + PAD * 2,
   } : null;
 
-  // Bubble width and positioning
   const BUBBLE_W = Math.min(240, SW - 40);
   const currentStep = tourActive ? TOUR[tourStep] : null;
 
   let bubbleLeft = (SW - BUBBLE_W) / 2;
   let bubbleBottom: number | undefined;
   let bubbleTop: number | undefined;
-  let arrowCenterX = BUBBLE_W / 2; // arrow offset from bubble left
+  let arrowCenterX = BUBBLE_W / 2;
 
   if (sp && currentStep?.type === "tab") {
     const tabCenterX = sp.x + sp.w / 2;
@@ -214,28 +215,28 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: "Home",
+            title: t("tabs.home"),
             tabBarIcon: ({ focused }) => <TabIcon name={focused ? "home" : "home-outline"} focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="search"
           options={{
-            title: "Search",
+            title: t("tabs.search"),
             tabBarIcon: ({ focused }) => <TabIcon name={focused ? "search" : "search-outline"} focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="my-stuff"
           options={{
-            title: "My Stuff",
+            title: t("tabs.myStuff"),
             tabBarIcon: ({ focused }) => <TabIcon name={focused ? "cube" : "cube-outline"} focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="messages"
           options={{
-            title: "Messages",
+            title: t("tabs.messages"),
             tabBarIcon: ({ focused }) => <TabIcon name={focused ? "chatbubble" : "chatbubble-outline"} focused={focused} />,
             tabBarBadge: unreadMessages > 0 ? unreadMessages : undefined,
             tabBarBadgeStyle: { backgroundColor: "#A0624A", fontSize: 10, minWidth: 18, height: 18 },
@@ -244,7 +245,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="more"
           options={{
-            title: "More",
+            title: t("tabs.more"),
             tabBarIcon: ({ focused }) => <TabIcon name={drawerOpen ? "menu" : "menu-outline"} focused={drawerOpen} />,
             tabBarBadge: totalMoreBadge > 0 ? totalMoreBadge : undefined,
             tabBarBadgeStyle: { backgroundColor: "#A0624A", fontSize: 10, minWidth: 18, height: 18 },
@@ -252,7 +253,7 @@ export default function TabLayout() {
               <TouchableOpacity
                 style={props.style}
                 onPress={drawerOpen ? () => closeDrawer() : openDrawer}
-                accessibilityLabel="More"
+                accessibilityLabel={t("tabs.more")}
               >
                 {props.children}
               </TouchableOpacity>
@@ -264,7 +265,6 @@ export default function TabLayout() {
       {/* Sidebar drawer */}
       {drawerOpen && (
         <>
-          {/* Backdrop — disabled during tour so accidental tap doesn't close drawer */}
           <TouchableWithoutFeedback onPress={tourActive ? undefined : () => closeDrawer()}>
             <Animated.View
               style={{
@@ -275,7 +275,6 @@ export default function TabLayout() {
             />
           </TouchableWithoutFeedback>
 
-          {/* Sidebar panel */}
           <Animated.View
             style={{
               position: "absolute", right: 0, top: 0, bottom: 0,
@@ -305,7 +304,7 @@ export default function TabLayout() {
                     )}
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <Text style={{ fontSize: 16, fontWeight: "600", color: "#4A3728" }}>{profile?.name ?? "Loading..."}</Text>
+                    <Text style={{ fontSize: 16, fontWeight: "600", color: "#4A3728" }}>{profile?.name ?? "..."}</Text>
                     <Ionicons name="pencil-outline" size={14} color="#8B7355" />
                   </View>
                   {profile?.area ? (
@@ -314,34 +313,35 @@ export default function TabLayout() {
                 </TouchableOpacity>
 
                 {/* Sections */}
-                {SECTIONS.map(({ heading, items }) => (
-                  <View key={heading} style={{ paddingHorizontal: 20, marginBottom: 20 }}>
-                    <Text style={{ fontSize: 11, fontWeight: "600", color: "#A09080", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
-                      {heading}
+                {SECTIONS.map(({ headingKey, items }) => (
+                  <View key={headingKey} style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: "#A09080", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, textAlign: isRTL ? "right" : "left" }}>
+                      {t(headingKey as any)}
                     </Text>
                     <View style={{ gap: 6 }}>
-                      {items.map(({ label, icon, route }) => {
-                        const isNotifications = label === "Notifications";
+                      {items.map(({ labelKey, icon, route }) => {
+                        const isNotifications = labelKey === "drawer.notifications";
                         const badgeCount = isNotifications ? unreadNotifications : 0;
-                        const refKey = label.toLowerCase().replace(/\s+/g, "-");
+                        const refKey = route.replace("/", "");
                         return (
                           <TouchableOpacity
-                            key={label}
+                            key={labelKey}
                             ref={(r) => { drawerItemRefs.current[refKey] = r; }}
                             onPress={() => {
                               if (isNotifications) markAllRead();
                               closeDrawer(() => router.push(route as any));
                             }}
                             style={{
-                              flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+                              flexDirection: isRTL ? "row-reverse" : "row",
+                              alignItems: "center", justifyContent: "space-between",
                               backgroundColor: "white", borderRadius: 16,
                               paddingHorizontal: 16, paddingVertical: 14,
                               borderWidth: 1, borderColor: "#EDE8DF",
                             }}
                           >
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                            <View style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", gap: 12 }}>
                               <Ionicons name={icon} size={18} color="#8B7355" />
-                              <Text style={{ fontSize: 14, color: "#4A3728" }}>{label}</Text>
+                              <Text style={{ fontSize: 14, color: "#4A3728" }}>{t(labelKey as any)}</Text>
                             </View>
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                               {badgeCount > 0 && (
@@ -349,7 +349,7 @@ export default function TabLayout() {
                                   <Text style={{ color: "white", fontSize: 11, fontWeight: "700" }}>{badgeCount}</Text>
                                 </View>
                               )}
-                              <Ionicons name="chevron-forward" size={16} color="#C4B9AA" />
+                              <Ionicons name={isRTL ? "chevron-back" : "chevron-forward"} size={16} color="#C4B9AA" />
                             </View>
                           </TouchableOpacity>
                         );
@@ -358,15 +358,18 @@ export default function TabLayout() {
                   </View>
                 ))}
 
-                {/* Sign out */}
-                <View style={{ paddingHorizontal: 20 }}>
+                {/* Language toggle + Sign out */}
+                <View style={{ paddingHorizontal: 20, gap: 10 }}>
                   <TouchableOpacity
                     onPress={signOut}
                     style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16, borderRadius: 999, borderWidth: 1, borderColor: "#D9CFC4" }}
                   >
                     <Ionicons name="log-out-outline" size={18} color="#A09080" />
-                    <Text style={{ fontSize: 14, color: "#A09080" }}>Sign Out</Text>
+                    <Text style={{ fontSize: 14, color: "#A09080" }}>{t("drawer.signOut")}</Text>
                   </TouchableOpacity>
+                  <View style={{ alignItems: "center" }}>
+                    <LangToggle />
+                  </View>
                 </View>
 
               </ScrollView>
@@ -375,26 +378,22 @@ export default function TabLayout() {
         </>
       )}
 
-      {/* ── TOUR OVERLAY ───────────────────────────────────────────────────── */}
+      {/* Tour overlay */}
       {tourActive && (
         <Modal transparent visible animationType="none" statusBarTranslucent>
           <View style={{ flex: 1 }}>
-
-            {/* Dark overlay: full screen or 4-rect spotlight */}
             {sp ? (
               <>
                 <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: sp.y, backgroundColor: "rgba(50,35,22,0.75)" }} />
                 <View style={{ position: "absolute", left: 0, width: sp.x, top: sp.y, height: sp.h, backgroundColor: "rgba(50,35,22,0.75)" }} />
                 <View style={{ position: "absolute", left: sp.x + sp.w, right: 0, top: sp.y, height: sp.h, backgroundColor: "rgba(50,35,22,0.75)" }} />
                 <View style={{ position: "absolute", left: 0, right: 0, top: sp.y + sp.h, bottom: 0, backgroundColor: "rgba(50,35,22,0.75)" }} />
-                {/* Spotlight border */}
                 <View style={{ position: "absolute", left: sp.x, top: sp.y, width: sp.w, height: sp.h, borderRadius: 12, borderWidth: 2, borderColor: "rgba(255,255,255,0.4)" }} pointerEvents="none" />
               </>
             ) : (
               <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(50,35,22,0.75)" }} />
             )}
 
-            {/* Tooltip bubble */}
             <View
               style={{
                 position: "absolute",
@@ -413,29 +412,23 @@ export default function TabLayout() {
                 elevation: 12,
               }}
             >
-              {/* Downward arrow pointing at the spotlight */}
               {sp && (
                 <View
                   style={{
-                    position: "absolute",
-                    bottom: -7,
+                    position: "absolute", bottom: -7,
                     left: Math.max(8, Math.min(BUBBLE_W - 22, arrowCenterX - 7)),
-                    width: 14,
-                    height: 14,
+                    width: 14, height: 14,
                     transform: [{ rotate: "45deg" }],
                     backgroundColor: "white",
-                    borderRightWidth: 1.5,
-                    borderBottomWidth: 1.5,
-                    borderColor: "#EDE8DF",
+                    borderRightWidth: 1.5, borderBottomWidth: 1.5, borderColor: "#EDE8DF",
                   }}
                 />
               )}
 
-              <Text style={{ fontSize: 13, color: "#4A3728", lineHeight: 20, marginBottom: 14 }}>
-                {currentStep?.text}
+              <Text style={{ fontSize: 13, color: "#4A3728", lineHeight: 20, marginBottom: 14, textAlign: isRTL ? "right" : "left" }}>
+                {t(currentStep!.textKey as any)}
               </Text>
 
-              {/* Progress dots */}
               <View style={{ flexDirection: "row", gap: 4, marginBottom: 12 }}>
                 {TOUR.map((_, i) => (
                   <View
@@ -450,14 +443,13 @@ export default function TabLayout() {
                 ))}
               </View>
 
-              {/* Buttons */}
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {tourStep > 0 && (
                   <TouchableOpacity
                     onPress={tourPrev}
                     style={{ flex: 1, paddingVertical: 8, borderRadius: 999, borderWidth: 1.5, borderColor: "#D9CFC4", alignItems: "center" }}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: "500", color: "#6B5040" }}>Back</Text>
+                    <Text style={{ fontSize: 12, fontWeight: "500", color: "#6B5040" }}>{t("tour.back")}</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -465,27 +457,23 @@ export default function TabLayout() {
                   style={{ flex: 2, paddingVertical: 8, borderRadius: 999, backgroundColor: "#4A3728", alignItems: "center" }}
                 >
                   <Text style={{ fontSize: 12, fontWeight: "700", color: "#FAF7F2" }}>
-                    {tourStep === TOUR.length - 1 ? "Done!" : "Next →"}
+                    {tourStep === TOUR.length - 1 ? t("tour.done") : t("tour.next")}
                   </Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Step count + skip */}
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
                 <Text style={{ fontSize: 10, color: "#C4B9AA" }}>{tourStep + 1} / {TOUR.length}</Text>
                 {tourStep < TOUR.length - 1 && (
                   <TouchableOpacity onPress={tourClose}>
-                    <Text style={{ fontSize: 10, color: "#A09080" }}>Skip tour</Text>
+                    <Text style={{ fontSize: 10, color: "#A09080" }}>{t("tour.skip")}</Text>
                   </TouchableOpacity>
                 )}
               </View>
             </View>
-
           </View>
         </Modal>
       )}
-      {/* ── END TOUR ────────────────────────────────────────────────────────── */}
-
     </View>
   );
 }

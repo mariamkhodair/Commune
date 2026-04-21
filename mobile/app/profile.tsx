@@ -9,12 +9,14 @@ import * as FileSystem from "expo-file-system/legacy";
 import { Buffer } from "buffer";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 type OwnItem = { id: string; name: string; category: string; points: number; photos: string[]; status: string };
 
 export default function ProfilePage() {
   const router = useRouter();
   const { userId, profile } = useUser();
+  const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [items, setItems] = useState<OwnItem[]>([]);
 
@@ -118,7 +120,7 @@ export default function ProfilePage() {
                 <Ionicons name="camera" size={12} color="#FAF7F2" />
               </View>
             </TouchableOpacity>
-            <Text style={{ marginTop: 10, fontSize: 13, color: "#8B7355" }}>{uploading ? "Uploading…" : "Tap to change photo"}</Text>
+            <Text style={{ marginTop: 10, fontSize: 13, color: "#8B7355" }}>{uploading ? t("profile.uploading") : t("profile.tapToChange")}</Text>
           </View>
 
           <View style={{ gap: 16 }}>
@@ -133,8 +135,8 @@ export default function ProfilePage() {
             style={{ marginTop: 28, backgroundColor: "#4A3728", borderRadius: 999, paddingVertical: 15, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: saving ? 0.6 : 1 }}
           >
             {saving ? <ActivityIndicator color="#FAF7F2" size="small" /> :
-              saved ? <><Ionicons name="checkmark" size={16} color="#FAF7F2" /><Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 15 }}>Saved</Text></> :
-              <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 15 }}>Save Changes</Text>}
+              saved ? <><Ionicons name="checkmark" size={16} color="#FAF7F2" /><Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 15 }}>{t("profile.saved")}</Text></> :
+              <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 15 }}>{t("profile.saveChanges")}</Text>}
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>

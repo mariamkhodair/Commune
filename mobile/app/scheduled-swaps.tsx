@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 import SwapSafetyControls from "@/components/SwapSafetyControls";
 
 type ScheduledSwap = {
@@ -44,6 +45,7 @@ function isUpcoming(dateStr: string) {
 export default function ScheduledSwaps() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t } = useLang();
   const [swaps, setSwaps] = useState<ScheduledSwap[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -163,8 +165,8 @@ export default function ScheduledSwaps() {
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
         </TouchableOpacity>
         <View>
-          <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>Scheduled Swaps</Text>
-          <Text style={{ fontSize: 12, color: "#8B7355" }}>Your confirmed swap dates</Text>
+          <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>{t("scheduled.header")}</Text>
+          <Text style={{ fontSize: 12, color: "#8B7355" }}>{t("scheduled.subheader")}</Text>
         </View>
       </View>
 
@@ -175,7 +177,7 @@ export default function ScheduledSwaps() {
       ) : swaps.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
           <Ionicons name="calendar-outline" size={48} color="#C4B9AA" />
-          <Text style={{ color: "#8B7355", fontSize: 16, marginTop: 12, marginBottom: 6 }}>Nothing scheduled yet</Text>
+          <Text style={{ color: "#8B7355", fontSize: 16, marginTop: 12, marginBottom: 6 }}>{t("scheduled.emptyTitle")}</Text>
           <Text style={{ color: "#A09080", fontSize: 13, textAlign: "center", marginBottom: 24, lineHeight: 20 }}>
             Go to My Swaps, accept a swap, then propose dates. Once the other member accepts a date it'll appear here.
           </Text>
@@ -183,7 +185,7 @@ export default function ScheduledSwaps() {
             onPress={() => router.push("/my-swaps" as any)}
             style={{ backgroundColor: "#4A3728", borderRadius: 999, paddingHorizontal: 24, paddingVertical: 12 }}
           >
-            <Text style={{ color: "#FAF7F2", fontWeight: "600" }}>Go to My Swaps</Text>
+            <Text style={{ color: "#FAF7F2", fontWeight: "600" }}>{t("scheduled.goToMySwaps")}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -246,19 +248,19 @@ export default function ScheduledSwaps() {
                   {/* Items */}
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                     <View style={{ flex: 1, backgroundColor: "#F5F0E8", borderRadius: 12, padding: 10 }}>
-                      <Text style={{ fontSize: 10, color: "#A09080", marginBottom: 2 }}>You're giving</Text>
+                      <Text style={{ fontSize: 10, color: "#A09080", marginBottom: 2 }}>{t("scheduled.youGiving")}</Text>
                       <Text style={{ fontSize: 12, fontWeight: "500", color: "#4A3728" }} numberOfLines={2}>{swap.yourItems}</Text>
                     </View>
                     <Ionicons name="swap-horizontal" size={18} color="#8B7355" />
                     <View style={{ flex: 1, backgroundColor: "#F5F0E8", borderRadius: 12, padding: 10 }}>
-                      <Text style={{ fontSize: 10, color: "#A09080", marginBottom: 2 }}>You're getting</Text>
+                      <Text style={{ fontSize: 10, color: "#A09080", marginBottom: 2 }}>{t("scheduled.youGetting")}</Text>
                       <Text style={{ fontSize: 12, fontWeight: "500", color: "#4A3728" }} numberOfLines={2}>{swap.theirItems}</Text>
                     </View>
                   </View>
 
                   {/* View in My Swaps */}
                   <TouchableOpacity onPress={() => router.push("/my-swaps" as any)}>
-                    <Text style={{ fontSize: 12, color: "#8B7355", textDecorationLine: "underline" }}>View in My Swaps →</Text>
+                    <Text style={{ fontSize: 12, color: "#8B7355", textDecorationLine: "underline" }}>{t("scheduled.viewInMySwaps")}</Text>
                   </TouchableOpacity>
 
                   {/* Swap Safety System — Off to Swap / Swapped & Safe / map */}

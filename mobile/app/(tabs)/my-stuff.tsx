@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 type Item = { id: string; name: string; category: string; points: number; photos: string[]; status: string; likeCount: number };
 
@@ -22,6 +23,7 @@ const statusBg: Record<string, string> = {
 export default function MyStuff() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t, isRTL } = useLang();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -102,17 +104,18 @@ export default function MyStuff() {
 
   return (
     <SafeAreaView className="flex-1">
-      <View className="flex-row items-center justify-between px-5 pt-4 pb-4">
+      <View style={{ flexDirection: isRTL ? "row-reverse" : "row" }} className="items-center justify-between px-5 pt-4 pb-4">
         <View>
-          <Text className="text-2xl font-light text-[#4A3728]">My Stuff</Text>
-          <Text className="text-[#8B7355] text-sm">{items.length} item{items.length !== 1 ? "s" : ""} listed</Text>
+          <Text style={{ textAlign: isRTL ? "right" : "left" }} className="text-2xl font-light text-[#4A3728]">{t("myStuff.header")}</Text>
+          <Text style={{ textAlign: isRTL ? "right" : "left" }} className="text-[#8B7355] text-sm">{t("myStuff.listed", { n: items.length })}</Text>
         </View>
         <TouchableOpacity
           onPress={() => router.push("/new-item")}
-          className="flex-row items-center gap-1.5 bg-[#4A3728] px-4 py-2.5 rounded-full"
+          style={{ flexDirection: isRTL ? "row-reverse" : "row" }}
+          className="items-center gap-1.5 bg-[#4A3728] px-4 py-2.5 rounded-full"
         >
           <Ionicons name="add" size={16} color="#FAF7F2" />
-          <Text className="text-[#FAF7F2] font-medium text-sm">List Item</Text>
+          <Text className="text-[#FAF7F2] font-medium text-sm">{t("myStuff.listItem")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -122,10 +125,10 @@ export default function MyStuff() {
         </View>
       ) : items.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-[#8B7355] text-lg mb-2">Nothing here yet</Text>
-          <Text className="text-[#A09080] text-sm text-center mb-6">List your first item and start swapping.</Text>
+          <Text className="text-[#8B7355] text-lg mb-2">{t("myStuff.emptyTitle")}</Text>
+          <Text className="text-[#A09080] text-sm text-center mb-6">{t("myStuff.emptyHint")}</Text>
           <TouchableOpacity onPress={() => router.push("/new-item")} className="bg-[#4A3728] px-6 py-3 rounded-full">
-            <Text className="text-[#FAF7F2] font-medium">List an Item</Text>
+            <Text className="text-[#FAF7F2] font-medium">{t("myStuff.listAnItem")}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -168,7 +171,9 @@ export default function MyStuff() {
                 <View className="flex-row items-center justify-between mt-1.5">
                   <Text className="text-xs font-semibold text-[#4A3728]">{item.points} pts</Text>
                   <View style={{ backgroundColor: statusBg[item.status] ?? "#EDE8DF" }} className="px-2 py-0.5 rounded-full">
-                    <Text style={{ color: statusColors[item.status] ?? "#4A3728" }} className="text-xs font-medium">{item.status}</Text>
+                    <Text style={{ color: statusColors[item.status] ?? "#4A3728" }} className="text-xs font-medium">
+                      {item.status === "Available" ? t("myStuff.available") : item.status === "In a Swap" ? t("myStuff.inSwap") : t("myStuff.swapped")}
+                    </Text>
                   </View>
                 </View>
                 {item.likeCount > 0 && (

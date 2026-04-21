@@ -8,6 +8,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
+import { CATEGORY_KEYS } from "@/lib/translations";
 
 type Item = { id: string; name: string; category: string; condition: string; points: number; photos: string[]; owner: string; ownerId: string; liked: boolean; status: string };
 
@@ -16,6 +18,7 @@ const CATEGORIES = ["All", "Apparel", "Electronics", "Books", "Cosmetics", "Furn
 export default function Search() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t, isRTL } = useLang();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -86,12 +89,13 @@ export default function Search() {
     <SafeAreaView className="flex-1">
       {/* Search bar */}
       <View className="px-5 pt-4 pb-3">
-        <Text className="text-2xl font-light text-[#4A3728] mb-3">Browse</Text>
-        <View className="flex-row items-center bg-white rounded-2xl px-4 border border-[#EDE8DF]">
+        <Text style={{ textAlign: isRTL ? "right" : "left" }} className="text-2xl font-light text-[#4A3728] mb-3">{t("search.header")}</Text>
+        <View style={{ flexDirection: isRTL ? "row-reverse" : "row" }} className="items-center bg-white rounded-2xl px-4 border border-[#EDE8DF]">
           <Ionicons name="search-outline" size={18} color="#C4B9AA" />
           <TextInput
+            style={{ textAlign: isRTL ? "right" : "left" }}
             className="flex-1 py-3 ml-2 text-[#4A3728] text-sm"
-            placeholder="Search items..."
+            placeholder={t("search.placeholder")}
             placeholderTextColor="#C4B9AA"
             value={query}
             onChangeText={setQuery}
@@ -112,7 +116,7 @@ export default function Search() {
             onPress={() => setCategory(c)}
             style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: category === c ? "#4A3728" : "#D9CFC4", backgroundColor: category === c ? "#4A3728" : "white", flexDirection: "row", alignItems: "center" }}
           >
-            <Text style={{ fontSize: 13, fontWeight: "500", color: category === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
+            <Text style={{ fontSize: 13, fontWeight: "500", color: category === c ? "#FAF7F2" : "#6B5040" }}>{t(CATEGORY_KEYS[c])}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -121,7 +125,7 @@ export default function Search() {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#4A3728" />
         </View>
-      ) : (
+      ) : ( // eslint-disable-next-line react/jsx-no-useless-fragment
         <FlatList
           data={filtered}
           keyExtractor={(i) => i.id}
@@ -133,7 +137,7 @@ export default function Search() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center py-20">
-              <Text className="text-[#8B7355] text-base">No items found</Text>
+              <Text className="text-[#8B7355] text-base">{t("search.noItems")}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -161,11 +165,11 @@ export default function Search() {
                   <Text className="text-xs font-semibold text-[#4A3728]">{item.points} pts</Text>
                   {item.status === "Swapped" ? (
                     <View style={{ backgroundColor: "#DDD8C8", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "#D9CFC4" }}>
-                      <Text style={{ fontSize: 11, color: "#6B5040", fontWeight: "600" }}>Swapped</Text>
+                      <Text style={{ fontSize: 11, color: "#6B5040", fontWeight: "600" }}>{t("common.swapped")}</Text>
                     </View>
                   ) : (
                     <View style={{ backgroundColor: "#D8E4D0", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}>
-                      <Text style={{ fontSize: 11, color: "#4A6640", fontWeight: "600" }}>Available</Text>
+                      <Text style={{ fontSize: 11, color: "#4A6640", fontWeight: "600" }}>{t("common.available")}</Text>
                     </View>
                   )}
                 </View>

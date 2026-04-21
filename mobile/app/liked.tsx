@@ -5,12 +5,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 type LikedItem = { id: string; name: string; condition: string; points: number; photos: string[]; owner: string; ownerId: string; status: string };
 
 export default function LikedStuff() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t } = useLang();
   const [items, setItems] = useState<LikedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,7 +50,7 @@ export default function LikedStuff() {
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
         </TouchableOpacity>
-        <Text className="text-2xl font-light text-[#4A3728]">Liked Stuff</Text>
+        <Text className="text-2xl font-light text-[#4A3728]">{t("liked.header")}</Text>
       </View>
 
       {loading ? (
@@ -56,8 +58,8 @@ export default function LikedStuff() {
       ) : items.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="heart-outline" size={40} color="#C4B9AA" />
-          <Text className="text-[#8B7355] text-base mt-3 mb-1">Nothing liked yet</Text>
-          <Text className="text-[#A09080] text-sm text-center">Browse items and heart the ones you want.</Text>
+          <Text className="text-[#8B7355] text-base mt-3 mb-1">{t("liked.emptyTitle")}</Text>
+          <Text className="text-[#A09080] text-sm text-center">{t("liked.emptyHint")}</Text>
         </View>
       ) : (
         <FlatList
@@ -94,11 +96,11 @@ export default function LikedStuff() {
                   <Text className="text-xs font-semibold text-[#4A3728]">{item.points} pts</Text>
                   {item.status === "Swapped" ? (
                     <View style={{ backgroundColor: "#DDD8C8", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "#D9CFC4" }}>
-                      <Text style={{ fontSize: 11, color: "#6B5040", fontWeight: "600" }}>Swapped</Text>
+                      <Text style={{ fontSize: 11, color: "#6B5040", fontWeight: "600" }}>{t("common.swapped")}</Text>
                     </View>
                   ) : (
                     <View style={{ backgroundColor: "#D8E4D0", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}>
-                      <Text style={{ fontSize: 11, color: "#4A6640", fontWeight: "600" }}>Available</Text>
+                      <Text style={{ fontSize: 11, color: "#4A6640", fontWeight: "600" }}>{t("common.available")}</Text>
                     </View>
                   )}
                 </View>

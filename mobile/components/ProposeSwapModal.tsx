@@ -43,6 +43,7 @@ export default function ProposeSwapModal({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const { t } = useLang();
 
   const receiverId = targetItems[0]?.ownerId;
   const ownerName = targetItems[0]?.ownerName ?? "";
@@ -172,22 +173,22 @@ export default function ProposeSwapModal({
           {submitted ? (
             <View style={{ alignItems: "center", paddingVertical: 32 }}>
               <Text style={{ fontSize: 32, marginBottom: 12 }}>🤝🏽</Text>
-              <Text style={{ fontSize: 17, fontWeight: "600", color: "#4A3728", marginBottom: 6 }}>Proposal sent!</Text>
+              <Text style={{ fontSize: 17, fontWeight: "600", color: "#4A3728", marginBottom: 6 }}>{t("proposeModal.sent")}</Text>
               <Text style={{ fontSize: 13, color: "#6B5040", textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
-                {ownerName} will be notified and can accept or decline your offer.
+                {t("proposeModal.sentHint", { name: ownerName })}
               </Text>
               <TouchableOpacity
                 onPress={onClose}
                 style={{ backgroundColor: "#4A3728", borderRadius: 999, paddingVertical: 14, paddingHorizontal: 32 }}
               >
-                <Text style={{ color: "#FAF7F2", fontWeight: "600" }}>Done</Text>
+                <Text style={{ color: "#FAF7F2", fontWeight: "600" }}>{t("common.done")}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
               {/* What you want */}
               <View style={{ backgroundColor: "#EDE8DF", borderRadius: 14, padding: 14 }}>
-                <Text style={{ fontSize: 11, color: "#A09080", marginBottom: 8 }}>You want</Text>
+                <Text style={{ fontSize: 11, color: "#A09080", marginBottom: 8 }}>{t("proposeModal.youWant")}</Text>
                 {targetItems.map((item) => (
                   <View key={item.id} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: "#D9CFC4" }}>
                     <Text style={{ fontSize: 13, fontWeight: "500", color: "#4A3728", flex: 1 }}>{item.name}</Text>
@@ -196,7 +197,7 @@ export default function ProposeSwapModal({
                 ))}
                 <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#C4B9AA" }}>
                   <Text style={{ fontSize: 11, color: "#8B7355" }}>Listed by {ownerName}</Text>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#4A3728" }}>{theirTotal} pts total</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#4A3728" }}>{t("proposeModal.total", { n: theirTotal })}</Text>
                 </View>
               </View>
 

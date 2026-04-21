@@ -5,12 +5,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 type Member = { id: string; name: string; area: string; city: string; itemCount: number; joined: string; avatar_url: string | null };
 
 export default function LikedMembers() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t } = useLang();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,7 +59,7 @@ export default function LikedMembers() {
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
         </TouchableOpacity>
-        <Text className="text-2xl font-light text-[#4A3728]">Liked Members</Text>
+        <Text className="text-2xl font-light text-[#4A3728]">{t("likedMembers.header")}</Text>
       </View>
 
       {loading ? (
@@ -65,8 +67,8 @@ export default function LikedMembers() {
       ) : members.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="people-outline" size={40} color="#C4B9AA" />
-          <Text className="text-[#8B7355] text-base mt-3 mb-1">No liked members yet</Text>
-          <Text className="text-[#A09080] text-sm text-center">Browse members and heart the ones you want to keep track of.</Text>
+          <Text className="text-[#8B7355] text-base mt-3 mb-1">{t("likedMembers.emptyTitle")}</Text>
+          <Text className="text-[#A09080] text-sm text-center">{t("likedMembers.emptyHint")}</Text>
         </View>
       ) : (
         <FlatList

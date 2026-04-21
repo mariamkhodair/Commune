@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 import { notifyUser } from "@/lib/notifySwap";
 import { updateSwapItemStatus } from "@/lib/updateSwapItems";
 

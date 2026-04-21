@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 type RecentItem = { id: string; name: string; photos: string[]; points: number; owner: string };
 
@@ -52,6 +53,7 @@ export default function Dashboard() {
     setRefreshing(false);
   }
 
+  const { t, isRTL } = useLang();
   const firstName = profile?.name?.split(" ")[0] ?? "there";
 
   return (
@@ -63,8 +65,8 @@ export default function Dashboard() {
       >
         {/* Header */}
         <View className="px-5 pt-4 pb-6">
-          <Text className="text-2xl font-light text-[#4A3728]">Hey, {firstName} 👋</Text>
-          <Text className="text-[#8B7355] text-sm mt-1">What are you looking to swap today?</Text>
+          <Text style={{ textAlign: isRTL ? "right" : "left" }} className="text-2xl font-light text-[#4A3728]">{t("home.greeting", { name: firstName })}</Text>
+          <Text style={{ textAlign: isRTL ? "right" : "left" }} className="text-[#8B7355] text-sm mt-1">{t("home.tagline")}</Text>
         </View>
 
         {/* Quick actions */}
@@ -75,24 +77,24 @@ export default function Dashboard() {
               className="flex-1 bg-[#4A3728] rounded-2xl p-4 items-center gap-2"
             >
               <Ionicons name="search" size={22} color="#FAF7F2" />
-              <Text className="text-[#FAF7F2] font-medium text-sm">Browse Items</Text>
+              <Text className="text-[#FAF7F2] font-medium text-sm">{t("home.browse")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => router.push("/new-item")}
               className="flex-1 bg-white rounded-2xl p-4 items-center gap-2 border border-[#EDE8DF]"
             >
               <Ionicons name="add-circle-outline" size={22} color="#4A3728" />
-              <Text className="text-[#4A3728] font-medium text-sm">List an Item</Text>
+              <Text className="text-[#4A3728] font-medium text-sm">{t("home.listItem")}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Recently listed */}
         <View className="mb-6">
-          <View className="flex-row items-center justify-between px-5 mb-3">
-            <Text className="text-base font-semibold text-[#4A3728]">Recently Listed</Text>
+          <View style={{ flexDirection: isRTL ? "row-reverse" : "row" }} className="items-center justify-between px-5 mb-3">
+            <Text className="text-base font-semibold text-[#4A3728]">{t("home.recentlyListed")}</Text>
             <TouchableOpacity onPress={() => router.push("/(tabs)/search")}>
-              <Text className="text-xs text-[#8B7355]">See all</Text>
+              <Text className="text-xs text-[#8B7355]">{t("home.seeAll")}</Text>
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-5 gap-3">
@@ -110,9 +112,9 @@ export default function Dashboard() {
                   )}
                 </View>
                 <View className="p-2.5">
-                  <Text className="text-xs font-medium text-[#4A3728]" numberOfLines={1}>{item.name}</Text>
-                  <Text className="text-xs text-[#8B7355]">{item.owner}</Text>
-                  <Text className="text-xs font-semibold text-[#4A3728] mt-1">{item.points} pts</Text>
+                  <Text style={{ textAlign: isRTL ? "right" : "left" }} className="text-xs font-medium text-[#4A3728]" numberOfLines={1}>{item.name}</Text>
+                  <Text style={{ textAlign: isRTL ? "right" : "left" }} className="text-xs text-[#8B7355]">{item.owner}</Text>
+                  <Text style={{ textAlign: isRTL ? "right" : "left" }} className="text-xs font-semibold text-[#4A3728] mt-1">{item.points} {t("common.pts")}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -121,24 +123,25 @@ export default function Dashboard() {
 
         {/* Shortcuts */}
         <View className="px-5 mb-8">
-          <Text className="text-base font-semibold text-[#4A3728] mb-3">Quick Links</Text>
+          <Text style={{ textAlign: isRTL ? "right" : "left" }} className="text-base font-semibold text-[#4A3728] mb-3">{t("home.quickLinks")}</Text>
           <View className="gap-2">
             {[
-              { label: "Liked Stuff", icon: "heart-outline" as const, route: "/liked" },
-              { label: "Liked Members", icon: "people-outline" as const, route: "/liked-members" },
-              { label: "Stuff I Want", icon: "star-outline" as const, route: "/stuff-i-want" },
-              { label: "My Swaps", icon: "swap-horizontal-outline" as const, route: "/my-swaps" },
-            ].map(({ label, icon, route }) => (
+              { labelKey: "home.likedStuff" as const, icon: "heart-outline" as const, route: "/liked" },
+              { labelKey: "home.likedMembers" as const, icon: "people-outline" as const, route: "/liked-members" },
+              { labelKey: "home.stuffIWant" as const, icon: "star-outline" as const, route: "/stuff-i-want" },
+              { labelKey: "home.mySwaps" as const, icon: "swap-horizontal-outline" as const, route: "/my-swaps" },
+            ].map(({ labelKey, icon, route }) => (
               <TouchableOpacity
-                key={label}
+                key={labelKey}
                 onPress={() => router.push(route as any)}
-                className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-4 border border-[#EDE8DF]"
+                style={{ flexDirection: isRTL ? "row-reverse" : "row" }}
+                className="items-center justify-between bg-white rounded-2xl px-4 py-4 border border-[#EDE8DF]"
               >
-                <View className="flex-row items-center gap-3">
+                <View style={{ flexDirection: isRTL ? "row-reverse" : "row" }} className="items-center gap-3">
                   <Ionicons name={icon} size={18} color="#8B7355" />
-                  <Text className="text-sm text-[#4A3728]">{label}</Text>
+                  <Text className="text-sm text-[#4A3728]">{t(labelKey)}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color="#C4B9AA" />
+                <Ionicons name={isRTL ? "chevron-back" : "chevron-forward"} size={16} color="#C4B9AA" />
               </TouchableOpacity>
             ))}
           </View>

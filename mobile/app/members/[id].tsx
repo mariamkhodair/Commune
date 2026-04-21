@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
 
 type Profile = { id: string; name: string; area: string; city: string; rating: number | null; ratingCount: number; joined: string; avatar_url: string | null };
@@ -14,6 +15,7 @@ export default function MemberProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { userId } = useUser();
+  const { t } = useLang();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,7 +134,7 @@ export default function MemberProfile() {
         {/* Back */}
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }} className="flex-row items-center gap-1 px-5 pt-4 pb-2">
           <Ionicons name="arrow-back" size={18} color="#4A3728" />
-          <Text className="text-sm text-[#4A3728]">Back</Text>
+          <Text className="text-sm text-[#4A3728]">{t("common.back")}</Text>
         </TouchableOpacity>
 
         {/* Profile card */}
@@ -145,7 +147,7 @@ export default function MemberProfile() {
             </View>
             <Text className="text-xl font-semibold text-[#4A3728]">{profile.name}</Text>
             {profile.area ? <Text className="text-sm text-[#8B7355]">{profile.area}, {profile.city}</Text> : null}
-            <Text className="text-xs text-[#A09080] mt-0.5">Member since {profile.joined}</Text>
+            <Text className="text-xs text-[#A09080] mt-0.5">{t("members.memberSince", { date: profile.joined })}</Text>
             {profile.rating !== null ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
                 {[1,2,3,4,5].map((s) => (
@@ -162,7 +164,7 @@ export default function MemberProfile() {
                   style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 999, backgroundColor: "#4A3728" }}
                 >
                   <Ionicons name="chatbubble-outline" size={15} color="#FAF7F2" />
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: "#FAF7F2" }}>Message</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: "#FAF7F2" }}>{t("members.message")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={toggleFollow}
@@ -170,7 +172,7 @@ export default function MemberProfile() {
                 >
                   <Ionicons name={followed ? "heart" : "heart-outline"} size={15} color={followed ? "#FAF7F2" : "#A0624A"} />
                   <Text style={{ fontSize: 13, fontWeight: "600", color: followed ? "#FAF7F2" : "#6B5040" }}>
-                    {followed ? "Following" : "Follow"}
+                    {followed ? t("members.following") : t("members.follow")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -181,7 +183,7 @@ export default function MemberProfile() {
         {/* Items header */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 12 }}>
           <Text style={{ fontSize: 15, fontWeight: "600", color: "#4A3728" }}>
-            {items.length} item{items.length !== 1 ? "s" : ""} listed
+            {t("members.itemsListed", { n: items.length, s: items.length !== 1 ? "s" : "" })}
           </Text>
           {id !== userId && items.length > 0 && (
             <TouchableOpacity
@@ -193,7 +195,7 @@ export default function MemberProfile() {
               }}
             >
               <Text style={{ fontSize: 12, fontWeight: "500", color: selectMode ? "#FAF7F2" : "#6B5040" }}>
-                {selectMode ? "Cancel" : "Select items"}
+                {selectMode ? t("members.cancel") : t("members.selectItems")}
               </Text>
             </TouchableOpacity>
           )}
@@ -202,7 +204,7 @@ export default function MemberProfile() {
         {/* Items grid */}
         <View className="px-5 mb-8">
           {items.length === 0 ? (
-            <Text className="text-sm text-[#A09080] text-center py-6">No items listed yet.</Text>
+            <Text className="text-sm text-[#A09080] text-center py-6">{t("members.noItemsYet")}</Text>
           ) : (
             <View className="flex-row flex-wrap gap-3">
               {items.map((item) => {
@@ -250,7 +252,7 @@ export default function MemberProfile() {
                             onPress={() => setProposingItem(item)}
                             style={{ backgroundColor: "#4A3728", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 }}
                           >
-                            <Text style={{ color: "#FAF7F2", fontSize: 10, fontWeight: "600" }}>Swap</Text>
+                            <Text style={{ color: "#FAF7F2", fontSize: 10, fontWeight: "600" }}>{t("members.swap")}</Text>
                           </TouchableOpacity>
                         )}
                       </View>
@@ -271,13 +273,13 @@ export default function MemberProfile() {
           flexDirection: "row", alignItems: "center", justifyContent: "space-between",
         }}>
           <Text style={{ color: "#C4B9AA", fontSize: 13 }}>
-            {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} · {bundlePoints} pts
+            {t("members.bundleBar", { n: selectedIds.size, s: selectedIds.size !== 1 ? "s" : "", pts: bundlePoints })}
           </Text>
           <TouchableOpacity
             onPress={() => setProposingBundle(true)}
             style={{ backgroundColor: "#F5F0E8", borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9 }}
           >
-            <Text style={{ color: "#4A3728", fontWeight: "700", fontSize: 13 }}>Propose Bundle Swap</Text>
+            <Text style={{ color: "#4A3728", fontWeight: "700", fontSize: 13 }}>{t("members.proposeBundle")}</Text>
           </TouchableOpacity>
         </View>
       )}

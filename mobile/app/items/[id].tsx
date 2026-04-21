@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
 
 const { width } = Dimensions.get("window");
@@ -19,6 +20,7 @@ export default function ItemDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { userId } = useUser();
+  const { t } = useLang();
   const [item, setItem] = useState<ItemDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
@@ -149,7 +151,7 @@ export default function ItemDetail() {
               <Text className="text-base font-semibold text-[#4A3728]">{item.ownerName.charAt(0)}</Text>
             </View>
             <View className="flex-1">
-              <Text className="text-xs text-[#A09080]">Listed by</Text>
+              <Text className="text-xs text-[#A09080]">{t("item.listedBy")}</Text>
               <Text className="text-sm font-medium text-[#4A3728]">{item.ownerName}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color="#C4B9AA" />
@@ -162,7 +164,7 @@ export default function ItemDetail() {
               style={{ borderWidth: 1, borderColor: "#4A3728", borderRadius: 999, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 12 }}
             >
               <Ionicons name="create-outline" size={18} color="#4A3728" />
-              <Text style={{ color: "#4A3728", fontWeight: "600" }}>Edit Item</Text>
+              <Text style={{ color: "#4A3728", fontWeight: "600" }}>{t("item.editItem")}</Text>
             </TouchableOpacity>
           )}
 
@@ -172,7 +174,7 @@ export default function ItemDetail() {
               {item.status === "Swapped" ? (
                 <View style={{ backgroundColor: "#EDE8DF", borderRadius: 999, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
                   <Ionicons name="swap-horizontal" size={18} color="#A09080" />
-                  <Text style={{ color: "#A09080", fontWeight: "600" }}>Already Swapped</Text>
+                  <Text style={{ color: "#A09080", fontWeight: "600" }}>{t("item.alreadySwapped")}</Text>
                 </View>
               ) : (
                 <TouchableOpacity
@@ -180,7 +182,7 @@ export default function ItemDetail() {
                   className="bg-[#4A3728] rounded-full py-4 items-center flex-row justify-center gap-2"
                 >
                   <Ionicons name="swap-horizontal" size={18} color="#FAF7F2" />
-                  <Text className="text-[#FAF7F2] font-semibold">Propose Swap</Text>
+                  <Text className="text-[#FAF7F2] font-semibold">{t("item.proposeSwap")}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity

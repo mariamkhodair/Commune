@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 import { notifyUser } from "@/lib/notifySwap";
 
 const CATEGORIES = ["Apparel", "Electronics", "Books", "Cosmetics", "Furniture & Home Decor", "Stationery & Art Supplies", "Miscellaneous"];
@@ -26,6 +27,7 @@ type Match = {
 export default function StuffIWant() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t, isRTL } = useLang();
   const [tab, setTab] = useState<"want" | "liked">("want");
 
   // Want list state
@@ -211,7 +213,7 @@ export default function StuffIWant() {
             <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
               <Ionicons name="arrow-back" size={18} color="#4A3728" />
             </TouchableOpacity>
-            <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>Stuff I Want</Text>
+            <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>{t("wantList.header")}</Text>
           </View>
           {tab === "want" && (
             <View style={{ flexDirection: "row", gap: 8 }}>
@@ -222,7 +224,7 @@ export default function StuffIWant() {
               >
                 {matching
                   ? <ActivityIndicator size="small" color="#4A3728" />
-                  : <Text style={{ fontSize: 13, color: "#4A3728", fontWeight: "500" }}>🤝🏽 Match Me</Text>}
+                  : <Text style={{ fontSize: 13, color: "#4A3728", fontWeight: "500" }}>{t("wantList.matchMe")}</Text>}
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setShowForm(true)}
@@ -237,18 +239,18 @@ export default function StuffIWant() {
 
         {/* Tabs */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8, alignItems: "center" }}>
-          {(["want", "liked"] as const).map((t) => (
+          {(["want", "liked"] as const).map((tabKey) => (
             <TouchableOpacity
-              key={t}
-              onPress={() => setTab(t)}
+              key={tabKey}
+              onPress={() => setTab(tabKey)}
               style={{
                 paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999, borderWidth: 1,
-                borderColor: tab === t ? "#4A3728" : "#D9CFC4",
-                backgroundColor: tab === t ? "#4A3728" : "white",
+                borderColor: tab === tabKey ? "#4A3728" : "#D9CFC4",
+                backgroundColor: tab === tabKey ? "#4A3728" : "white",
               }}
             >
-              <Text style={{ fontSize: 13, fontWeight: "500", color: tab === t ? "#FAF7F2" : "#6B5040" }}>
-                {t === "want" ? "My Want List" : `Liked Stuff${likedItems.length > 0 ? ` (${likedItems.length})` : ""}`}
+              <Text style={{ fontSize: 13, fontWeight: "500", color: tab === tabKey ? "#FAF7F2" : "#6B5040" }}>
+                {tabKey === "want" ? t("wantList.myWantList") : `${t("wantList.likedStuff")}${likedItems.length > 0 ? ` (${likedItems.length})` : ""}`}
               </Text>
             </TouchableOpacity>
           ))}
@@ -263,10 +265,10 @@ export default function StuffIWant() {
           ) : items.length === 0 ? (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
               <Ionicons name="star-outline" size={40} color="#C4B9AA" />
-              <Text style={{ color: "#8B7355", fontSize: 16, marginTop: 12, marginBottom: 4 }}>Nothing on your list</Text>
-              <Text style={{ color: "#A09080", fontSize: 13, textAlign: "center", marginBottom: 24 }}>Add items you're looking for and we'll notify you when they're listed.</Text>
+              <Text style={{ color: "#8B7355", fontSize: 16, marginTop: 12, marginBottom: 4 }}>{t("wantList.emptyTitle")}</Text>
+              <Text style={{ color: "#A09080", fontSize: 13, textAlign: "center", marginBottom: 24 }}>{t("wantList.emptyHint")}</Text>
               <TouchableOpacity onPress={() => setShowForm(true)} style={{ backgroundColor: "#4A3728", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 999 }}>
-                <Text style={{ color: "#FAF7F2", fontWeight: "500" }}>Add an Item</Text>
+                <Text style={{ color: "#FAF7F2", fontWeight: "500" }}>{t("wantList.addAnItem")}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -363,7 +365,7 @@ export default function StuffIWant() {
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <Text style={{ fontSize: 20 }}>🤝🏽</Text>
-              <Text style={{ fontSize: 20, fontWeight: "600", color: "#4A3728" }}>Matches Found</Text>
+              <Text style={{ fontSize: 20, fontWeight: "600", color: "#4A3728" }}>{t("wantList.matchesFound")}</Text>
             </View>
             <TouchableOpacity onPress={() => setShowMatchResults(false)}>
               <Ionicons name="close" size={22} color="#8B7355" />
@@ -371,8 +373,8 @@ export default function StuffIWant() {
           </View>
           <Text style={{ fontSize: 12, color: "#8B7355", marginBottom: 20 }}>
             {realMatches.length
-              ? `${realMatches.length} potential match${realMatches.length > 1 ? "es" : ""} based on your want list. Select ones to propose.`
-              : "No matches found yet — check back as more members list items."}
+              ? `${realMatches.length} potential match${realMatches.length > 1 ? "es" : ""} based on your want list. ${t("wantList.selectToPropose")}`
+              : t("wantList.noMatches")}
           </Text>
 
           <View style={{ gap: 12, marginBottom: 20 }}>
@@ -408,14 +410,14 @@ export default function StuffIWant() {
                   </View>
                   <View style={{ flexDirection: "row", paddingHorizontal: 14, paddingVertical: 12, gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 10, color: "#A09080", marginBottom: 4 }}>They offer</Text>
+                      <Text style={{ fontSize: 10, color: "#A09080", marginBottom: 4 }}>{t("wantList.theyOffer")}</Text>
                       <Text style={{ fontSize: 13, fontWeight: "500", color: "#4A3728" }}>{match.theirItem.name}</Text>
                       <Text style={{ fontSize: 11, color: "#8B7355" }}>{match.theirItem.category}</Text>
                       <Text style={{ fontSize: 11, fontWeight: "700", color: "#4A3728", marginTop: 2 }}>{match.theirItem.points} pts</Text>
                     </View>
                     <Ionicons name="swap-horizontal" size={18} color="#C4B9AA" style={{ marginTop: 16 }} />
                     <View style={{ flex: 1, alignItems: "flex-end" }}>
-                      <Text style={{ fontSize: 10, color: "#A09080", marginBottom: 4 }}>You offer</Text>
+                      <Text style={{ fontSize: 10, color: "#A09080", marginBottom: 4 }}>{t("wantList.youOffer")}</Text>
                       {match.yourItem ? (
                         <>
                           <Text style={{ fontSize: 13, fontWeight: "500", color: "#4A3728", textAlign: "right" }}>{match.yourItem.name}</Text>
@@ -427,7 +429,7 @@ export default function StuffIWant() {
                     </View>
                   </View>
                   <View style={{ paddingHorizontal: 14, paddingBottom: 10 }}>
-                    <Text style={{ fontSize: 10, color: "#A09080" }}>Matches your want: <Text style={{ fontStyle: "italic" }}>{match.matchedWant}</Text></Text>
+                    <Text style={{ fontSize: 10, color: "#A09080" }}>{t("wantList.matchesYourWant")} <Text style={{ fontStyle: "italic" }}>{match.matchedWant}</Text></Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -441,17 +443,17 @@ export default function StuffIWant() {
           >
             <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 15 }}>
               {selectedMatches.size === 0
-                ? "Select a match to propose"
+                ? t("wantList.selectMatch")
                 : selectedMatches.size === realMatches.length
-                ? "Send All Proposals"
-                : `Send ${selectedMatches.size} Proposal${selectedMatches.size > 1 ? "s" : ""}`}
+                ? t("wantList.sendAllProposals")
+                : t("wantList.sendProposals", { n: selectedMatches.size })}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setShowMatchResults(false)}
             style={{ borderRadius: 999, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "#D9CFC4" }}
           >
-            <Text style={{ color: "#6B5040", fontSize: 14 }}>Review Later</Text>
+            <Text style={{ color: "#6B5040", fontSize: 14 }}>{t("wantList.reviewLater")}</Text>
           </TouchableOpacity>
         </ScrollView>
       </Modal>
@@ -460,13 +462,13 @@ export default function StuffIWant() {
       <Modal visible={showForm} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { resetForm(); setShowForm(false); }}>
         <ScrollView style={{ flex: 1, backgroundColor: "#FAF7F2" }} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-            <Text style={{ fontSize: 20, fontWeight: "600", color: "#4A3728" }}>Add to Wish List</Text>
+            <Text style={{ fontSize: 20, fontWeight: "600", color: "#4A3728" }}>{t("wantList.addToWishList")}</Text>
             <TouchableOpacity onPress={() => { resetForm(); setShowForm(false); }}>
               <Ionicons name="close" size={22} color="#8B7355" />
             </TouchableOpacity>
           </View>
 
-          <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 6 }}>Item Name</Text>
+          <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 6 }}>{t("wantList.itemName")}</Text>
           <TextInput
             style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, color: "#4A3728", borderWidth: 1, borderColor: "#EDE8DF", marginBottom: 16, fontSize: 14 }}
             placeholder="e.g. Vintage Denim Jacket"
@@ -501,9 +503,7 @@ export default function StuffIWant() {
             ))}
           </View>
 
-          <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 6 }}>
-            Notes <Text style={{ color: "#A09080" }}>(optional)</Text>
-          </Text>
+          <Text style={{ fontSize: 13, color: "#6B5040", marginBottom: 6 }}>{t("wantList.notes")}</Text>
           <TextInput
             style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, color: "#4A3728", borderWidth: 1, borderColor: "#EDE8DF", marginBottom: 24, fontSize: 14, textAlignVertical: "top" }}
             placeholder="Any specifics — size, colour, brand, model..."
@@ -519,7 +519,7 @@ export default function StuffIWant() {
             disabled={!canSave || saving}
             style={{ borderRadius: 999, paddingVertical: 16, alignItems: "center", backgroundColor: canSave ? "#4A3728" : "#D9CFC4" }}
           >
-            {saving ? <ActivityIndicator color="#FAF7F2" /> : <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 15 }}>Add to List</Text>}
+            {saving ? <ActivityIndicator color="#FAF7F2" /> : <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 15 }}>{t("wantList.addToList")}</Text>}
           </TouchableOpacity>
         </ScrollView>
       </Modal>
