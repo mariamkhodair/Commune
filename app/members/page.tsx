@@ -6,6 +6,7 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 type MemberRow = {
   id: string;
@@ -50,6 +51,7 @@ function Stars({ rating }: { rating: number | null }) {
 function MembersInner() {
   const searchParams = useSearchParams();
   const { userId, profile } = useUser();
+  const { t } = useLang();
   const [tab, setTab] = useState<"all" | "liked">("all");
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [liked, setLiked] = useState<Set<string>>(new Set());
@@ -192,8 +194,8 @@ function MembersInner() {
             <p className="font-medium text-[#4A3728]">{member.name}</p>
             <Stars rating={rating} />
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${label.color}`}>{label.text}</span>
-            <p className="text-xs text-[#8B7355]">{member.item_count} item{member.item_count !== 1 ? "s" : ""} listed</p>
-            <p className="text-xs text-[#A09080]">Member since {member.joined}</p>
+            <p className="text-xs text-[#8B7355]">{t("members.itemsListed", { n: member.item_count, s: member.item_count !== 1 ? "s" : "" })}</p>
+            <p className="text-xs text-[#A09080]">{t("members.memberSince", { date: member.joined })}</p>
           </div>
           <span className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040]">
             View Their Stuff
@@ -210,23 +212,23 @@ function MembersInner() {
       <main className="flex-1 px-8 py-8 overflow-y-auto">
 
         <div className="mb-6">
-          <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)] mb-1">Members</h1>
-          <p className="text-[#8B7355]">Browse the community and see what members have to offer. Members nearest to you appear first.</p>
+          <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)] mb-1">{t("members.header")}</h1>
+          <p className="text-[#8B7355]">{t("likedMembers.emptyHint")}</p>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
-          {(["all", "liked"] as const).map((t) => (
+          {(["all", "liked"] as const).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className={`px-5 py-2 rounded-full text-sm font-medium border transition-colors ${
-                tab === t
+                tab === tabKey
                   ? "bg-[#4A3728] text-[#FAF7F2] border-[#4A3728]"
                   : "bg-white text-[#6B5040] border-[#D9CFC4] hover:border-[#4A3728]"
               }`}
             >
-              {t === "all" ? "All Members" : `Liked Members${liked.size > 0 ? ` (${liked.size})` : ""}`}
+              {tabKey === "all" ? t("members.allMembers") : `${t("members.likedMembers")}${liked.size > 0 ? ` (${liked.size})` : ""}`}
             </button>
           ))}
         </div>
@@ -239,7 +241,7 @@ function MembersInner() {
               </svg>
               <input
                 type="text"
-                placeholder="Search members..."
+                placeholder={t("members.searchPlaceholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="w-full rounded-2xl border border-[#D9CFC4] bg-white/60 pl-10 pr-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
@@ -252,8 +254,8 @@ function MembersInner() {
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-32 text-center">
-                <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">No members found</p>
-                <p className="text-[#A09080]">Try a different name.</p>
+                <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">{t("common.noResults")}</p>
+                <p className="text-[#A09080]">{t("search.noResultsHint")}</p>
               </div>
             ) : (
               <div className="grid grid-cols-4 gap-3 portrait-grid-2">
@@ -273,8 +275,8 @@ function MembersInner() {
               </div>
             ) : likedMembers.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-32 text-center">
-                <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">No liked members yet</p>
-                <p className="text-[#A09080] mb-6">Browse members and heart the ones you want to keep track of.</p>
+                <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">{t("likedMembers.emptyTitle")}</p>
+                <p className="text-[#A09080] mb-6">{t("likedMembers.emptyHint")}</p>
                 <button
                   onClick={() => setTab("all")}
                   className="px-6 py-3 rounded-full bg-[#4A3728] text-[#F5F0E8] font-medium hover:bg-[#6B5040] transition-colors"

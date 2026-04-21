@@ -5,6 +5,7 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 type ItemSnap = { id: string; name: string; points: number; photos: string[] | null; category: string | null };
 type ProfileSnap = { id: string; name: string; avatar_url: string | null };
@@ -56,13 +57,11 @@ function ItemThumb({ item }: { item: ItemSnap | null }) {
   );
 }
 
-function ptsLabel(a: number, b: number, c: number) {
-  const diff = Math.max(a, b, c) - Math.min(a, b, c);
-  return diff === 0 ? "Perfectly balanced" : `±${diff} pts spread`;
-}
-
 function MatchCard({ match, userId, onPropose }: { match: CommuneMatch; userId: string; onPropose: (m: CommuneMatch) => void }) {
+  const { t } = useLang();
   const isA = match.memberAId === userId;
+  const diff = Math.max(match.itemA.points, match.itemB.points, match.itemC.points) - Math.min(match.itemA.points, match.itemB.points, match.itemC.points);
+  const ptsLbl = diff === 0 ? t("communes.balanced") : t("communes.ptsSpread", { n: diff });
   // A gives itemA to C, B gives itemB to A, C gives itemC to B
   const rows = [
     { giver: match.profileA, item: match.itemA, receiver: match.profileC, isMe: isA },
@@ -73,27 +72,27 @@ function MatchCard({ match, userId, onPropose }: { match: CommuneMatch; userId: 
   return (
     <div className="bg-white rounded-2xl border border-[#EDE8DF] overflow-hidden shadow-sm">
       <div className="bg-[#4A3728] px-5 py-3 flex items-center gap-2">
-        <span className="text-[#FAF7F2] text-sm font-semibold">Commune Match</span>
-        <span className="ml-auto text-xs text-[#C4B9AA]">{ptsLabel(match.itemA.points, match.itemB.points, match.itemC.points)}</span>
+        <span className="text-[#FAF7F2] text-sm font-semibold">{t("communes.communeMatch")}</span>
+        <span className="ml-auto text-xs text-[#C4B9AA]">{ptsLbl}</span>
       </div>
       <div className="px-5 py-4 flex flex-col gap-3">
         {rows.map(({ giver, item, receiver, isMe }, i) => (
           <div key={i} className="flex items-center gap-2 text-xs text-[#4A3728]">
             <Avatar profile={giver} size={24} />
-            <span className={isMe ? "font-semibold" : ""}>{isMe ? "You" : giver?.name}</span>
-            <span className="text-[#A09080]">give</span>
+            <span className={isMe ? "font-semibold" : ""}>{isMe ? t("common.you") : giver?.name}</span>
+            <span className="text-[#A09080]">{t("common.give")}</span>
             <ItemThumb item={item} />
             <span className="font-medium truncate max-w-[80px]">{item.name}</span>
-            <span className="text-[#A09080] shrink-0">({item.points} pts) →</span>
+            <span className="text-[#A09080] shrink-0">({item.points} {t("common.pts")}) →</span>
             <Avatar profile={receiver} size={24} />
-            <span className={receiver?.id === userId ? "font-semibold" : ""}>{receiver?.id === userId ? "You" : receiver?.name}</span>
+            <span className={receiver?.id === userId ? "font-semibold" : ""}>{receiver?.id === userId ? t("common.you") : receiver?.name}</span>
           </div>
         ))}
         <button
           onClick={() => onPropose(match)}
           className="mt-1 w-full py-2.5 rounded-full bg-[#4A3728] text-[#FAF7F2] text-sm font-semibold hover:bg-[#6B5040] transition-colors"
         >
-          Propose Commune
+          {t("communes.proposeCommune")}
         </button>
       </div>
     </div>
@@ -103,6 +102,7 @@ function MatchCard({ match, userId, onPropose }: { match: CommuneMatch; userId: 
 function CommuneCard({ commune, userId, onAction }: { commune: Commune; userId: string; onAction: () => void }) {
   const [acting, setActing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const { t } = useLang();
 
   const members = [commune.member_a_id, commune.member_b_id, commune.member_c_id];
   const profiles = { [commune.member_a_id]: commune.profileA, [commune.member_b_id]: commune.profileB, [commune.member_c_id]: commune.profileC };
@@ -147,7 +147,7 @@ function CommuneCard({ commune, userId, onAction }: { commune: Commune; userId: 
         </div>
         <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[commune.status] ?? "bg-[#F5F0E8] text-[#8B7355] border-[#EDE8DF]"}`}>
           {commune.status === "Proposed"
-            ? `${commune.acceptances.length}/3 accepted`
+            ? t("communes.xOf3Accepted", { n: commune.acceptances.length })
             : commune.status}
         </span>
       </div>
@@ -163,14 +163,14 @@ function CommuneCard({ commune, userId, onAction }: { commune: Commune; userId: 
             <div key={memberId} className="flex items-center gap-2 text-xs text-[#4A3728]">
               <Avatar profile={profile} size={24} />
               <Link href={`/members/${memberId}`} className={`hover:underline shrink-0 ${isMe ? "font-semibold" : ""}`}>
-                {isMe ? "You" : profile?.name}
+                {isMe ? t("common.you") : profile?.name}
               </Link>
-              <span className="text-[#A09080]">give</span>
+              <span className="text-[#A09080]">{t("common.give")}</span>
               <ItemThumb item={item} />
               <span className="font-medium truncate max-w-[80px]">{item?.name}</span>
               <span className="text-[#A09080] shrink-0">→</span>
               <Avatar profile={receiver} size={24} />
-              <span className={receiver?.id === userId ? "font-semibold shrink-0" : "shrink-0"}>{receiver?.id === userId ? "You" : receiver?.name}</span>
+              <span className={receiver?.id === userId ? "font-semibold shrink-0" : "shrink-0"}>{receiver?.id === userId ? t("common.you") : receiver?.name}</span>
             </div>
           );
         })}
@@ -184,14 +184,14 @@ function CommuneCard({ commune, userId, onAction }: { commune: Commune; userId: 
               disabled={acting}
               className="flex-1 py-2 rounded-full border border-[#D9CFC4] text-[#6B5040] text-sm hover:bg-[#EDE8DF] transition-colors disabled:opacity-50"
             >
-              Decline
+              {t("common.decline")}
             </button>
             <button
               onClick={() => act("accept")}
               disabled={acting}
               className="flex-1 py-2 rounded-full bg-[#4A3728] text-[#FAF7F2] text-sm font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-50"
             >
-              {acting ? "..." : "Accept"}
+              {acting ? "..." : t("common.accept")}
             </button>
           </div>
         )}
@@ -199,19 +199,19 @@ function CommuneCard({ commune, userId, onAction }: { commune: Commune; userId: 
         {commune.status === "Proposed" && myAccepted && (
           <div className="flex items-center gap-1.5 text-xs text-[#2D6A4F] mt-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-pulse" />
-            You accepted — waiting for the others
+            {t("communes.waitingForOthers")}
           </div>
         )}
 
         {commune.status === "In Progress" && (
           <div className="flex flex-col gap-1 mt-1">
-            <p className="text-xs font-medium text-[#2D5030]">Commune is active — coordinate your exchange with the other members.</p>
+            <p className="text-xs font-medium text-[#2D5030]">{t("communes.activeHint")}</p>
             <button
               onClick={() => act("decline")}
               disabled={acting}
               className="self-start text-xs text-[#A09080] hover:text-[#8B3A2A] underline transition-colors"
             >
-              Cancel commune
+              {t("communes.cancelCommune")}
             </button>
           </div>
         )}
@@ -222,6 +222,7 @@ function CommuneCard({ commune, userId, onAction }: { commune: Commune; userId: 
 
 export default function CommunesPage() {
   const { userId } = useUser();
+  const { t } = useLang();
   const [communes, setCommunes] = useState<Commune[]>([]);
   const [loading, setLoading] = useState(true);
   const [findLoading, setFindLoading] = useState(false);
@@ -293,8 +294,8 @@ export default function CommunesPage() {
 
         <div className="flex items-start justify-between mb-6 max-w-2xl">
           <div>
-            <h1 className="text-3xl font-light text-[#4A3728] mb-1 font-[family-name:var(--font-jost)]">Communes</h1>
-            <p className="text-[#8B7355]">Three-way swaps.</p>
+            <h1 className="text-3xl font-light text-[#4A3728] mb-1 font-[family-name:var(--font-jost)]">{t("communes.header")}</h1>
+            <p className="text-[#8B7355]">{t("communes.subheader")}</p>
           </div>
           <button
             onClick={findCommune}
@@ -302,8 +303,8 @@ export default function CommunesPage() {
             className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#4A3728] text-[#FAF7F2] text-sm font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-60"
           >
             {findLoading
-              ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Finding…</>
-              : <>Find Commune</>}
+              ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t("communes.findMatches")}…</>
+              : <>{t("communes.findMatches")}</>}
           </button>
         </div>
 
@@ -315,7 +316,7 @@ export default function CommunesPage() {
                 {findResults.length === 0 ? "No communes found right now" : `${findResults.length} commune match${findResults.length !== 1 ? "es" : ""} found`}
               </p>
               <button onClick={() => setFindResults(null)} className="text-xs text-[#A09080] hover:text-[#4A3728] underline">
-                Close
+                {t("common.close")}
               </button>
             </div>
             {findResults.length === 0 ? (
@@ -343,16 +344,14 @@ export default function CommunesPage() {
           </div>
         ) : communes.length === 0 && findResults === null ? (
           <div className="flex flex-col items-center justify-center py-28 text-center max-w-sm mx-auto">
-            <p className="text-xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">No communes yet</p>
-            <p className="text-[#A09080] text-sm leading-relaxed mb-6">
-              A commune is a three-way swap — three members each giving one item to form a perfect circle. Tap &quot;Find Commune&quot; to discover matches.
-            </p>
+            <p className="text-xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">{t("communes.emptyTitle")}</p>
+            <p className="text-[#A09080] text-sm leading-relaxed mb-6">{t("communes.emptyHint")}</p>
           </div>
         ) : (
           <div className="flex flex-col gap-8 max-w-2xl">
             {proposed.length > 0 && (
               <section>
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#A09080] mb-3">Pending Acceptance</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#A09080] mb-3">{t("communes.pendingAcceptance")}</p>
                 <div className="flex flex-col gap-3">
                   {proposed.map(c => <CommuneCard key={c.id} commune={c} userId={userId ?? ""} onAction={fetchCommunes} />)}
                 </div>
@@ -360,7 +359,7 @@ export default function CommunesPage() {
             )}
             {active.length > 0 && (
               <section>
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#A09080] mb-3">In Progress</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#A09080] mb-3">{t("communes.active")}</p>
                 <div className="flex flex-col gap-3">
                   {active.map(c => <CommuneCard key={c.id} commune={c} userId={userId ?? ""} onAction={fetchCommunes} />)}
                 </div>
@@ -368,7 +367,7 @@ export default function CommunesPage() {
             )}
             {past.length > 0 && (
               <section>
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#A09080] mb-3">Past</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#A09080] mb-3">{t("communes.past")}</p>
                 <div className="flex flex-col gap-3">
                   {past.map(c => <CommuneCard key={c.id} commune={c} userId={userId ?? ""} onAction={fetchCommunes} />)}
                 </div>
