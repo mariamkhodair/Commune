@@ -7,6 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 const categories = [
   "All Stuff",
@@ -37,6 +38,7 @@ type SearchItem = {
 function SearchInner() {
   const searchParams = useSearchParams();
   const { userId } = useUser();
+  const { t, isRTL } = useLang();
 
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [category, setCategory] = useState(searchParams.get("category") ?? "All Stuff");
@@ -149,21 +151,21 @@ function SearchInner() {
   });
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex" dir={isRTL ? "rtl" : "ltr"}>
       <Sidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
 
         {/* Search bar */}
         <div className="px-8 pt-8 pb-4">
-          <h1 className="text-3xl font-light text-[#4A3728] mb-4 font-[family-name:var(--font-jost)]">Search</h1>
+          <h1 className="text-3xl font-light text-[#4A3728] mb-4 font-[family-name:var(--font-jost)]">{t("search.header")}</h1>
           <div className="relative">
             <svg viewBox="0 0 24 24" fill="none" stroke="#A09080" strokeWidth="2" strokeLinecap="round" className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
             <input
               type="text"
-              placeholder="Search for anything..."
+              placeholder={t("search.searchPlaceholder")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full rounded-2xl border border-[#D9CFC4] bg-white/60 pl-12 pr-4 py-3.5 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors text-lg"
@@ -192,7 +194,7 @@ function SearchInner() {
           <div className="flex items-center gap-2">
             <input
               type="number"
-              placeholder="Min pts"
+              placeholder={t("search.minPts")}
               value={minPoints}
               onChange={(e) => setMinPoints(e.target.value)}
               className="w-24 rounded-full border border-[#D9CFC4] bg-white/60 px-4 py-2 text-sm text-[#6B5040] focus:outline-none focus:border-[#4A3728] transition-colors"
@@ -200,7 +202,7 @@ function SearchInner() {
             <span className="text-[#A09080] text-sm">–</span>
             <input
               type="number"
-              placeholder="Max pts"
+              placeholder={t("search.maxPts")}
               value={maxPoints}
               onChange={(e) => setMaxPoints(e.target.value)}
               className="w-24 rounded-full border border-[#D9CFC4] bg-white/60 px-4 py-2 text-sm text-[#6B5040] focus:outline-none focus:border-[#4A3728] transition-colors"
@@ -214,10 +216,10 @@ function SearchInner() {
             <svg viewBox="0 0 24 24" fill={matchOnly ? "#F5F0E8" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
-            Matches only
+            {t("search.matchesOnly")}
           </button>
 
-          <span className="text-sm text-[#A09080] ml-auto">{sorted.length} result{sorted.length !== 1 ? "s" : ""}</span>
+          <span className="text-sm text-[#A09080] ml-auto">{t("search.results", { n: sorted.length, s: sorted.length !== 1 ? "s" : "" })}</span>
         </div>
 
         {/* Results */}
@@ -228,8 +230,8 @@ function SearchInner() {
             </div>
           ) : sorted.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-32 text-center">
-              <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">No results found</p>
-              <p className="text-[#A09080]">Try adjusting your filters.</p>
+              <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">{t("search.noResults")}</p>
+              <p className="text-[#A09080]">{t("search.adjustFilters")}</p>
             </div>
           ) : (
             <div className="grid grid-cols-4 gap-3 portrait-grid-2">
@@ -238,7 +240,7 @@ function SearchInner() {
 
                   {item.match && (
                     <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-[#4A3728] text-[#F5F0E8] text-xs font-medium px-2.5 py-1 rounded-full">
-                      <span>🤝🏽</span> Match
+                      <span>🤝🏽</span> {t("search.match")}
                     </div>
                   )}
 
@@ -275,14 +277,14 @@ function SearchInner() {
                       <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
                       {item.status === "Swapped" ? (
                         <span className="text-xs px-3 py-1 rounded-full bg-[#EDE8DF] text-[#A09080] border border-[#D9CFC4]">
-                          Swapped
+                          {t("common.swapped")}
                         </span>
                       ) : (
                         <button
                           onClick={() => setProposingItems([{ id: item.id, name: item.name, points: item.points, owner: item.owner, ownerId: item.ownerId }])}
                           className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
                         >
-                          Propose swap
+                          {t("search.proposeSwap")}
                         </button>
                       )}
                     </div>

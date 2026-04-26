@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Linking } f
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useLang } from "@/lib/languageContext";
 
 const FAQS = [
   {
@@ -45,6 +46,7 @@ const FAQS = [
 
 export default function Help() {
   const router = useRouter();
+  const { t, isRTL } = useLang();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -53,7 +55,6 @@ export default function Help() {
 
   function handleSubmit() {
     if (!name || !email || !message) return;
-    // Open mailto as simple contact method
     const subject = encodeURIComponent("Commune Help Request");
     const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${message}`);
     Linking.openURL(`mailto:commune.eg@gmail.com?subject=${subject}&body=${body}`);
@@ -62,36 +63,36 @@ export default function Help() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, flexDirection: "row", alignItems: "center", gap: 12 }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", gap: 12 }}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
-          <Ionicons name="arrow-back" size={18} color="#4A3728" />
+          <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={18} color="#4A3728" />
         </TouchableOpacity>
         <View>
-          <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728" }}>Get Help</Text>
-          <Text style={{ fontSize: 12, color: "#8B7355" }}>Browse FAQs or send us a message.</Text>
+          <Text style={{ fontSize: 22, fontWeight: "300", color: "#4A3728", textAlign: isRTL ? "right" : "left" }}>{t("help.header")}</Text>
+          <Text style={{ fontSize: 12, color: "#8B7355", textAlign: isRTL ? "right" : "left" }}>{t("help.subheader")}</Text>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
 
         {/* FAQs */}
-        <Text style={{ fontSize: 15, fontWeight: "600", color: "#4A3728", marginTop: 8, marginBottom: 12 }}>
-          Frequently Asked Questions
+        <Text style={{ fontSize: 15, fontWeight: "600", color: "#4A3728", marginTop: 8, marginBottom: 12, textAlign: isRTL ? "right" : "left" }}>
+          {t("help.faqs")}
         </Text>
         <View style={{ gap: 8 }}>
           {FAQS.map((faq, i) => (
             <View key={i} style={{ backgroundColor: "white", borderRadius: 14, borderWidth: 1, borderColor: "#D9CFC4", overflow: "hidden" }}>
               <TouchableOpacity
                 onPress={() => setOpenIndex(openIndex === i ? null : i)}
-                style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14 }}
+                style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14 }}
               >
-                <Text style={{ fontSize: 13, fontWeight: "500", color: "#4A3728", flex: 1, paddingRight: 8 }}>{faq.question}</Text>
+                <Text style={{ fontSize: 13, fontWeight: "500", color: "#4A3728", flex: 1, paddingRight: isRTL ? 0 : 8, paddingLeft: isRTL ? 8 : 0, textAlign: isRTL ? "right" : "left" }}>{faq.question}</Text>
                 <Ionicons name={openIndex === i ? "chevron-up" : "chevron-down"} size={16} color="#8B7355" />
               </TouchableOpacity>
               {openIndex === i && (
                 <View style={{ paddingHorizontal: 16, paddingBottom: 14, borderTopWidth: 1, borderTopColor: "#EDE8DF", paddingTop: 10, gap: 6 }}>
                   {faq.answer.split("\n\n").map((para, pi) => (
-                    <Text key={pi} style={{ fontSize: 13, color: "#6B5040", lineHeight: 20 }}>{para}</Text>
+                    <Text key={pi} style={{ fontSize: 13, color: "#6B5040", lineHeight: 20, textAlign: isRTL ? "right" : "left" }}>{para}</Text>
                   ))}
                 </View>
               )}
@@ -100,54 +101,57 @@ export default function Help() {
         </View>
 
         {/* Contact */}
-        <Text style={{ fontSize: 15, fontWeight: "600", color: "#4A3728", marginTop: 28, marginBottom: 4 }}>
-          Still need help?
+        <Text style={{ fontSize: 15, fontWeight: "600", color: "#4A3728", marginTop: 28, marginBottom: 4, textAlign: isRTL ? "right" : "left" }}>
+          {t("help.stillNeedHelp")}
         </Text>
         <TouchableOpacity onPress={() => Linking.openURL("mailto:commune.eg@gmail.com")}>
-          <Text style={{ fontSize: 13, color: "#8B7355", marginBottom: 16 }}>
-            Email us at{" "}
+          <Text style={{ fontSize: 13, color: "#8B7355", marginBottom: 16, textAlign: isRTL ? "right" : "left" }}>
+            {t("help.emailUs")}{" "}
             <Text style={{ color: "#4A3728", fontWeight: "600" }}>commune.eg@gmail.com</Text>
           </Text>
         </TouchableOpacity>
 
         {submitted ? (
           <View style={{ backgroundColor: "#D8E4D0", borderRadius: 14, padding: 24, alignItems: "center" }}>
-            <Text style={{ fontSize: 15, fontWeight: "600", color: "#4A6640", marginBottom: 4 }}>Message sent!</Text>
-            <Text style={{ fontSize: 13, color: "#4A6640" }}>We'll get back to you as soon as we can.</Text>
+            <Text style={{ fontSize: 15, fontWeight: "600", color: "#4A6640", marginBottom: 4 }}>{t("help.sent")}</Text>
+            <Text style={{ fontSize: 13, color: "#4A6640" }}>{t("help.sentHint")}</Text>
           </View>
         ) : (
           <View style={{ backgroundColor: "white", borderRadius: 14, borderWidth: 1, borderColor: "#D9CFC4", padding: 16, gap: 14 }}>
             <View style={{ gap: 6 }}>
-              <Text style={{ fontSize: 12, color: "#6B5040" }}>Name</Text>
+              <Text style={{ fontSize: 12, color: "#6B5040", textAlign: isRTL ? "right" : "left" }}>{t("help.name")}</Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Your name"
+                placeholder={t("help.yourName")}
                 placeholderTextColor="#C4B9AA"
+                textAlign={isRTL ? "right" : "left"}
                 style={{ borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: "#4A3728", backgroundColor: "#FAF7F2" }}
               />
             </View>
             <View style={{ gap: 6 }}>
-              <Text style={{ fontSize: 12, color: "#6B5040" }}>Email</Text>
+              <Text style={{ fontSize: 12, color: "#6B5040", textAlign: isRTL ? "right" : "left" }}>{t("help.email")}</Text>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
-                placeholder="you@example.com"
+                placeholder={t("help.emailPlaceholder")}
                 placeholderTextColor="#C4B9AA"
                 keyboardType="email-address"
                 autoCapitalize="none"
+                textAlign={isRTL ? "right" : "left"}
                 style={{ borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: "#4A3728", backgroundColor: "#FAF7F2" }}
               />
             </View>
             <View style={{ gap: 6 }}>
-              <Text style={{ fontSize: 12, color: "#6B5040" }}>Message</Text>
+              <Text style={{ fontSize: 12, color: "#6B5040", textAlign: isRTL ? "right" : "left" }}>{t("help.message")}</Text>
               <TextInput
                 value={message}
                 onChangeText={setMessage}
-                placeholder="What do you need help with?"
+                placeholder={t("help.messagePlaceholder")}
                 placeholderTextColor="#C4B9AA"
                 multiline
                 numberOfLines={4}
+                textAlign={isRTL ? "right" : "left"}
                 style={{ borderWidth: 1, borderColor: "#D9CFC4", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: "#4A3728", backgroundColor: "#FAF7F2", textAlignVertical: "top", minHeight: 100 }}
               />
             </View>
@@ -156,7 +160,7 @@ export default function Help() {
               disabled={!name || !email || !message}
               style={{ backgroundColor: (!name || !email || !message) ? "#D9CFC4" : "#4A3728", borderRadius: 999, paddingVertical: 14, alignItems: "center" }}
             >
-              <Text style={{ color: "#FAF7F2", fontWeight: "600" }}>Send Message</Text>
+              <Text style={{ color: "#FAF7F2", fontWeight: "600" }}>{t("help.sendMessage")}</Text>
             </TouchableOpacity>
           </View>
         )}

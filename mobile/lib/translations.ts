@@ -263,6 +263,24 @@ const en = {
   "newItem.pickPhotos": "Pick Photos",
   "newItem.getAI": "Get AI Suggestion",
   "newItem.listItem": "List Item",
+  "newItem.saveChanges": "Save Changes",
+  "newItem.aiAnalysis": "AI Analysis",
+  "newItem.analyseBtn": "Analyse & Get Points Value",
+  "newItem.reanalyse": "{pts} pts — Re-analyse",
+  "newItem.gallery": "Gallery",
+  "newItem.brandOptional": "Brand (optional)",
+  "newItem.brandNamePlaceholder": "Enter brand name",
+  "newItem.missingInfo": "Missing info",
+  "newItem.missingInfoHint": "Fill in name, category and condition first.",
+  "newItem.missingFields": "Missing fields",
+  "newItem.missingFieldsHint": "Please fill in all required fields.",
+  "newItem.editHeader": "Edit Item",
+  "newItem.camera": "Camera",
+
+  // Messages thread
+  "messages.placeholder": "Message...",
+  "messages.failedToSend": "Failed to send",
+  "messages.failedToSendHint": "Your message couldn't be sent. Please try again.",
 
   // Stuff I Want
   "wantList.header": "Stuff I Want",
@@ -593,6 +611,24 @@ const ar: typeof en = {
   "newItem.pickPhotos": "اختيار صور",
   "newItem.getAI": "احصل على اقتراح",
   "newItem.listItem": "إضافة المنتج",
+  "newItem.saveChanges": "حفظ التعديلات",
+  "newItem.aiAnalysis": "تحليل ذكاء اصطناعي",
+  "newItem.analyseBtn": "حلّل واحصل على قيمة النقاط",
+  "newItem.reanalyse": "{pts} نقطة — إعادة التحليل",
+  "newItem.gallery": "المعرض",
+  "newItem.brandOptional": "الماركة (اختياري)",
+  "newItem.brandNamePlaceholder": "أدخل اسم الماركة",
+  "newItem.missingInfo": "معلومات ناقصة",
+  "newItem.missingInfoHint": "أدخل الاسم والفئة والحالة أولاً.",
+  "newItem.missingFields": "حقول مطلوبة",
+  "newItem.missingFieldsHint": "يرجى ملء جميع الحقول المطلوبة.",
+  "newItem.editHeader": "تعديل المنتج",
+  "newItem.camera": "الكاميرا",
+
+  // Messages thread
+  "messages.placeholder": "اكتب رسالة...",
+  "messages.failedToSend": "فشل الإرسال",
+  "messages.failedToSendHint": "لم يتم إرسال رسالتك. يرجى المحاولة مرة أخرى.",
 
   // Stuff I Want
   "wantList.header": "ما أريده",

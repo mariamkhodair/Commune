@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
+import { useLang } from "@/lib/languageContext";
 
 const faqs = [
   {
@@ -43,6 +44,7 @@ const faqs = [
 ];
 
 export default function GetHelp() {
+  const { t, isRTL } = useLang();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
@@ -60,7 +62,7 @@ export default function GetHelp() {
   const formComplete = form.name && form.email && form.message;
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex" dir={isRTL ? "rtl" : "ltr"}>
       <Sidebar />
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
@@ -68,12 +70,12 @@ export default function GetHelp() {
         <div className="max-w-2xl">
 
           {/* Header */}
-          <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)] mb-1">Get Help</h1>
-          <p className="text-[#8B7355] mb-10">We're here to help. Browse the FAQs or send us a message.</p>
+          <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)] mb-1">{t("help.header")}</h1>
+          <p className="text-[#8B7355] mb-10">{t("help.subheader")}</p>
 
           {/* FAQs */}
           <section className="mb-12">
-            <h2 className="text-lg font-medium text-[#4A3728] mb-4">Frequently Asked Questions</h2>
+            <h2 className="text-lg font-medium text-[#4A3728] mb-4">{t("help.faqs")}</h2>
             <div className="flex flex-col gap-2">
               {faqs.map((faq, i) => (
                 <div key={i} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden border border-[#D9CFC4]">
@@ -103,9 +105,9 @@ export default function GetHelp() {
 
           {/* Contact form */}
           <section>
-            <h2 className="text-lg font-medium text-[#4A3728] mb-1">Still need help?</h2>
+            <h2 className="text-lg font-medium text-[#4A3728] mb-1">{t("help.stillNeedHelp")}</h2>
             <p className="text-sm text-[#8B7355] mb-5">
-              Send us a message or email us directly at{" "}
+              {t("help.contactSubtitle")}{" "}
               <a href="mailto:commune.eg@gmail.com" className="text-[#4A3728] font-medium hover:underline">
                 commune.eg@gmail.com
               </a>
@@ -113,18 +115,18 @@ export default function GetHelp() {
 
             {submitted ? (
               <div className="bg-[#D8E4D0] rounded-2xl px-6 py-8 text-center">
-                <p className="text-lg font-medium text-[#4A6640] mb-1">Message sent!</p>
-                <p className="text-sm text-[#4A6640]">We'll get back to you as soon as we can.</p>
+                <p className="text-lg font-medium text-[#4A6640] mb-1">{t("help.sent")}</p>
+                <p className="text-sm text-[#4A6640]">{t("help.sentHint")}</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-6 border border-[#D9CFC4] flex flex-col gap-4">
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm text-[#6B5040]">Name</label>
+                  <label className="text-sm text-[#6B5040]">{t("help.name")}</label>
                   <input
                     name="name"
                     type="text"
-                    placeholder="Your name"
+                    placeholder={t("help.yourName")}
                     value={form.name}
                     onChange={handleChange}
                     className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
@@ -132,11 +134,11 @@ export default function GetHelp() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm text-[#6B5040]">Email</label>
+                  <label className="text-sm text-[#6B5040]">{t("help.email")}</label>
                   <input
                     name="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder={t("help.yourEmail")}
                     value={form.email}
                     onChange={handleChange}
                     className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
@@ -144,10 +146,10 @@ export default function GetHelp() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm text-[#6B5040]">Message</label>
+                  <label className="text-sm text-[#6B5040]">{t("help.message")}</label>
                   <textarea
                     name="message"
-                    placeholder="What do you need help with?"
+                    placeholder={t("help.whatNeedHelp")}
                     value={form.message}
                     onChange={handleChange}
                     rows={5}
@@ -160,7 +162,7 @@ export default function GetHelp() {
                   disabled={!formComplete}
                   className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Send Message
+                  {t("help.sendMessage")}
                 </button>
 
               </form>

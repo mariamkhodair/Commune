@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { toJpegBlob } from "@/lib/imageUtils";
+import { useLang } from "@/lib/languageContext";
 
 const categories = [
   "Apparel",
@@ -36,6 +37,7 @@ const MIN_PHOTOS = 3;
 export default function NewItem() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t, isRTL } = useLang();
   const [step, setStep] = useState<Step>("form");
   const [photos, setPhotos] = useState<string[]>([]); // base64 previews
   const [photoFiles, setPhotoFiles] = useState<File[]>([]); // raw File objects for upload
@@ -177,7 +179,7 @@ export default function NewItem() {
   const formComplete = photos.length >= MIN_PHOTOS && form.name && form.category && form.condition && form.description;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" dir={isRTL ? "rtl" : "ltr"}>
 
       {/* Top bar */}
       <div className="flex items-center gap-4 px-8 py-5 border-b border-[#D9CFC4] bg-white/60 backdrop-blur-sm">
@@ -187,7 +189,7 @@ export default function NewItem() {
           </svg>
         </Link>
         <h1 className="text-2xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">
-          {step === "form" ? "List an Item" : "Preview"}
+          {step === "form" ? t("newItem.header") : t("newItem.preview")}
         </h1>
       </div>
 
@@ -201,9 +203,9 @@ export default function NewItem() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm text-[#6B5040]">
-                  Photos <span className="text-[#A0624A] font-medium">minimum 3 required</span>
+                  {t("newItem.photos")} <span className="text-[#A0624A] font-medium">{t("newItem.photosRequired", { n: MIN_PHOTOS })}</span>
                 </label>
-                <span className="text-xs text-[#A09080]">{photos.length} added</span>
+                <span className="text-xs text-[#A09080]">{t("newItem.photosAdded", { n: photos.length })}</span>
               </div>
 
               <div
@@ -215,7 +217,7 @@ export default function NewItem() {
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-[#EDE8DF]">
                     <img src={src} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                     {i === 0 && (
-                      <span className="absolute bottom-1 left-1 text-[10px] bg-[#4A3728]/70 text-white px-1.5 py-0.5 rounded-full">Cover</span>
+                      <span className="absolute bottom-1 left-1 text-[10px] bg-[#4A3728]/70 text-white px-1.5 py-0.5 rounded-full">{t("newItem.photoCover")}</span>
                     )}
                     <button
                       onClick={() => removePhoto(i)}
@@ -237,7 +239,7 @@ export default function NewItem() {
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                   <p className="text-xs text-[#A09080] text-center px-1">
-                    {photos.length < MIN_PHOTOS ? `${MIN_PHOTOS - photos.length} more needed` : "Add more"}
+                    {photos.length < MIN_PHOTOS ? t("newItem.moreNeeded", { n: MIN_PHOTOS - photos.length }) : t("newItem.addMore")}
                   </p>
                 </div>
 
@@ -250,7 +252,7 @@ export default function NewItem() {
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                     <circle cx="12" cy="13" r="4" />
                   </svg>
-                  <p className="text-xs text-[#A09080] text-center px-1">Camera</p>
+                  <p className="text-xs text-[#A09080] text-center px-1">{t("newItem.camera")}</p>
                 </div>
               </div>
 
@@ -270,12 +272,12 @@ export default function NewItem() {
                 className="hidden"
                 onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ""; }}
               />
-              <p className="text-xs text-[#A09080] mt-2">First photo will be the cover. Select multiple from library, drag & drop, or use camera (tap again to take more).</p>
+              <p className="text-xs text-[#A09080] mt-2">{t("newItem.photoHint")}</p>
             </div>
 
             {/* Item name */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-[#6B5040]">Item Name</label>
+              <label className="text-sm text-[#6B5040]">{t("newItem.itemName")}</label>
               <input
                 name="name"
                 type="text"
@@ -288,14 +290,14 @@ export default function NewItem() {
 
             {/* Category */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-[#6B5040]">Category</label>
+              <label className="text-sm text-[#6B5040]">{t("newItem.category")}</label>
               <select
                 name="category"
                 value={form.category}
                 onChange={handleChange}
                 className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] focus:outline-none focus:border-[#4A3728] transition-colors appearance-none"
               >
-                <option value="" disabled>Select a category</option>
+                <option value="" disabled>{t("newItem.selectCategory")}</option>
                 {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
@@ -303,24 +305,24 @@ export default function NewItem() {
             {/* Brand */}
             {form.category && (
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-[#6B5040]">Brand <span className="text-[#A09080]">(optional)</span></label>
+                <label className="text-sm text-[#6B5040]">{t("newItem.brandOptional")}</label>
                 <select
                   name="brand"
                   value={form.brand}
                   onChange={handleChange}
                   className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] focus:outline-none focus:border-[#4A3728] transition-colors appearance-none"
                 >
-                  <option value="">Select a brand</option>
+                  <option value="">{t("newItem.selectBrand")}</option>
                   {(brandsByCategory[form.category] ?? []).map((b) => (
                     <option key={b} value={b}>{b}</option>
                   ))}
-                  <option value="Other">Other</option>
+                  <option value="Other">{t("newItem.brandOther")}</option>
                 </select>
                 {form.brand === "Other" && (
                   <input
                     name="customBrand"
                     type="text"
-                    placeholder="Enter brand name"
+                    placeholder={t("newItem.brandNamePlaceholder")}
                     value={form.customBrand}
                     onChange={handleChange}
                     className="mt-2 rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
@@ -331,7 +333,7 @@ export default function NewItem() {
 
             {/* Condition */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-[#6B5040]">Condition</label>
+              <label className="text-sm text-[#6B5040]">{t("newItem.condition")}</label>
               <div className="flex gap-2 flex-wrap">
                 {conditions.map((c) => (
                   <button
@@ -348,10 +350,10 @@ export default function NewItem() {
 
             {/* Description */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-[#6B5040]">Description</label>
+              <label className="text-sm text-[#6B5040]">{t("newItem.description")}</label>
               <textarea
                 name="description"
-                placeholder="Include as much detail as possible — model, size, age, any wear or damage, original packaging, etc."
+                placeholder={t("newItem.descriptionPlaceholder")}
                 value={form.description}
                 onChange={handleChange}
                 rows={5}
@@ -361,7 +363,7 @@ export default function NewItem() {
 
             {/* Points value section */}
             <div className="flex flex-col gap-3">
-              <label className="text-sm text-[#6B5040]">Points Value</label>
+              <label className="text-sm text-[#6B5040]">{t("newItem.pointsValue")}</label>
 
               {/* Toggle */}
               <div className="flex rounded-xl border border-[#D9CFC4] overflow-hidden">
@@ -370,14 +372,14 @@ export default function NewItem() {
                   onClick={() => setPointsMode("ai")}
                   className={`flex-1 py-2.5 text-sm font-medium transition-colors ${pointsMode === "ai" ? "bg-[#4A3728] text-[#F5F0E8]" : "bg-white/50 text-[#6B5040] hover:bg-[#FAF7F2]"}`}
                 >
-                  AI Analysis
+                  {t("newItem.aiAnalysis")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPointsMode("manual")}
                   className={`flex-1 py-2.5 text-sm font-medium transition-colors ${pointsMode === "manual" ? "bg-[#4A3728] text-[#F5F0E8]" : "bg-white/50 text-[#6B5040] hover:bg-[#FAF7F2]"}`}
                 >
-                  Set My Own
+                  {t("newItem.setMyOwn")}
                 </button>
               </div>
 
@@ -387,14 +389,14 @@ export default function NewItem() {
                   disabled={!formComplete || loading}
                   className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3.5 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Analysing your item…" : "Analyse & Get Points Value"}
+                  {loading ? t("newItem.analysing") : t("newItem.analyseBtn")}
                 </button>
               ) : (
                 <div className="flex gap-3">
                   <input
                     type="number"
                     min="1"
-                    placeholder="Enter points value"
+                    placeholder={t("newItem.enterPoints")}
                     value={manualPoints}
                     onChange={(e) => setManualPoints(e.target.value)}
                     className="flex-1 rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
@@ -404,7 +406,7 @@ export default function NewItem() {
                     disabled={!formComplete || !manualPoints || parseInt(manualPoints) < 1}
                     className="rounded-full bg-[#4A3728] text-[#F5F0E8] px-6 py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    Continue
+                    {t("newItem.continue")}
                   </button>
                 </div>
               )}
@@ -438,9 +440,9 @@ export default function NewItem() {
             {/* Points */}
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-5 flex items-center justify-between">
               <div>
-                <p className="text-sm text-[#8B7355] mb-1">Estimated Points Value</p>
-                <p className="text-4xl font-bold text-[#4A3728]">{points} <span className="text-xl font-normal text-[#8B7355]">pts</span></p>
-                <p className="text-xs text-[#A09080] mt-1">{pointsMode === "ai" ? "Based on current Egyptian market value" : "Set by you"}</p>
+                <p className="text-sm text-[#8B7355] mb-1">{t("newItem.estimatedPoints")}</p>
+                <p className="text-4xl font-bold text-[#4A3728]">{points} <span className="text-xl font-normal text-[#8B7355]">{t("common.pts")}</span></p>
+                <p className="text-xs text-[#A09080] mt-1">{pointsMode === "ai" ? t("newItem.aiPriceHint") : t("newItem.manualPriceHint")}</p>
               </div>
               <svg viewBox="0 0 24 24" fill="none" stroke="#7A9E6E" strokeWidth="1.5" className="w-12 h-12 opacity-60">
                 <circle cx="12" cy="12" r="10" />
@@ -451,25 +453,25 @@ export default function NewItem() {
             {/* Item details */}
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-5 flex flex-col gap-3">
               <div className="flex justify-between text-sm">
-                <span className="text-[#8B7355]">Name</span>
+                <span className="text-[#8B7355]">{t("newItem.name")}</span>
                 <span className="text-[#4A3728] font-medium">{form.name}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-[#8B7355]">Category</span>
+                <span className="text-[#8B7355]">{t("newItem.category")}</span>
                 <span className="text-[#4A3728] font-medium">{form.category}</span>
               </div>
               {(form.brand && form.brand !== "Other" || form.customBrand) && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#8B7355]">Brand</span>
+                  <span className="text-[#8B7355]">{t("newItem.brand")}</span>
                   <span className="text-[#4A3728] font-medium">{form.brand === "Other" ? form.customBrand : form.brand}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <span className="text-[#8B7355]">Condition</span>
+                <span className="text-[#8B7355]">{t("newItem.condition")}</span>
                 <span className="text-[#4A3728] font-medium">{form.condition}</span>
               </div>
               <div className="flex flex-col gap-1 text-sm">
-                <span className="text-[#8B7355]">Description</span>
+                <span className="text-[#8B7355]">{t("newItem.description")}</span>
                 <span className="text-[#4A3728]">{form.description}</span>
               </div>
             </div>
@@ -485,14 +487,14 @@ export default function NewItem() {
                 onClick={handleListItem}
                 disabled={saving}
               >
-                {saving ? "Listing your item…" : "List This Item"}
+                {saving ? t("newItem.listingItem") : t("newItem.listItem")}
               </button>
               <button
                 className="w-full rounded-full border border-[#D9CFC4] text-[#6B5040] py-3.5 font-medium hover:border-[#4A3728] transition-colors"
                 onClick={() => setStep("form")}
                 disabled={saving}
               >
-                Edit Details
+                {t("newItem.editDetails")}
               </button>
             </div>
 

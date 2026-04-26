@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { toJpegBlob } from "@/lib/imageUtils";
+import { useLang } from "@/lib/languageContext";
 
 const categories = [
   "Apparel",
@@ -33,6 +34,7 @@ export default function EditItem() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { userId } = useUser();
+  const { t, isRTL } = useLang();
 
   const [fetching, setFetching] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -208,22 +210,22 @@ export default function EditItem() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-[#8B7355]">Item not found.</p>
-        <Link href="/my-stuff" className="text-[#4A3728] underline">Back to My Stuff</Link>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4" dir={isRTL ? "rtl" : "ltr"}>
+        <p className="text-[#8B7355]">{t("item.notFound")}</p>
+        <Link href="/my-stuff" className="text-[#4A3728] underline">{t("common.back")}</Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" dir={isRTL ? "rtl" : "ltr"}>
       <div className="flex items-center gap-4 px-8 py-5 border-b border-[#D9CFC4] bg-white/60 backdrop-blur-sm">
         <Link href="/my-stuff" className="text-[#8B7355] hover:text-[#4A3728] transition-colors">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-5 h-5">
             <path d="M19 12H5M12 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 className="text-2xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">Edit Item</h1>
+        <h1 className="text-2xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">{t("item.editItem")}</h1>
       </div>
 
       <div className="max-w-2xl mx-auto px-6 py-10 flex flex-col gap-6">
@@ -231,8 +233,8 @@ export default function EditItem() {
         {/* Photos */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm text-[#6B5040]">Photos</label>
-            <span className="text-xs text-[#A09080]">{totalPhotos} photo{totalPhotos !== 1 ? "s" : ""}</span>
+            <label className="text-sm text-[#6B5040]">{t("newItem.photos")}</label>
+            <span className="text-xs text-[#A09080]">{t("newItem.photosAdded", { n: totalPhotos })}</span>
           </div>
 
           <div onDrop={handleDrop} onDragOver={(e) => e.preventDefault()} className="grid grid-cols-3 gap-2">
@@ -240,7 +242,7 @@ export default function EditItem() {
               <div key={`existing-${i}`} className="relative aspect-square rounded-xl overflow-hidden bg-[#EDE8DF]">
                 <img src={src} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                 {i === 0 && existingPhotos.length + newPhotoPreviews.length > 0 && (
-                  <span className="absolute bottom-1 left-1 text-[10px] bg-[#4A3728]/70 text-white px-1.5 py-0.5 rounded-full">Cover</span>
+                  <span className="absolute bottom-1 left-1 text-[10px] bg-[#4A3728]/70 text-white px-1.5 py-0.5 rounded-full">{t("newItem.photoCover")}</span>
                 )}
                 <button
                   onClick={() => removeExistingPhoto(i)}
@@ -274,7 +276,7 @@ export default function EditItem() {
               <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="2" strokeLinecap="round" className="w-6 h-6 mb-1">
                 <path d="M12 5v14M5 12h14" />
               </svg>
-              <p className="text-xs text-[#A09080] text-center px-1">Add photos</p>
+              <p className="text-xs text-[#A09080] text-center px-1">{t("newItem.addMore")}</p>
             </div>
 
             <div
@@ -285,7 +287,7 @@ export default function EditItem() {
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                 <circle cx="12" cy="13" r="4" />
               </svg>
-              <p className="text-xs text-[#A09080] text-center px-1">Camera</p>
+              <p className="text-xs text-[#A09080] text-center px-1">{t("newItem.camera")}</p>
             </div>
           </div>
 
@@ -297,7 +299,7 @@ export default function EditItem() {
 
         {/* Name */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-[#6B5040]">Item Name</label>
+          <label className="text-sm text-[#6B5040]">{t("newItem.itemName")}</label>
           <input
             name="name" type="text" value={form.name} onChange={handleChange}
             className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
@@ -306,11 +308,11 @@ export default function EditItem() {
 
         {/* Category */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-[#6B5040]">Category</label>
+          <label className="text-sm text-[#6B5040]">{t("newItem.category")}</label>
           <select name="category" value={form.category} onChange={handleChange}
             className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] focus:outline-none focus:border-[#4A3728] transition-colors appearance-none"
           >
-            <option value="" disabled>Select a category</option>
+            <option value="" disabled>{t("newItem.selectCategory")}</option>
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
@@ -318,17 +320,17 @@ export default function EditItem() {
         {/* Brand */}
         {form.category && (
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-[#6B5040]">Brand <span className="text-[#A09080]">(optional)</span></label>
+            <label className="text-sm text-[#6B5040]">{t("newItem.brandOptional")}</label>
             <select name="brand" value={form.brand} onChange={handleChange}
               className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] focus:outline-none focus:border-[#4A3728] transition-colors appearance-none"
             >
-              <option value="">Select a brand</option>
+              <option value="">{t("newItem.selectBrand")}</option>
               {(brandsByCategory[form.category] ?? []).map((b) => <option key={b} value={b}>{b}</option>)}
-              <option value="Other">Other</option>
+              <option value="Other">{t("newItem.brandOther")}</option>
             </select>
             {form.brand === "Other" && (
               <input
-                name="customBrand" type="text" placeholder="Enter brand name" value={form.customBrand} onChange={handleChange}
+                name="customBrand" type="text" placeholder={t("newItem.brandNamePlaceholder")} value={form.customBrand} onChange={handleChange}
                 className="mt-2 rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
               />
             )}
@@ -337,7 +339,7 @@ export default function EditItem() {
 
         {/* Condition */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-[#6B5040]">Condition</label>
+          <label className="text-sm text-[#6B5040]">{t("newItem.condition")}</label>
           <div className="flex gap-2 flex-wrap">
             {conditions.map((c) => (
               <button key={c} type="button" onClick={() => setForm({ ...form, condition: c })}
@@ -351,7 +353,7 @@ export default function EditItem() {
 
         {/* Description */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-[#6B5040]">Description</label>
+          <label className="text-sm text-[#6B5040]">{t("newItem.description")}</label>
           <textarea name="description" value={form.description} onChange={handleChange} rows={5}
             className="rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors resize-none"
           />
@@ -359,18 +361,18 @@ export default function EditItem() {
 
         {/* Points */}
         <div className="flex flex-col gap-3">
-          <label className="text-sm text-[#6B5040]">Points Value</label>
+          <label className="text-sm text-[#6B5040]">{t("newItem.pointsValue")}</label>
 
           <div className="flex rounded-xl border border-[#D9CFC4] overflow-hidden">
             <button type="button" onClick={() => setPointsMode("ai")}
               className={`flex-1 py-2.5 text-sm font-medium transition-colors ${pointsMode === "ai" ? "bg-[#4A3728] text-[#F5F0E8]" : "bg-white/50 text-[#6B5040] hover:bg-[#FAF7F2]"}`}
             >
-              AI Analysis
+              {t("newItem.aiAnalysis")}
             </button>
             <button type="button" onClick={() => setPointsMode("manual")}
               className={`flex-1 py-2.5 text-sm font-medium transition-colors ${pointsMode === "manual" ? "bg-[#4A3728] text-[#F5F0E8]" : "bg-white/50 text-[#6B5040] hover:bg-[#FAF7F2]"}`}
             >
-              Set My Own
+              {t("newItem.setMyOwn")}
             </button>
           </div>
 
@@ -378,11 +380,11 @@ export default function EditItem() {
             <button onClick={handleAnalyse} disabled={!formComplete || analyzing}
               className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3.5 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {analyzing ? "Analysing…" : points !== null ? `${points} pts — Re-analyse` : "Analyse & Get Points Value"}
+              {analyzing ? t("newItem.analysing") : points !== null ? `${points} ${t("common.pts")} — ${t("newItem.analyseBtn")}` : t("newItem.analyseBtn")}
             </button>
           ) : (
             <div className="flex gap-3 items-center">
-              <input type="number" min="1" placeholder="Enter points value" value={manualPoints}
+              <input type="number" min="1" placeholder={t("newItem.enterPoints")} value={manualPoints}
                 onChange={(e) => { setManualPoints(e.target.value); setPoints(e.target.value ? parseInt(e.target.value) : null); }}
                 className="flex-1 rounded-xl border border-[#D9CFC4] bg-[#FAF7F2] px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
               />
@@ -396,12 +398,12 @@ export default function EditItem() {
           <button onClick={handleSave} disabled={!canSave || saving}
             className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3.5 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {saving ? "Saving…" : "Save Changes"}
+            {saving ? t("profile.saving") : t("newItem.saveChanges")}
           </button>
           <Link href="/my-stuff"
             className="w-full rounded-full border border-[#D9CFC4] text-[#6B5040] py-3.5 font-medium hover:border-[#4A3728] transition-colors text-center"
           >
-            Cancel
+            {t("common.cancel")}
           </Link>
         </div>
 

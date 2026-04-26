@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { toJpegBlob } from "@/lib/imageUtils";
+import { useLang } from "@/lib/languageContext";
 
 type OwnItem = { id: string; name: string; category: string; condition: string; points: number; photos: string[]; status: string };
 
@@ -25,6 +26,7 @@ function Stars({ rating }: { rating: number | null }) {
 
 export default function ProfilePage() {
   const { userId, profile } = useUser();
+  const { t, isRTL } = useLang();
   const [editing, setEditing] = useState(false);
   const [items, setItems] = useState<OwnItem[]>([]);
 
@@ -97,15 +99,15 @@ export default function ProfilePage() {
 
   if (editing) {
     return (
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex" dir={isRTL ? "rtl" : "ltr"}>
         <Sidebar />
         <main className="flex-1 px-8 py-8 overflow-y-auto max-w-2xl">
           <div className="flex items-center gap-4 mb-8">
             <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 text-sm text-[#8B7355] hover:text-[#4A3728] transition-colors">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
-              Back
+              {t("common.back")}
             </button>
-            <h1 className="text-2xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">Edit Profile</h1>
+            <h1 className="text-2xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">{t("profile.editProfile")}</h1>
           </div>
 
           {/* Avatar */}
@@ -130,7 +132,7 @@ export default function ProfilePage() {
             <div>
               <p className="text-sm font-medium text-[#4A3728]">{name || "Your Name"}</p>
               <button onClick={() => fileRef.current?.click()} disabled={uploading} className="text-xs text-[#8B7355] hover:text-[#4A3728] transition-colors mt-0.5">
-                {uploading ? "Uploading…" : "Change photo"}
+                {uploading ? t("profile.uploading") : t("profile.changePhoto")}
               </button>
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
@@ -139,10 +141,10 @@ export default function ProfilePage() {
           {/* Fields */}
           <div className="flex flex-col gap-5">
             {[
-              { label: "Name", value: name, set: setName, placeholder: "Your name" },
-              { label: "Neighbourhood / Area", value: area, set: setArea, placeholder: "e.g. Maadi" },
-              { label: "City", value: city, set: setCity, placeholder: "e.g. Cairo" },
-              { label: "Phone Number", value: phone, set: setPhone, placeholder: "+20 100 000 0000" },
+              { label: t("profile.name"), value: name, set: setName, placeholder: "Your name" },
+              { label: t("profile.area"), value: area, set: setArea, placeholder: "e.g. Maadi" },
+              { label: t("profile.city"), value: city, set: setCity, placeholder: "e.g. Cairo" },
+              { label: t("profile.phone"), value: phone, set: setPhone, placeholder: "+20 100 000 0000" },
             ].map(({ label, value, set, placeholder }) => (
               <div key={label}>
                 <label className="block text-xs font-semibold text-[#6B5040] mb-1.5 uppercase tracking-wide">{label}</label>
@@ -157,9 +159,9 @@ export default function ProfilePage() {
               className="mt-2 rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 px-8 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-60 w-fit flex items-center gap-2"
             >
               {saving
-                ? <><div className="w-4 h-4 border-2 border-[#F5F0E8] border-t-transparent rounded-full animate-spin" /> Saving…</>
-                : saved ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-4 h-4"><path d="M20 6L9 17l-5-5" /></svg> Saved</>
-                : "Save Changes"}
+                ? <><div className="w-4 h-4 border-2 border-[#F5F0E8] border-t-transparent rounded-full animate-spin" /> {t("profile.saving")}</>
+                : saved ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-4 h-4"><path d="M20 6L9 17l-5-5" /></svg> {t("profile.saved")}</>
+                : t("profile.saveChanges")}
             </button>
           </div>
         </main>
@@ -168,7 +170,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex" dir={isRTL ? "rtl" : "ltr"}>
       <Sidebar />
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
@@ -186,9 +188,9 @@ export default function ProfilePage() {
               <h1 className="text-2xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">{profile.name}</h1>
               <Stars rating={rating} />
               <p className="text-xs text-[#A09080]">
-                Member since {joined}
+                {t("profile.memberSince", { date: joined })}
                 {profile.area ? ` · ${profile.area}, ${profile.city}` : ""}
-                {profile.rating_count > 0 ? ` · ${profile.rating_count} rating${profile.rating_count !== 1 ? "s" : ""}` : ""}
+                {profile.rating_count > 0 ? ` · ${t("profile.ratings", { n: profile.rating_count, s: profile.rating_count !== 1 ? "s" : "" })}` : ""}
               </p>
             </div>
           </div>
@@ -199,17 +201,17 @@ export default function ProfilePage() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
               <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
             </svg>
-            Edit Profile
+            {t("profile.editProfile")}
           </button>
         </div>
 
         {/* My Stuff */}
-        <h2 className="text-lg font-medium text-[#4A3728] mb-4">My Stuff</h2>
+        <h2 className="text-lg font-medium text-[#4A3728] mb-4">{t("profile.myStuff")}</h2>
 
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">Nothing listed yet</p>
-            <Link href="/my-stuff" className="text-sm text-[#8B7355] hover:underline">Go to My Stuff to list an item →</Link>
+            <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">{t("profile.nothingListed")}</p>
+            <Link href="/my-stuff" className="text-sm text-[#8B7355] hover:underline">{t("profile.goToMyStuff")}</Link>
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-3 portrait-grid-2">

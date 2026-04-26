@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { notifyUser } from "@/lib/notifySwap";
 import { updateSwapItemStatus } from "@/lib/updateSwapItems";
+import { useLang } from "@/lib/languageContext";
 
 type SwapStatus = "Proposed" | "Accepted" | "In Progress" | "Completed" | "Declined";
 
@@ -134,6 +135,7 @@ function ProgressBar({ status }: { status: SwapStatus }) {
 }
 
 function ItemList({ label, items }: { label: string; items: SwapItem[] }) {
+  const { t } = useLang();
   const total = items.reduce((s, i) => s + i.points, 0);
   return (
     <div className="flex-1 bg-[#F5F0E8] rounded-xl p-3">
@@ -155,7 +157,7 @@ function ItemList({ label, items }: { label: string; items: SwapItem[] }) {
             <div className="flex items-center justify-between gap-2 flex-1 min-w-0">
               <p className="text-sm font-medium text-[#4A3728] leading-tight truncate">{item.name}</p>
               {item.points > 0 && (
-                <p className="text-xs text-[#8B7355] shrink-0">{item.points} pts</p>
+                <p className="text-xs text-[#8B7355] shrink-0">{item.points} {t("common.pts")}</p>
               )}
             </div>
           </div>
@@ -163,7 +165,7 @@ function ItemList({ label, items }: { label: string; items: SwapItem[] }) {
       </div>
       {items.length > 1 && total > 0 && (
         <p className="text-xs font-semibold text-[#4A3728] mt-2 pt-2 border-t border-[#D9CFC4]">
-          {total} pts total
+          {t("mySwaps.ptsTotal", { total })}
         </p>
       )}
     </div>
@@ -171,6 +173,7 @@ function ItemList({ label, items }: { label: string; items: SwapItem[] }) {
 }
 
 function RatingPrompt({ swapId, name, otherId }: { swapId: string; name: string; otherId: string }) {
+  const { t } = useLang();
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -203,11 +206,11 @@ function RatingPrompt({ swapId, name, otherId }: { swapId: string; name: string;
   }
 
   if (submitted)
-    return <p className="text-xs text-[#7A9E6E] mt-4">Thank you for rating {name}!</p>;
+    return <p className="text-xs text-[#7A9E6E] mt-4">{t("mySwaps.ratingThanks", { name })}</p>;
 
   return (
     <div className="mt-4 pt-4 border-t border-[#EDE8DF]">
-      <p className="text-xs text-[#8B7355] mb-2">How was your swap with {name}?</p>
+      <p className="text-xs text-[#8B7355] mb-2">{t("mySwaps.ratingPrompt", { name })}</p>
       <div className="flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((s) => (
           <button
@@ -233,7 +236,7 @@ function RatingPrompt({ swapId, name, otherId }: { swapId: string; name: string;
             onClick={submitRating}
             className="ml-3 text-xs px-3 py-1 rounded-full bg-[#4A3728] text-[#F5F0E8] hover:bg-[#6B5040] transition-colors"
           >
-            Submit
+            {t("mySwaps.submit")}
           </button>
         )}
       </div>
@@ -244,6 +247,7 @@ function RatingPrompt({ swapId, name, otherId }: { swapId: string; name: string;
 export default function MySwaps() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t, isRTL } = useLang();
   const [swaps, setSwaps] = useState<Swap[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<SwapStatus | "All">("All");
@@ -591,15 +595,29 @@ export default function MySwaps() {
   const countFor = (tab: SwapStatus | "All") =>
     tab === "All" ? swaps.length : swaps.filter((s) => s.status === tab).length;
 
+  const tabLabel = (tab: SwapStatus | "All"): string => {
+    if (tab === "All") return t("common.all");
+    const map: Record<SwapStatus, string> = {
+      "Proposed": t("mySwaps.proposed"),
+      "Accepted": t("mySwaps.accepted"),
+      "In Progress": t("mySwaps.inProgress"),
+      "Completed": t("mySwaps.completed"),
+      "Declined": t("mySwaps.declined"),
+    };
+    return map[tab];
+  };
+
+  const statusLabel = (status: SwapStatus): string => tabLabel(status) as string;
+
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex" dir={isRTL ? "rtl" : "ltr"}>
       <Sidebar />
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
         <h1 className="text-3xl font-light text-[#4A3728] mb-1 font-[family-name:var(--font-jost)]">
-          My Swaps
+          {t("mySwaps.header")}
         </h1>
-        <p className="text-[#8B7355] mb-6">Track all your swap requests and ongoing exchanges.</p>
+        <p className="text-[#8B7355] mb-6">{t("mySwaps.subheader")}</p>
 
         {/* Tabs */}
         <div className="flex gap-2 flex-wrap mb-6">
@@ -613,7 +631,7 @@ export default function MySwaps() {
                   : "border-[#D9CFC4] text-[#6B5040] bg-white/60 hover:border-[#4A3728]"
               }`}
             >
-              {tab}
+              {tabLabel(tab)}
               <span className="ml-1.5 opacity-60">{countFor(tab)}</span>
             </button>
           ))}
@@ -626,9 +644,9 @@ export default function MySwaps() {
         ) : filteredSwaps.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-2">
-              No swaps here yet
+              {t("mySwaps.emptyTitle")}
             </p>
-            <p className="text-[#A09080]">Head to Search to propose your first swap.</p>
+            <p className="text-[#A09080]">{t("mySwaps.emptyHint")}</p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -655,22 +673,22 @@ export default function MySwaps() {
                         </Link>
                         <p className="text-xs text-[#A09080]">
                           {swap.direction === "incoming"
-                            ? "sent you a request"
-                            : "you proposed this swap"}
+                            ? t("mySwaps.sentYouRequest")
+                            : t("mySwaps.youProposedThis")}
                         </p>
                       </div>
                     </div>
                     <span
                       className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusStyles[swap.status]}`}
                     >
-                      {swap.status}
+                      {statusLabel(swap.status)}
                     </span>
                   </div>
 
                   {/* Items */}
                   <div className="flex items-start gap-3">
                     <ItemList
-                      label="They offer"
+                      label={t("mySwaps.theyOffer")}
                       items={
                         swap.proposerItems.length
                           ? swap.proposerItems
@@ -689,7 +707,7 @@ export default function MySwaps() {
                       <path d="M17 8v12m0 0 4-4m-4 4-4-4" />
                     </svg>
                     <ItemList
-                      label="In exchange for"
+                      label={t("mySwaps.inExchangeFor")}
                       items={
                         swap.receiverItems.length
                           ? swap.receiverItems
@@ -704,7 +722,7 @@ export default function MySwaps() {
                   {/* Proposed dates section */}
                   {swap.status === "Accepted" && swap.proposedDates.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-[#EDE8DF]">
-                      <p className="text-xs font-semibold text-[#4A3728] mb-2">Proposed dates</p>
+                      <p className="text-xs font-semibold text-[#4A3728] mb-2">{t("mySwaps.proposedDates")}</p>
                       <div className="flex flex-col gap-2">
                         {swap.proposedDates.map((pd) => (
                           <div
@@ -717,7 +735,7 @@ export default function MySwaps() {
                                 onClick={() => acceptDate(pd.id, swap.id)}
                                 className="text-xs px-3 py-1 rounded-full bg-[#7A9E6E] text-white font-medium hover:bg-[#6A8E5E] transition-colors"
                               >
-                                Confirm
+                                {t("mySwaps.confirm")}
                               </button>
                             )}
                           </div>
@@ -730,7 +748,7 @@ export default function MySwaps() {
                   {swap.status === "In Progress" && swap.proposedDates.length === 1 && (
                     <div className="mt-4 pt-4 border-t border-[#EDE8DF]">
                       <p className="text-xs text-[#7A9E6E] font-semibold">
-                        Confirmed: {formatDate(swap.proposedDates[0].date)}{swap.proposedDates[0].time ? ` at ${swap.proposedDates[0].time}` : ""}
+                        {t("mySwaps.confirmedDate")} {formatDate(swap.proposedDates[0].date)}{swap.proposedDates[0].time ? ` at ${swap.proposedDates[0].time}` : ""}
                       </p>
                     </div>
                   )}
@@ -745,26 +763,26 @@ export default function MySwaps() {
                         onClick={() => acceptSwap(swap.id)}
                         className="flex-1 rounded-full bg-[#4A3728] text-[#F5F0E8] py-2 text-sm font-medium hover:bg-[#6B5040] transition-colors"
                       >
-                        Accept
+                        {t("common.accept")}
                       </button>
                       <button
                         onClick={() => donateSwap(swap.id)}
                         className="flex-1 rounded-full bg-[#7A9E6E] text-white py-2 text-sm font-medium hover:bg-[#6A8E5E] transition-colors"
                       >
-                        Donate 🎁
+                        {t("mySwaps.donate")} 🎁
                       </button>
                       <button
                         onClick={() => declineSwap(swap.id)}
                         className="flex-1 rounded-full border border-[#D9CFC4] text-[#A0624A] py-2 text-sm font-medium hover:border-[#A0624A] transition-colors"
                       >
-                        Decline
+                        {t("common.decline")}
                       </button>
                     </div>
                   )}
 
                   {/* Donation badge */}
                   {swap.isDonation && (
-                    <p className="text-xs text-[#7A9E6E] font-semibold text-center mt-2">🎁 This is a donation — no exchange needed</p>
+                    <p className="text-xs text-[#7A9E6E] font-semibold text-center mt-2">🎁 {t("mySwaps.donationBadge")}</p>
                   )}
 
                   {/* Message + Schedule buttons */}
@@ -778,7 +796,7 @@ export default function MySwaps() {
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                           </svg>
-                          Message
+                          {t("common.message")}
                         </Link>
                       )}
                       {swap.status === "Accepted" && swap.proposedDates.length === 0 && (
@@ -789,7 +807,7 @@ export default function MySwaps() {
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
                             <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
                           </svg>
-                          Schedule
+                          {t("mySwaps.schedule")}
                         </button>
                       )}
                     </div>
@@ -805,7 +823,7 @@ export default function MySwaps() {
                         onChangeMonth={setCalendarMonth}
                       />
                       <div className="mt-3 flex items-center gap-2">
-                        <label className="text-xs text-[#8B7355] shrink-0">Time (optional)</label>
+                        <label className="text-xs text-[#8B7355] shrink-0">{t("mySwaps.timeOptional")}</label>
                         <input
                           type="time"
                           value={proposedTime}
@@ -821,14 +839,14 @@ export default function MySwaps() {
                           onClick={() => { setCalendarOpenFor(null); setSelectedDates(new Set()); setProposedTime(""); setProposeError(null); }}
                           className="flex-1 rounded-full border border-[#D9CFC4] text-[#6B5040] py-2 text-sm font-medium hover:border-[#4A3728] transition-colors"
                         >
-                          Cancel
+                          {t("common.cancel")}
                         </button>
                         <button
                           onClick={() => proposeDates(swap.id, Array.from(selectedDates))}
                           disabled={selectedDates.size === 0}
                           className="flex-1 rounded-full bg-[#4A3728] text-[#F5F0E8] py-2 text-sm font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          Propose {selectedDates.size > 0 ? `${selectedDates.size} ` : ""}{selectedDates.size === 1 ? "date" : "dates"}
+                          {t("mySwaps.proposeNDates", { n: selectedDates.size > 0 ? selectedDates.size : "", s: selectedDates.size === 1 ? "" : "s" })}
                         </button>
                       </div>
                     </div>
@@ -842,7 +860,7 @@ export default function MySwaps() {
                   {/* Confirmed date label */}
                   {swap.status === "In Progress" && swap.proposedDates.length > 0 && (
                     <p className="text-xs text-[#7A9E6E] font-semibold text-center mt-3">
-                      Confirmed swap date: {formatDate(swap.proposedDates[0].date)}{swap.proposedDates[0].time ? ` at ${swap.proposedDates[0].time}` : ""}
+                      {t("mySwaps.confirmedDate")} {formatDate(swap.proposedDates[0].date)}{swap.proposedDates[0].time ? ` at ${swap.proposedDates[0].time}` : ""}
                     </p>
                   )}
 
@@ -854,22 +872,20 @@ export default function MySwaps() {
                     return swapDate < today;
                   })() && (
                     <div className="mt-3 bg-[#FFF8F0] border border-[#E8D5BC] rounded-2xl px-4 py-3">
-                      <p className="text-sm font-semibold text-[#4A3728] mb-1">Did your swap happen?</p>
-                      <p className="text-xs text-[#8B7355] mb-3">
-                        The scheduled date has passed. Let us know so we can keep your items up to date.
-                      </p>
+                      <p className="text-sm font-semibold text-[#4A3728] mb-1">{t("mySwaps.didSwapHappen")}</p>
+                      <p className="text-xs text-[#8B7355] mb-3">{t("mySwaps.swapPassedHint")}</p>
                       <div className="flex gap-2">
                         <button
                           onClick={() => confirmSwapHappened(swap.id)}
                           className="flex-1 rounded-full bg-[#4A3728] text-[#F5F0E8] py-2 text-xs font-semibold hover:bg-[#6B5040] transition-colors"
                         >
-                          Yes, we swapped!
+                          {t("mySwaps.yesWeSwapped")}
                         </button>
                         <button
                           onClick={() => setConfirmCancel(swap.id)}
                           className="flex-1 rounded-full border border-[#D9CFC4] text-[#A0624A] py-2 text-xs font-medium hover:border-[#A0624A] transition-colors"
                         >
-                          No, it didn&apos;t happen
+                          {t("mySwaps.noDidntHappen")}
                         </button>
                       </div>
                     </div>
@@ -882,7 +898,7 @@ export default function MySwaps() {
                         onClick={() => setConfirmCancel(swap.id)}
                         className="text-xs text-[#A09080] underline hover:text-[#A0624A] transition-colors"
                       >
-                        Cancel swap
+                        {t("mySwaps.cancelSwap")}
                       </button>
                     </div>
                   )}
@@ -898,22 +914,20 @@ export default function MySwaps() {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-[#4A3728]/30 backdrop-blur-sm" onClick={() => setConfirmCancel(null)} />
           <div className="relative w-full max-w-sm bg-[#FAF7F2] rounded-3xl px-7 py-8 shadow-lg text-center">
-            <p className="text-base font-semibold text-[#4A3728] mb-2">Cancel this swap?</p>
-            <p className="text-sm text-[#8B7355] mb-6">
-              When canceling a swap, make sure to communicate with your fellow member in your chat :)
-            </p>
+            <p className="text-base font-semibold text-[#4A3728] mb-2">{t("mySwaps.cancelTitle")}</p>
+            <p className="text-sm text-[#8B7355] mb-6">{t("mySwaps.cancelHint")}</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmCancel(null)}
                 className="flex-1 py-2.5 rounded-full border border-[#D9CFC4] text-[#6B5040] text-sm hover:bg-[#EDE8DF] transition-colors"
               >
-                Go back
+                {t("mySwaps.goBack")}
               </button>
               <button
                 onClick={() => cancelSwap(confirmCancel)}
                 className="flex-1 py-2.5 rounded-full bg-[#A0624A] text-white text-sm hover:bg-[#8B4D38] transition-colors"
               >
-                Cancel swap
+                {t("mySwaps.cancelSwap")}
               </button>
             </div>
           </div>

@@ -8,6 +8,7 @@ import ProposeSwapModal from "@/components/ProposeSwapModal";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
 import { notifyUser } from "@/lib/notifySwap";
+import { useLang } from "@/lib/languageContext";
 
 const categories = [
   "Apparel",
@@ -48,6 +49,7 @@ type LikedItem = {
 export default function StuffIWant() {
   const router = useRouter();
   const { userId } = useUser();
+  const { t, isRTL } = useLang();
   const [tab, setTab] = useState<"want" | "liked">("want");
   const [wanted, setWanted] = useState<WantedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,9 +154,6 @@ export default function StuffIWant() {
         .filter(w => w.length >= 3);
     }
 
-    // Two words match if they are the same, one is a plural of the other,
-    // or they share a common stem (first 4+ chars). This prevents "ring"
-    // from matching "earring" while still matching "rings".
     function wordsMatch(a: string, b: string): boolean {
       if (a === b) return true;
       if (a + "s" === b || b + "s" === a) return true;
@@ -190,7 +189,6 @@ export default function StuffIWant() {
         .limit(10);
 
       for (const item of matched ?? []) {
-        // Require at least one keyword to actually appear in the item name
         if (keywords.length > 0 && !namesMatch(want.name, item.name)) continue;
         if (seenIds.has(item.id)) continue;
         seenIds.add(item.id);
@@ -214,7 +212,6 @@ export default function StuffIWant() {
       }
     }
 
-    // Check mutual interest in one batch: does each matched member also want something A has?
     const memberIds = [...new Set(results.map(r => r.memberId))];
     if (memberIds.length > 0) {
       const { data: allTheirWanted } = await supabase
@@ -230,7 +227,6 @@ export default function StuffIWant() {
       }
     }
 
-    // Mutual matches first, then by points proximity
     results.sort((a, b) => {
       if (b.isMutual !== a.isMutual) return (b.isMutual ? 1 : 0) - (a.isMutual ? 1 : 0);
       return a.pointsDiff - b.pointsDiff;
@@ -279,14 +275,14 @@ export default function StuffIWant() {
   const formComplete = form.name && form.category && form.condition;
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex" dir={isRTL ? "rtl" : "ltr"}>
       <Sidebar />
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">Stuff I Want</h1>
+          <h1 className="text-3xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">{t("wantList.header")}</h1>
           {tab === "want" && (
             <div className="flex items-center gap-3">
               <button
@@ -299,10 +295,10 @@ export default function StuffIWant() {
                     <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
                     </svg>
-                    Matching…
+                    {t("wantList.matching")}
                   </>
                 ) : (
-                  <><span>🤝🏽</span> Match Me</>
+                  <><span>🤝🏽</span> {t("wantList.matchMe")}</>
                 )}
               </button>
               <button
@@ -312,30 +308,28 @@ export default function StuffIWant() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-4 h-4">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
-                Add Item
+                {t("wantList.addItem")}
               </button>
             </div>
           )}
         </div>
         <p className="text-[#8B7355] mb-6">
-          {tab === "want"
-            ? "Tell us what you're looking for and we'll match you with someone who has it — and wants what you have."
-            : "Items you've saved — propose a swap when you're ready."}
+          {tab === "want" ? t("wantList.wantSubheader") : t("wantList.likedSubheader")}
         </p>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
-          {(["want", "liked"] as const).map((t) => (
+          {(["want", "liked"] as const).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className={`px-5 py-2 rounded-full text-sm font-medium border transition-colors ${
-                tab === t
+                tab === tabKey
                   ? "bg-[#4A3728] text-[#FAF7F2] border-[#4A3728]"
                   : "bg-white text-[#6B5040] border-[#D9CFC4] hover:border-[#4A3728]"
               }`}
             >
-              {t === "want" ? "My Want List" : `Liked Stuff${likedItems.length > 0 ? ` (${likedItems.length})` : ""}`}
+              {tabKey === "want" ? t("wantList.myWantList") : `${t("wantList.likedStuff")}${likedItems.length > 0 ? ` (${likedItems.length})` : ""}`}
             </button>
           ))}
         </div>
@@ -346,11 +340,11 @@ export default function StuffIWant() {
             {/* Add form */}
             {showForm && (
               <div className="bg-white/60 backdrop-blur-sm rounded-2xl px-6 py-6 mb-6 border border-[#D9CFC4]">
-                <h2 className="text-lg font-medium text-[#4A3728] mb-5">What are you looking for?</h2>
+                <h2 className="text-lg font-medium text-[#4A3728] mb-5">{t("wantList.whatLookingFor")}</h2>
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm text-[#6B5040]">Item Name</label>
+                    <label className="text-sm text-[#6B5040]">{t("wantList.itemName")}</label>
                     <input
                       name="name"
                       type="text"
@@ -363,7 +357,7 @@ export default function StuffIWant() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm text-[#6B5040]">Category</label>
+                      <label className="text-sm text-[#6B5040]">{t("newItem.category")}</label>
                       <select
                         name="category"
                         value={form.category}
@@ -375,7 +369,7 @@ export default function StuffIWant() {
                       </select>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm text-[#6B5040]">Condition</label>
+                      <label className="text-sm text-[#6B5040]">{t("newItem.condition")}</label>
                       <select
                         name="condition"
                         value={form.condition}
@@ -389,7 +383,7 @@ export default function StuffIWant() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm text-[#6B5040]">Notes <span className="text-[#A09080]">(optional)</span></label>
+                    <label className="text-sm text-[#6B5040]">{t("wantList.notes")}</label>
                     <textarea
                       name="notes"
                       placeholder="Any specifics — size, colour, brand, model..."
@@ -406,14 +400,14 @@ export default function StuffIWant() {
                       disabled={!formComplete || saving}
                       className="flex-1 rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {saving ? "Saving…" : "Save"}
+                      {saving ? t("wantList.saving") : t("common.save")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowForm(false)}
                       className="flex-1 rounded-full border border-[#D9CFC4] text-[#6B5040] py-3 font-medium hover:border-[#4A3728] transition-colors"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                   </div>
 
@@ -427,13 +421,13 @@ export default function StuffIWant() {
               </div>
             ) : wanted.length === 0 && !showForm ? (
               <div className="flex flex-col items-center justify-center py-32 text-center">
-                <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">Nothing on your list yet</p>
-                <p className="text-[#A09080] mb-6">Add the things you're looking for and we'll find your match.</p>
+                <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">{t("wantList.nothingOnList")}</p>
+                <p className="text-[#A09080] mb-6">{t("wantList.emptyListHint")}</p>
                 <button
                   onClick={() => setShowForm(true)}
                   className="px-6 py-3 rounded-full bg-[#4A3728] text-[#F5F0E8] font-medium hover:bg-[#6B5040] transition-colors"
                 >
-                  Add Item
+                  {t("wantList.addItem")}
                 </button>
               </div>
             ) : (
@@ -472,8 +466,8 @@ export default function StuffIWant() {
               </div>
             ) : likedItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-32 text-center">
-                <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">Nothing liked yet</p>
-                <p className="text-[#A09080]">Browse the search page and heart items you're interested in.</p>
+                <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">{t("wantList.nothingLiked")}</p>
+                <p className="text-[#A09080]">{t("wantList.browseHint")}</p>
               </div>
             ) : (
               <div className="grid grid-cols-4 gap-3 portrait-grid-2">
@@ -510,12 +504,12 @@ export default function StuffIWant() {
                         {" · "}{item.condition}
                       </p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
+                        <span className="text-xs font-semibold text-[#4A3728]">{item.points} {t("common.pts")}</span>
                         <button
                           onClick={() => setProposingItems([{ id: item.id, name: item.name, points: item.points, owner: item.owner, ownerId: item.ownerId }])}
                           className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
                         >
-                          Propose swap
+                          {t("item.proposeSwap")}
                         </button>
                       </div>
                     </div>
@@ -546,12 +540,12 @@ export default function StuffIWant() {
 
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl">🤝🏽</span>
-              <h3 className="text-lg font-semibold text-[#4A3728]">Matches Found</h3>
+              <h3 className="text-lg font-semibold text-[#4A3728]">{t("wantList.matchesFound")}</h3>
             </div>
             <p className="text-xs text-[#8B7355] mb-6">
               {realMatches.length
-                ? `We found ${realMatches.length} potential match${realMatches.length > 1 ? "es" : ""} based on your want list. Select the ones you'd like to propose.`
-                : "No matches found yet — check back as more members list items."}
+                ? t("wantList.matchFoundMsg", { n: realMatches.length, es: realMatches.length > 1 ? "es" : "" })
+                : t("wantList.noMatchMsg")}
             </p>
 
             <div className="flex flex-col gap-4 mb-6">
@@ -573,16 +567,16 @@ export default function StuffIWant() {
                           {match.member[0]}
                         </div>
                         <Link href={`/members/${match.memberId}`} className="text-sm font-medium text-[#4A3728] hover:underline">{match.member}</Link>
-                        <span className="text-xs text-[#A09080]">has your wanted: <em>{match.matchedWant}</em></span>
+                        <span className="text-xs text-[#A09080]">{t("wantList.hasYourWanted")} <em>{match.matchedWant}</em></span>
                       </div>
                       <div className="flex items-center gap-2">
                         {match.isMutual && (
                           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#D8E4D0] text-[#4A6640]">
-                            Exact Match
+                            {t("wantList.exactMatch")}
                           </span>
                         )}
                         <span className="text-xs text-[#A09080]">
-                          {match.pointsDiff === 0 ? "same pts" : `±${match.pointsDiff} pts`}
+                          {match.pointsDiff === 0 ? t("wantList.samePts") : `±${match.pointsDiff} ${t("common.pts")}`}
                         </span>
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "border-[#4A3728] bg-[#4A3728]" : "border-[#D9CFC4]"}`}>
                           {isSelected && (
@@ -607,9 +601,9 @@ export default function StuffIWant() {
                           )}
                         </div>
                         <div>
-                          <p className="text-xs text-[#A09080] mb-0.5">They offer</p>
+                          <p className="text-xs text-[#A09080] mb-0.5">{t("wantList.theyOffer")}</p>
                           <p className="text-sm font-medium text-[#4A3728] leading-tight">{match.theirItem.name}</p>
-                          <p className="text-xs font-semibold text-[#4A3728] mt-0.5">{match.theirItem.points} pts</p>
+                          <p className="text-xs font-semibold text-[#4A3728] mt-0.5">{match.theirItem.points} {t("common.pts")}</p>
                         </div>
                       </div>
                       <div className="text-[#C4B9AA] shrink-0">
@@ -621,9 +615,9 @@ export default function StuffIWant() {
                         {match.yourItem ? (
                           <>
                             <div className="text-right">
-                              <p className="text-xs text-[#A09080] mb-0.5">You offer</p>
+                              <p className="text-xs text-[#A09080] mb-0.5">{t("wantList.youOffer")}</p>
                               <p className="text-sm font-medium text-[#4A3728] leading-tight">{match.yourItem.name}</p>
-                              <p className="text-xs font-semibold text-[#4A3728] mt-0.5">{match.yourItem.points} pts</p>
+                              <p className="text-xs font-semibold text-[#4A3728] mt-0.5">{match.yourItem.points} {t("common.pts")}</p>
                             </div>
                             <div className="w-14 h-14 rounded-xl bg-[#EDE8DF] overflow-hidden shrink-0">
                               {match.yourItem.photo ? (
@@ -638,7 +632,7 @@ export default function StuffIWant() {
                             </div>
                           </>
                         ) : (
-                          <p className="text-xs text-[#A09080]">List items first</p>
+                          <p className="text-xs text-[#A09080]">{t("wantList.listItemsFirst")}</p>
                         )}
                       </div>
                     </div>
@@ -653,16 +647,16 @@ export default function StuffIWant() {
               className="w-full rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {selectedMatches.size === 0
-                ? "Select a match to propose"
+                ? t("wantList.selectMatch")
                 : selectedMatches.size === realMatches.length
-                ? "Send All Proposals"
-                : `Send ${selectedMatches.size} Proposal${selectedMatches.size > 1 ? "s" : ""}`}
+                ? t("wantList.sendAllProposals")
+                : t("wantList.sendNProposals", { n: selectedMatches.size, s: selectedMatches.size > 1 ? "s" : "" })}
             </button>
             <button
               onClick={() => setShowMatchResults(false)}
               className="w-full mt-2 rounded-full border border-[#D9CFC4] text-[#6B5040] py-3 font-medium hover:border-[#4A3728] transition-colors"
             >
-              Review Later
+              {t("wantList.reviewLater")}
             </button>
 
           </div>

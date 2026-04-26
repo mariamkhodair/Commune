@@ -12,6 +12,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { Buffer } from "buffer";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 const CATEGORIES = ["Apparel", "Electronics", "Books", "Cosmetics", "Furniture & Home Decor", "Stationery & Art Supplies", "Miscellaneous"];
 const CONDITIONS = ["New", "Like New", "Good", "Fair"];
@@ -31,6 +32,7 @@ export default function EditItem() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { userId } = useUser();
+  const { t, isRTL } = useLang();
 
   const [fetching, setFetching] = useState(true);
 
@@ -113,7 +115,7 @@ export default function EditItem() {
 
   async function analyzeWithAI() {
     if (!name || !category || !condition) {
-      Alert.alert("Missing info", "Fill in name, category and condition first."); return;
+      Alert.alert(t("newItem.missingInfo"), t("newItem.missingInfoHint")); return;
     }
     setAnalyzing(true);
     try {
@@ -126,7 +128,7 @@ export default function EditItem() {
       const data = await res.json();
       if (data.points) {
         setPoints(String(data.points));
-        Alert.alert("AI Suggestion", `Suggested points value: ${data.points} pts`);
+        Alert.alert(t("newItem.aiAnalysis"), `Suggested points value: ${data.points} pts`);
       } else {
         Alert.alert("Error", "Couldn't get a suggestion. Enter points manually.");
       }
@@ -156,7 +158,7 @@ export default function EditItem() {
 
   async function handleSave() {
     if (!name.trim() || !category || !condition || !points) {
-      Alert.alert("Missing fields", "Please fill in all required fields."); return;
+      Alert.alert(t("newItem.missingFields"), t("newItem.missingFieldsHint")); return;
     }
     setSaving(true);
 
@@ -208,18 +210,18 @@ export default function EditItem() {
   return (
     <SafeAreaView className="flex-1">
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <View className="px-5 pt-4 pb-3 flex-row items-center gap-3">
+        <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", gap: 12 }}>
           <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
-            <Ionicons name="arrow-back" size={18} color="#4A3728" />
+            <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={18} color="#4A3728" />
           </TouchableOpacity>
-          <Text className="text-2xl font-light text-[#4A3728]">Edit Item</Text>
+          <Text className="text-2xl font-light text-[#4A3728]">{t("newItem.editHeader")}</Text>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, gap: 16 }}>
 
           {/* Photos */}
           <View>
-            <Text className="text-sm font-medium text-[#4A3728] mb-2">Photos</Text>
+            <Text className="text-sm font-medium text-[#4A3728] mb-2" style={{ textAlign: isRTL ? "right" : "left" }}>{t("newItem.photos")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               {existingPhotos.map((uri, i) => (
                 <View key={`existing-${i}`} style={{ position: "relative" }}>
@@ -253,14 +255,14 @@ export default function EditItem() {
                     style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: "#EDE8DF", borderWidth: 1, borderStyle: "dashed", borderColor: "#C4B9AA", alignItems: "center", justifyContent: "center" }}
                   >
                     <Ionicons name="camera" size={22} color="#8B7355" />
-                    <Text className="text-xs text-[#8B7355] mt-1">Camera</Text>
+                    <Text className="text-xs text-[#8B7355] mt-1">{t("newItem.camera")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={pickPhotos}
                     style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: "#EDE8DF", borderWidth: 1, borderStyle: "dashed", borderColor: "#C4B9AA", alignItems: "center", justifyContent: "center" }}
                   >
                     <Ionicons name="images-outline" size={22} color="#8B7355" />
-                    <Text className="text-xs text-[#8B7355] mt-1">Gallery</Text>
+                    <Text className="text-xs text-[#8B7355] mt-1">{t("newItem.gallery")}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -269,19 +271,20 @@ export default function EditItem() {
 
           {/* Name */}
           <View>
-            <Text className="text-sm font-medium text-[#4A3728] mb-2">Item Name *</Text>
+            <Text className="text-sm font-medium text-[#4A3728] mb-2" style={{ textAlign: isRTL ? "right" : "left" }}>{t("newItem.name")} *</Text>
             <TextInput
               className="bg-white rounded-2xl px-4 py-4 text-[#4A3728] border border-[#EDE8DF]"
               placeholder="e.g. Canon EOS 200D Camera"
               placeholderTextColor="#C4B9AA"
               value={name}
               onChangeText={setName}
+              textAlign={isRTL ? "right" : "left"}
             />
           </View>
 
           {/* Category */}
           <View>
-            <Text className="text-sm font-medium text-[#4A3728] mb-2">Category *</Text>
+            <Text className="text-sm font-medium text-[#4A3728] mb-2" style={{ textAlign: isRTL ? "right" : "left" }}>{t("newItem.category")} *</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: "center" }}>
               {CATEGORIES.map((c) => (
                 <TouchableOpacity
@@ -298,7 +301,7 @@ export default function EditItem() {
           {/* Brand */}
           {category ? (
             <View>
-              <Text className="text-sm font-medium text-[#4A3728] mb-2">Brand <Text className="text-[#A09080] font-normal">(optional)</Text></Text>
+              <Text className="text-sm font-medium text-[#4A3728] mb-2" style={{ textAlign: isRTL ? "right" : "left" }}>{t("newItem.brandOptional")}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: "center" }}>
                 {(BRANDS[category] ?? ["Other"]).map((b) => (
                   <TouchableOpacity
@@ -313,10 +316,11 @@ export default function EditItem() {
               {brand === "Other" && (
                 <TextInput
                   className="bg-white rounded-2xl px-4 py-4 text-[#4A3728] border border-[#EDE8DF] mt-2"
-                  placeholder="Enter brand name"
+                  placeholder={t("newItem.brandNamePlaceholder")}
                   placeholderTextColor="#C4B9AA"
                   value={customBrand}
                   onChangeText={setCustomBrand}
+                  textAlign={isRTL ? "right" : "left"}
                 />
               )}
             </View>
@@ -324,7 +328,7 @@ export default function EditItem() {
 
           {/* Condition */}
           <View>
-            <Text className="text-sm font-medium text-[#4A3728] mb-2">Condition *</Text>
+            <Text className="text-sm font-medium text-[#4A3728] mb-2" style={{ textAlign: isRTL ? "right" : "left" }}>{t("newItem.condition")} *</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {CONDITIONS.map((c) => (
                 <TouchableOpacity
@@ -340,7 +344,7 @@ export default function EditItem() {
 
           {/* Description */}
           <View>
-            <Text className="text-sm font-medium text-[#4A3728] mb-2">Description</Text>
+            <Text className="text-sm font-medium text-[#4A3728] mb-2" style={{ textAlign: isRTL ? "right" : "left" }}>{t("newItem.description")}</Text>
             <TextInput
               className="bg-white rounded-2xl px-4 py-4 text-[#4A3728] border border-[#EDE8DF]"
               placeholder="Model, size, age, any wear or damage..."
@@ -349,26 +353,27 @@ export default function EditItem() {
               onChangeText={setDescription}
               multiline
               numberOfLines={3}
+              textAlign={isRTL ? "right" : "left"}
               style={{ textAlignVertical: "top", minHeight: 80 }}
             />
           </View>
 
           {/* Points */}
           <View>
-            <Text className="text-sm font-medium text-[#4A3728] mb-2">Points Value *</Text>
+            <Text className="text-sm font-medium text-[#4A3728] mb-2" style={{ textAlign: isRTL ? "right" : "left" }}>{t("newItem.pointsValue")} *</Text>
 
             <View style={{ flexDirection: "row", borderRadius: 12, borderWidth: 1, borderColor: "#D9CFC4", overflow: "hidden", marginBottom: 10 }}>
               <TouchableOpacity
                 onPress={() => setPointsMode("ai")}
                 style={{ flex: 1, paddingVertical: 10, alignItems: "center", backgroundColor: pointsMode === "ai" ? "#4A3728" : "white" }}
               >
-                <Text style={{ fontSize: 13, fontWeight: "500", color: pointsMode === "ai" ? "#FAF7F2" : "#6B5040" }}>AI Analysis</Text>
+                <Text style={{ fontSize: 13, fontWeight: "500", color: pointsMode === "ai" ? "#FAF7F2" : "#6B5040" }}>{t("newItem.aiAnalysis")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setPointsMode("manual")}
                 style={{ flex: 1, paddingVertical: 10, alignItems: "center", backgroundColor: pointsMode === "manual" ? "#4A3728" : "white" }}
               >
-                <Text style={{ fontSize: 13, fontWeight: "500", color: pointsMode === "manual" ? "#FAF7F2" : "#6B5040" }}>Set My Own</Text>
+                <Text style={{ fontSize: 13, fontWeight: "500", color: pointsMode === "manual" ? "#FAF7F2" : "#6B5040" }}>{t("newItem.setMyOwn")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -380,7 +385,7 @@ export default function EditItem() {
               >
                 {analyzing
                   ? <ActivityIndicator color="#FAF7F2" />
-                  : <Text style={{ color: "#FAF7F2", fontWeight: "600" }}>{points ? `${points} pts — Re-analyse` : "Analyse & Get Points Value"}</Text>
+                  : <Text style={{ color: "#FAF7F2", fontWeight: "600" }}>{points ? t("newItem.reanalyse", { pts: points }) : t("newItem.analyseBtn")}</Text>
                 }
               </TouchableOpacity>
             ) : (
@@ -402,7 +407,7 @@ export default function EditItem() {
             disabled={!canSave || saving}
             style={{ backgroundColor: (canSave && !saving) ? "#4A3728" : "#D9CFC4", borderRadius: 999, paddingVertical: 16, alignItems: "center", marginTop: 8 }}
           >
-            {saving ? <ActivityIndicator color="#FAF7F2" /> : <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 16 }}>Save Changes</Text>}
+            {saving ? <ActivityIndicator color="#FAF7F2" /> : <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 16 }}>{t("newItem.saveChanges")}</Text>}
           </TouchableOpacity>
 
         </ScrollView>

@@ -7,6 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import ProposeSwapModal from "@/components/ProposeSwapModal";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/useUser";
+import { useLang } from "@/lib/languageContext";
 
 type MemberItem = {
   id: string;
@@ -54,6 +55,7 @@ function Stars({ rating }: { rating: number | null }) {
 export default function MemberProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { userId } = useUser();
+  const { t, isRTL } = useLang();
   const router = useRouter();
 
   const [member, setMember] = useState<MemberData | null>(null);
@@ -165,7 +167,7 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
 
   if (loading) {
     return (
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex" dir={isRTL ? "rtl" : "ltr"}>
         <Sidebar />
         <main className="flex-1 flex items-center justify-center">
           <div className="w-6 h-6 border-2 border-[#4A3728] border-t-transparent rounded-full animate-spin" />
@@ -176,10 +178,10 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
 
   if (!member) {
     return (
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex" dir={isRTL ? "rtl" : "ltr"}>
         <Sidebar />
         <main className="flex-1 px-8 py-8 flex items-center justify-center">
-          <p className="text-[#8B7355]">Member not found.</p>
+          <p className="text-[#8B7355]">{t("members.notFound")}</p>
         </main>
       </div>
     );
@@ -189,7 +191,7 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
   const joined = new Date(member.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" });
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex" dir={isRTL ? "rtl" : "ltr"}>
       <Sidebar />
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
@@ -198,7 +200,7 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
             <path d="M19 12H5M12 5l-7 7 7 7" />
           </svg>
-          All Members
+          {t("members.allMembersLink")}
         </Link>
 
         {/* Member header */}
@@ -213,7 +215,7 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">{member.name}</h1>
               <Stars rating={rating} />
-              <p className="text-xs text-[#A09080]">Member since {joined} · {member.rating_count} rating{member.rating_count !== 1 ? "s" : ""}</p>
+              <p className="text-xs text-[#A09080]">{t("profile.memberSince", { date: joined })} · {t("members.ratings", { n: member.rating_count, s: member.rating_count !== 1 ? "s" : "" })}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -224,7 +226,7 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
-              Message
+              {t("common.message")}
             </button>
             <button
               onClick={() => { setShowReport(true); setReportSubmitted(false); setReportForm({ reason: "", details: "" }); }}
@@ -233,26 +235,26 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                 <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" />
               </svg>
-              Report
+              {t("members.report")}
             </button>
           </div>
         </div>
 
         {/* Their Stuff */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium text-[#4A3728]">Their Stuff</h2>
+          <h2 className="text-lg font-medium text-[#4A3728]">{t("members.theirStuff")}</h2>
           <button
             onClick={() => { setSelectMode(!selectMode); setSelectedForSwap(new Set()); }}
             className={`text-xs px-4 py-1.5 rounded-full border font-medium transition-colors ${selectMode ? "bg-[#4A3728] text-[#F5F0E8] border-[#4A3728]" : "border-[#D9CFC4] text-[#6B5040] hover:border-[#4A3728]"}`}
           >
-            {selectMode ? "Cancel selection" : "Select items"}
+            {selectMode ? t("members.cancelSelection") : t("members.selectItems")}
           </button>
         </div>
 
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
-            <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">Nothing listed yet</p>
-            <p className="text-[#A09080]">This member hasn't listed any items yet.</p>
+            <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">{t("members.nothingListed")}</p>
+            <p className="text-[#A09080]">{t("members.nothingListedHint")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-3 portrait-grid-2">
@@ -323,7 +325,7 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
                         onClick={() => setProposingItems([{ id: item.id, name: item.name, points: item.points, owner: member.name, ownerId: id }])}
                         className="text-xs px-3 py-1 rounded-full bg-[#F5F0E8] border border-[#D9CFC4] text-[#6B5040] hover:bg-[#4A3728] hover:text-[#F5F0E8] hover:border-[#4A3728] transition-colors"
                       >
-                        Propose swap
+                        {t("search.proposeSwap")}
                       </button>
                     )}
                   </div>
@@ -339,14 +341,13 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
       {selectMode && selectedForSwap.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 bg-[#4A3728] text-[#F5F0E8] px-6 py-3.5 rounded-full shadow-lg">
           <p className="text-sm font-medium">
-            {selectedForSwap.size} item{selectedForSwap.size !== 1 ? "s" : ""} selected ·{" "}
-            {items.filter((i) => selectedForSwap.has(i.id)).reduce((s, i) => s + i.points, 0)} pts
+            {t("members.bundleBar", { n: selectedForSwap.size, s: selectedForSwap.size !== 1 ? "s" : "", pts: items.filter((i) => selectedForSwap.has(i.id)).reduce((s, i) => s + i.points, 0) })}
           </p>
           <button
             onClick={openBundleSwap}
             className="text-sm font-semibold bg-[#F5F0E8] text-[#4A3728] px-4 py-1.5 rounded-full hover:bg-white transition-colors"
           >
-            Propose Bundle Swap
+            {t("members.proposeBundle")}
           </button>
         </div>
       )}
@@ -365,16 +366,16 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
 
             {reportSubmitted ? (
               <div className="text-center py-4">
-                <p className="text-lg font-medium text-[#4A3728] mb-2">Report submitted</p>
-                <p className="text-sm text-[#6B5040] leading-relaxed">Thank you. Our team will review this and follow up if needed. Reports are kept confidential.</p>
+                <p className="text-lg font-medium text-[#4A3728] mb-2">{t("members.reportSubmitted")}</p>
+                <p className="text-sm text-[#6B5040] leading-relaxed">{t("members.reportThanks")}</p>
               </div>
             ) : (
               <>
-                <h3 className="text-lg font-semibold text-[#4A3728] mb-1">Report {member.name}</h3>
-                <p className="text-xs text-[#8B7355] mb-5">Your report will be sent to our team and reviewed confidentially.</p>
+                <h3 className="text-lg font-semibold text-[#4A3728] mb-1">{t("members.reportTitle", { name: member.name })}</h3>
+                <p className="text-xs text-[#8B7355] mb-5">{t("members.reportHint")}</p>
                 <form onSubmit={handleReportSubmit} className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm text-[#6B5040]">Reason</label>
+                    <label className="text-sm text-[#6B5040]">{t("members.reportReason")}</label>
                     <select
                       value={reportForm.reason}
                       onChange={(e) => setReportForm({ ...reportForm, reason: e.target.value })}
@@ -386,11 +387,11 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-sm text-[#6B5040]">Details <span className="text-[#A09080]">(optional)</span></label>
+                    <label className="text-sm text-[#6B5040]">{t("members.reportDetails")}</label>
                     <textarea
                       value={reportForm.details}
                       onChange={(e) => setReportForm({ ...reportForm, details: e.target.value })}
-                      placeholder="Describe what happened..."
+                      placeholder={t("members.reportPlaceholder")}
                       rows={4}
                       className="rounded-xl border border-[#D9CFC4] bg-white px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors resize-none"
                     />
@@ -400,7 +401,7 @@ export default function MemberProfile({ params }: { params: Promise<{ id: string
                     disabled={!reportForm.reason}
                     className="w-full rounded-full bg-[#A0624A] text-white py-3 font-semibold hover:bg-[#8B4A3A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    Submit Report
+                    {t("members.submitReport")}
                   </button>
                 </form>
               </>
