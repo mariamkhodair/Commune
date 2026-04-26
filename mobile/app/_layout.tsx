@@ -4,10 +4,12 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Svg, { Path } from "react-native-svg";
 import * as Notifications from "expo-notifications";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { UnreadProvider } from "@/lib/unreadContext";
 import { NotificationProvider } from "@/lib/notificationContext";
 import { LanguageProvider } from "@/lib/languageContext";
+import { LangToggle } from "@/components/LangToggle";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -21,6 +23,20 @@ Notifications.setNotificationHandler({
 
 const { width: W, height: H } = Dimensions.get("window");
 const S = Math.min(W, H) * 0.38; // leaf corner size
+
+function FloatingLangToggle() {
+  const insets = useSafeAreaInsets();
+  return (
+    <LangToggle
+      style={{
+        position: "absolute",
+        top: insets.top + 10,
+        right: 16,
+        zIndex: 900,
+      }}
+    />
+  );
+}
 
 function LeafBackground() {
   return (
@@ -114,6 +130,7 @@ export default function RootLayout() {
             <StatusBar style="dark" backgroundColor="transparent" translucent />
             <Stack screenOptions={{ headerShown: false }} />
             <LeafBackground />
+            <FloatingLangToggle />
           </View>
         </NotificationProvider>
       </UnreadProvider>
