@@ -1,10 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { awardCredits } from "@/lib/credits";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+async function awardCreditsWithMilestone(userId: string) {
+  await awardCredits(userId, 5, "swap_complete");
+  const { count } = await supabaseAdmin
+    .from("swaps")
+    .select("id", { count: "exact", head: true })
+    .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
+    .eq("status", "Completed");
+  if (count && count % 100 === 0) {
+    await awardCredits(userId, 50, `milestone_${count}_swaps`);
+  }
+}
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ swapId: string }> }) {
   const { swapId } = await params;
@@ -52,6 +65,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ swa
     if (allIds.length > 0)
       await supabaseAdmin.from("items").update({ status: "Swapped" }).in("id", allIds);
   }
+
+  // Award credits to both participants
+  await Promise.all([
+    awardCreditsWithMilestone(user.id),
+    awardCreditsWithMilestone(otherId),
+  ]);
 
   // Notify both members
   const otherId = swap.proposer_id === user.id ? swap.receiver_id : swap.proposer_id;

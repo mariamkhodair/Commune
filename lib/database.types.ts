@@ -11,6 +11,9 @@ export type Profile = {
   is_admin: boolean;
   is_test: boolean;
   location_privacy_accepted: boolean;
+  credits: number;
+  referral_code: string | null;
+  referred_by: string | null;
 };
 
 export type SwapSafetySession = {

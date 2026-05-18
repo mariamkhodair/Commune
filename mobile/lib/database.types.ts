@@ -9,6 +9,9 @@ export type Profile = {
   rating_count: number;
   created_at: string;
   location_privacy_accepted: boolean;
+  credits: number;
+  referral_code: string | null;
+  referred_by: string | null;
 };
 
 export type SwapSafetySession = {

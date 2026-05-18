@@ -8,8 +8,6 @@ import { Link, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import { useLang } from "@/lib/languageContext";
-import { LangToggle } from "@/components/LangToggle";
-
 const CAIRO_AREAS = ["Maadi","Zamalek","Heliopolis","New Cairo","6th of October","Mohandessin","Dokki","Nasr City","Rehab","Sheikh Zayed"];
 const CITIES = ["Cairo", "Giza", "Alexandria", "Other"];
 const DRAFT_KEY = "signup_draft";
@@ -17,7 +15,7 @@ const DRAFT_KEY = "signup_draft";
 export default function Signup() {
   const router = useRouter();
   const { t, isRTL } = useLang();
-  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", area: "", city: "Cairo" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", area: "", city: "Cairo", referralCode: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [agreedToGuidelines, setAgreedToGuidelines] = useState(false);
@@ -57,8 +55,23 @@ export default function Signup() {
       options: { data: { full_name: form.name, phone: `+20${form.phone}`, area: form.area, city: form.city } },
     });
     setLoading(false);
-    if (err) setError(err.message);
-    else { AsyncStorage.removeItem(DRAFT_KEY); router.replace("/tutorial"); }
+    if (err) {
+      setError(err.message);
+    } else {
+      AsyncStorage.removeItem(DRAFT_KEY);
+      if (form.referralCode.trim()) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (token) {
+          fetch(`https://commune-eg.com/api/referral`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ code: form.referralCode.trim() }),
+          }).catch(() => {});
+        }
+      }
+      router.replace("/tutorial");
+    }
   }
 
   return (
@@ -67,18 +80,12 @@ export default function Signup() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {/* Language toggle — top left */}
-        <View style={{ paddingHorizontal: 20, paddingTop: 12, alignItems: isRTL ? "flex-end" : "flex-start" }}>
-          <LangToggle />
-        </View>
-
         <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 24 }}>
-          <View style={{ alignItems: "center", marginBottom: 32 }}>
-            <View style={{ width: 48, height: 48, borderRadius: 999, backgroundColor: "#4A3728", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-              <Text style={{ color: "#FAF7F2", fontSize: 20, fontWeight: "700" }}>C</Text>
-            </View>
-            <Text style={{ fontSize: 24, fontWeight: "300", color: "#4A3728" }}>{t("signup.createAccount")}</Text>
-          </View>
+          <TouchableOpacity onPress={() => router.push("/(auth)/welcome" as any)} style={{ alignItems: "center", marginBottom: 32 }}>
+            <Text style={{ fontSize: 40, color: "#355E3B", fontFamily: "Unbounded_400Regular" }}>
+              Commune
+            </Text>
+          </TouchableOpacity>
 
           <View style={{ gap: 12 }}>
             {error ? (
@@ -88,35 +95,35 @@ export default function Signup() {
             ) : null}
 
             <TextInput
-              style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, color: "#4A3728", borderWidth: 1, borderColor: "#EDE8DF", textAlign: isRTL ? "right" : "left" }}
+              style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, color: "#111111", borderWidth: 1, borderColor: "#E4E4E4", textAlign: isRTL ? "right" : "left" }}
               placeholder={t("signup.fullName")}
-              placeholderTextColor="#C4B9AA"
+              placeholderTextColor="#C7C7CC"
               value={form.name}
               onChangeText={(v) => set("name", v)}
             />
             <TextInput
-              style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, color: "#4A3728", borderWidth: 1, borderColor: "#EDE8DF", textAlign: isRTL ? "right" : "left" }}
+              style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, color: "#111111", borderWidth: 1, borderColor: "#E4E4E4", textAlign: isRTL ? "right" : "left" }}
               placeholder={t("signup.email")}
-              placeholderTextColor="#C4B9AA"
+              placeholderTextColor="#C7C7CC"
               value={form.email}
               onChangeText={(v) => set("email", v)}
               autoCapitalize="none"
               keyboardType="email-address"
             />
             <TextInput
-              style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, color: "#4A3728", borderWidth: 1, borderColor: "#EDE8DF", textAlign: isRTL ? "right" : "left" }}
+              style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, color: "#111111", borderWidth: 1, borderColor: "#E4E4E4", textAlign: isRTL ? "right" : "left" }}
               placeholder={t("signup.password")}
-              placeholderTextColor="#C4B9AA"
+              placeholderTextColor="#C7C7CC"
               value={form.password}
               onChangeText={(v) => set("password", v)}
               secureTextEntry
             />
-            <View style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", backgroundColor: "white", borderRadius: 16, borderWidth: 1, borderColor: "#EDE8DF", paddingHorizontal: 16 }}>
-              <Text style={{ color: "#8B7355", marginRight: isRTL ? 0 : 4, marginLeft: isRTL ? 4 : 0 }}>+20</Text>
+            <View style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", backgroundColor: "white", borderRadius: 16, borderWidth: 1, borderColor: "#E4E4E4", paddingHorizontal: 16 }}>
+              <Text style={{ color: "#6B6B6B", marginRight: isRTL ? 0 : 4, marginLeft: isRTL ? 4 : 0 }}>+20</Text>
               <TextInput
-                style={{ flex: 1, paddingVertical: 16, color: "#4A3728", textAlign: isRTL ? "right" : "left" }}
+                style={{ flex: 1, paddingVertical: 16, color: "#111111", textAlign: isRTL ? "right" : "left" }}
                 placeholder={t("signup.phone")}
-                placeholderTextColor="#C4B9AA"
+                placeholderTextColor="#C7C7CC"
                 value={form.phone}
                 onChangeText={(v) => set("phone", v)}
                 keyboardType="phone-pad"
@@ -124,16 +131,16 @@ export default function Signup() {
             </View>
 
             {/* Area picker */}
-            <Text style={{ fontSize: 12, color: "#8B7355", paddingHorizontal: 4, textAlign: isRTL ? "right" : "left" }}>{t("signup.area")}</Text>
+            <Text style={{ fontSize: 12, color: "#6B6B6B", paddingHorizontal: 4, textAlign: isRTL ? "right" : "left" }}>{t("signup.area")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -4 }}>
               <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 4, paddingBottom: 4 }}>
                 {CAIRO_AREAS.map((a) => (
                   <TouchableOpacity
                     key={a}
                     onPress={() => set("area", a)}
-                    style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, backgroundColor: form.area === a ? "#4A3728" : "white", borderColor: form.area === a ? "#4A3728" : "#D9CFC4" }}
+                    style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, borderWidth: 1, backgroundColor: form.area === a ? "#111111" : "white", borderColor: form.area === a ? "#111111" : "#E4E4E4" }}
                   >
-                    <Text style={{ fontSize: 12, color: form.area === a ? "#FAF7F2" : "#6B5040" }}>{a}</Text>
+                    <Text style={{ fontSize: 12, color: form.area === a ? "#F8F8F6" : "#6B6B6B" }}>{a}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -145,12 +152,22 @@ export default function Signup() {
                 <TouchableOpacity
                   key={c}
                   onPress={() => set("city", c)}
-                  style={{ flex: 1, paddingVertical: 8, borderRadius: 999, borderWidth: 1, alignItems: "center", backgroundColor: form.city === c ? "#4A3728" : "white", borderColor: form.city === c ? "#4A3728" : "#D9CFC4" }}
+                  style={{ flex: 1, paddingVertical: 8, borderRadius: 6, borderWidth: 1, alignItems: "center", backgroundColor: form.city === c ? "#111111" : "white", borderColor: form.city === c ? "#111111" : "#E4E4E4" }}
                 >
-                  <Text style={{ fontSize: 12, color: form.city === c ? "#FAF7F2" : "#6B5040" }}>{c}</Text>
+                  <Text style={{ fontSize: 12, color: form.city === c ? "#F8F8F6" : "#6B6B6B" }}>{c}</Text>
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Referral code */}
+            <TextInput
+              style={{ backgroundColor: "white", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, color: "#111111", borderWidth: 1, borderColor: "#E4E4E4", textAlign: isRTL ? "right" : "left" }}
+              placeholder={t("signup.referralCode")}
+              placeholderTextColor="#C7C7CC"
+              value={form.referralCode}
+              onChangeText={(v) => set("referralCode", v.toUpperCase())}
+              autoCapitalize="characters"
+            />
 
             {/* Community Guidelines */}
             <View style={{ gap: 8, alignItems: "center", marginHorizontal: 16 }}>
@@ -160,22 +177,22 @@ export default function Signup() {
                   hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
                   style={{
                     width: 20, height: 20, borderRadius: 5, borderWidth: 1.5,
-                    borderColor: hasReadGuidelines ? "#4A3728" : "#C4B9AA",
-                    backgroundColor: agreedToGuidelines ? "#4A3728" : "white",
+                    borderColor: hasReadGuidelines ? "#111111" : "#C7C7CC",
+                    backgroundColor: agreedToGuidelines ? "#111111" : "white",
                     alignItems: "center", justifyContent: "center",
                     opacity: hasReadGuidelines ? 1 : 0.45,
                   }}
                 >
                   {agreedToGuidelines && (
-                    <Text style={{ color: "#FAF7F2", fontSize: 11, fontWeight: "700" }}>✓</Text>
+                    <Text style={{ color: "#F8F8F6", fontSize: 11, fontWeight: "400" }}>✓</Text>
                   )}
                 </TouchableOpacity>
                 <View style={{ alignItems: "center" }}>
-                  <Text style={{ fontSize: 13, color: "#6B5040", lineHeight: 20 }}>{t("signup.agreePrefix")}</Text>
-                  <Text style={{ fontSize: 13, color: "#6B5040", lineHeight: 20 }}>
+                  <Text style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 20 }}>{t("signup.agreePrefix")}</Text>
+                  <Text style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 20 }}>
                     <Text
                       onPress={() => { setHasReadGuidelines(true); router.push("/(auth)/terms" as any); }}
-                      style={{ color: "#4A3728", fontWeight: "600", textDecorationLine: "underline" }}
+                      style={{ color: "#111111", fontWeight: "400", textDecorationLine: "underline" }}
                     >
                       {t("signup.guidelines")}
                     </Text>
@@ -192,18 +209,18 @@ export default function Signup() {
             <TouchableOpacity
               onPress={handleSignup}
               disabled={loading}
-              style={{ backgroundColor: "#4A3728", borderRadius: 999, paddingVertical: 16, alignItems: "center", marginTop: 8 }}
+              style={{ backgroundColor: "#111111", borderRadius: 6, paddingVertical: 16, alignItems: "center", marginTop: 8 }}
             >
               {loading
-                ? <ActivityIndicator color="#FAF7F2" />
-                : <Text style={{ color: "#FAF7F2", fontWeight: "600", fontSize: 16 }}>{t("signup.createAccount")}</Text>
+                ? <ActivityIndicator color="#F8F8F6" />
+                : <Text style={{ color: "#F8F8F6", fontWeight: "400", fontSize: 16 }}>{t("signup.createAccount")}</Text>
               }
             </TouchableOpacity>
           </View>
 
           <View style={{ flexDirection: isRTL ? "row-reverse" : "row", justifyContent: "center", gap: 4, marginTop: 32 }}>
-            <Text style={{ color: "#8B7355", fontSize: 14 }}>{t("signup.haveAccount")}</Text>
-            <Link href="/(auth)/login" style={{ color: "#4A3728", fontSize: 14, fontWeight: "600" }}>{t("signup.signInLink")}</Link>
+            <Text style={{ color: "#6B6B6B", fontSize: 14 }}>{t("signup.haveAccount")}</Text>
+            <Link href="/(auth)/login" style={{ color: "#111111", fontSize: 14, fontWeight: "400" }}>{t("signup.signInLink")}</Link>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

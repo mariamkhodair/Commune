@@ -1,5 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { awardCredits } from "@/lib/credits";
+
+async function awardCreditsWithMilestone(userId: string) {
+  await awardCredits(userId, 5, "swap_complete");
+  const { count } = await supabaseAdmin
+    .from("swaps")
+    .select("id", { count: "exact", head: true })
+    .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
+    .eq("status", "Completed");
+  if (count && count % 100 === 0) {
+    await awardCredits(userId, 50, `milestone_${count}_swaps`);
+  }
+}
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -85,6 +98,12 @@ export async function POST(
       .select("id, name")
       .in("id", [user.id, otherId]);
     const nameMap = Object.fromEntries((profiles ?? []).map((p: { id: string; name: string }) => [p.id, p.name]));
+
+    // Award 5 credits to each participant and check for milestone bonus
+    await Promise.all([
+      awardCreditsWithMilestone(user.id),
+      awardCreditsWithMilestone(otherId),
+    ]);
 
     await Promise.all([
       notify(user.id, "Swap complete! 🤝🏽", `You and ${nameMap[otherId] ?? "your partner"} both confirmed. Don't forget to leave a rating!`, swapId),

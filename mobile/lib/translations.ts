@@ -70,11 +70,13 @@ const en = {
   "signup.guidelinesHint": "Please click on the Community Guidelines link :)",
   "signup.fillRequired": "Please fill in all required fields.",
   "signup.agreeRequired": "Please read and agree to the Community Guidelines.",
+  "signup.referralCode": "Referral code (optional)",
   "signup.haveAccount": "Already have an account?",
   "signup.signInLink": "Sign in",
 
   // Home (tabs/index)
-  "home.greeting": "Hey, {name} 👋",
+  "home.greeting": "Welcome back, {name}",
+  "home.greetingFirst": "Welcome, {name}",
   "home.tagline": "What are you looking to swap today?",
   "home.browse": "Browse Items",
   "home.listItem": "List an Item",
@@ -85,11 +87,18 @@ const en = {
   "home.likedMembers": "Liked Members",
   "home.stuffIWant": "Stuff I Want",
   "home.mySwaps": "My Swaps",
+  "home.hero": "Everything you need is already out there.",
+  "home.heroSub": "We all have more than we need — and someone else needs exactly what we have. Commune is a platform built on that simple truth. By swapping what we own instead of buying new, we reduce waste, ease financial pressure, and strengthen the bonds between us.",
+  "home.heroTagline": "Swap freely. Live lightly. Together.",
+  "home.joinCommune": "Join Commune",
+  "home.logIn": "Log In",
+  "home.signUp": "Sign Up",
 
   // Search / Browse
   "search.header": "Browse",
   "search.placeholder": "Search items...",
   "search.noItems": "No items found",
+  "search.liked": "{n} liked",
 
   // My Stuff
   "myStuff.header": "My Stuff",
@@ -115,6 +124,7 @@ const en = {
   "drawer.scheduledSwaps": "Scheduled Swaps",
   "drawer.communes": "Communes",
   "drawer.stuffIWant": "Stuff I Want",
+  "drawer.myListings": "My Stuff",
   "drawer.discover": "Discover",
   "drawer.browseMembers": "Browse Members",
   "drawer.support": "Support",
@@ -128,8 +138,11 @@ const en = {
   "tabs.home": "Home",
   "tabs.search": "Search",
   "tabs.myStuff": "My Stuff",
+  "tabs.swaps": "Swaps",
   "tabs.messages": "Messages",
   "tabs.more": "More",
+  "tabs.alerts": "Alerts",
+  "tabs.list": "List",
 
   // Tour
   "tour.skip": "Skip tour",
@@ -142,8 +155,8 @@ const en = {
   "tour.step3": "List the items you want to swap here.",
   "tour.step4": "Chat with your swap partners after a swap is accepted.",
   "tour.step5": "Tap here to open the full menu.",
-  "tour.step6": "Accept or decline swaps — then propose meeting dates.",
-  "tour.step7": "Confirmed meetup dates show up here.",
+  "tour.step6": "Accept or decline swaps — then schedule a courier pickup.",
+  "tour.step7": "Confirmed courier pickup dates show up here.",
   "tour.step8": "Communes are three-way swaps — A wants B's item, B wants C's, and C wants A's. Tap 'Find' to discover triangle matches!",
   "tour.step9": "Add items to your wish list — we'll find matches.",
   "tour.step10": "Stay on top of all swap activity.",
@@ -177,15 +190,15 @@ const en = {
   "mySwaps.completed": "Completed",
   "mySwaps.declined": "Declined",
 
-  // Scheduled Swaps
-  "scheduled.header": "Scheduled Swaps",
-  "scheduled.subheader": "Your confirmed swap dates",
+  // Scheduled Pickups
+  "scheduled.header": "Scheduled Pickups",
+  "scheduled.subheader": "Your confirmed courier pickup dates",
   "scheduled.emptyTitle": "Nothing scheduled yet",
-  "scheduled.emptyHint": "Go to My Swaps, accept a swap, then propose dates. Once the other member accepts a date it'll appear here.",
+  "scheduled.emptyHint": "Go to My Swaps, accept a swap, then schedule a courier pickup. Once confirmed it'll appear here.",
   "scheduled.goToMySwaps": "Go to My Swaps",
-  "scheduled.confirmed": "Confirmed date",
+  "scheduled.confirmed": "Pickup date",
   "scheduled.completed": "Completed",
-  "scheduled.pastDate": "Past date",
+  "scheduled.pastDate": "Past pickup",
   "scheduled.youGiving": "You're giving",
   "scheduled.youGetting": "You're getting",
   "scheduled.viewInMySwaps": "View in My Swaps →",
@@ -217,6 +230,7 @@ const en = {
   "item.alreadySwapped": "Already Swapped",
   "item.proposeSwap": "Propose Swap",
   "item.listedBy": "Listed by",
+  "item.moreFromSeller": "More from {name}",
 
   // Members
   "members.header": "Members",
@@ -315,9 +329,9 @@ const en = {
   "proposeModal.sentHint": "{name} will be notified and can accept or decline your offer.",
 
   // Safety
-  "safety.offToSwap": "Off to Swap",
+  "safety.offToSwap": "Item Ready for Pickup",
   "safety.onMyWay": "On My Way",
-  "safety.swappedAndSafe": "Swapped and Safe",
+  "safety.swappedAndSafe": "Pickup Complete",
 
   // Help
   "help.header": "Get Help",
@@ -418,11 +432,13 @@ const ar: typeof en = {
   "signup.guidelinesHint": "يرجى الضغط على رابط الإرشادات المجتمعية :)",
   "signup.fillRequired": "يرجى ملء جميع الحقول المطلوبة.",
   "signup.agreeRequired": "يرجى قراءة الإرشادات المجتمعية والموافقة عليها.",
+  "signup.referralCode": "كود الإحالة (اختياري)",
   "signup.haveAccount": "لديك حساب بالفعل؟",
   "signup.signInLink": "تسجيل الدخول",
 
   // Home
-  "home.greeting": "أهلاً، {name} 👋",
+  "home.greeting": "أهلاً بعودتك، {name}",
+  "home.greetingFirst": "أهلاً، {name}",
   "home.tagline": "ما الذي تريد إستبداله اليوم؟",
   "home.browse": "تصفح المنتجات",
   "home.listItem": "أضف منتجاً",
@@ -433,11 +449,18 @@ const ar: typeof en = {
   "home.likedMembers": "الأعضاء المفضلون",
   "home.stuffIWant": "ما أريده",
   "home.mySwaps": "إستبدالاتي",
+  "home.hero": "كل ما تحتاجه موجود بالفعل.",
+  "home.heroSub": "لدى كلٍّ منا أكثر مما يحتاج — وشخص آخر يحتاج تحديداً ما لديك. كوميون منصة بُنيت على هذه الحقيقة البسيطة. بالإستبدال بدلاً من الشراء، نقلل الهدر ونخفف الضغط المالي ونقوي الروابط بيننا.",
+  "home.heroTagline": "إستبدل بحرية. عش بخفة. معاً.",
+  "home.joinCommune": "انضم لكوميون",
+  "home.logIn": "تسجيل الدخول",
+  "home.signUp": "إنشاء حساب",
 
   // Search / Browse
   "search.header": "تصفح",
   "search.placeholder": "ابحث عن منتجات...",
   "search.noItems": "لا توجد منتجات",
+  "search.liked": "أعجب {n}",
 
   // My Stuff
   "myStuff.header": "حجاتي",
@@ -463,6 +486,7 @@ const ar: typeof en = {
   "drawer.scheduledSwaps": "الإستبدالات المجدولة",
   "drawer.communes": "كوميونات",
   "drawer.stuffIWant": "ما أريده",
+  "drawer.myListings": "حجاتي",
   "drawer.discover": "اكتشف",
   "drawer.browseMembers": "تصفح الأعضاء",
   "drawer.support": "الدعم",
@@ -476,8 +500,11 @@ const ar: typeof en = {
   "tabs.home": "الرئيسية",
   "tabs.search": "تصفح",
   "tabs.myStuff": "حجاتي",
+  "tabs.swaps": "مبادلاتي",
   "tabs.messages": "الرسائل",
   "tabs.more": "المزيد",
+  "tabs.alerts": "تنبيهات",
+  "tabs.list": "أضف",
 
   // Tour
   "tour.skip": "تخطي الجولة",
@@ -490,8 +517,8 @@ const ar: typeof en = {
   "tour.step3": "أضف المنتجات التي تريد إستبدالها هنا.",
   "tour.step4": "تحدث مع شركاء الإستبدال بعد قبول الإستبدال.",
   "tour.step5": "اضغط هنا لفتح القائمة الكاملة.",
-  "tour.step6": "اقبل أو ارفض الإستبدالات — ثم اقترح مواعيد اللقاء.",
-  "tour.step7": "مواعيد اللقاء المؤكدة تظهر هنا.",
+  "tour.step6": "اقبل أو ارفض الإستبدالات — ثم جدّل استلام المندوب.",
+  "tour.step7": "مواعيد استلام المندوب المؤكدة تظهر هنا.",
   "tour.step8": "الكوميونات هي إستبدالات ثلاثية — أ تريد منتج ب، ب تريد منتج ج، وج تريد منتج أ. اضغط للبحث عن تطابقات!",
   "tour.step9": "أضف المنتجات إلى قائمة رغباتك وسنجد تطابقات.",
   "tour.step10": "تابع جميع نشاطات الإستبدال.",
@@ -525,15 +552,15 @@ const ar: typeof en = {
   "mySwaps.completed": "مكتمل",
   "mySwaps.declined": "مرفوض",
 
-  // Scheduled Swaps
-  "scheduled.header": "الإستبدالات المجدولة",
-  "scheduled.subheader": "مواعيد الإستبدال المؤكدة",
+  // Scheduled Pickups
+  "scheduled.header": "مواعيد الاستلام",
+  "scheduled.subheader": "مواعيد استلام المندوب المؤكدة",
   "scheduled.emptyTitle": "لا يوجد جدول بعد",
-  "scheduled.emptyHint": "اذهب إلى إستبدالاتي، اقبل إستبدالاً، ثم اقترح مواعيد. سيظهر هنا بعد موافقة العضو الآخر.",
+  "scheduled.emptyHint": "اذهب إلى إستبدالاتي، اقبل إستبدالاً، ثم جدّل استلام المندوب. سيظهر هنا بعد التأكيد.",
   "scheduled.goToMySwaps": "إستبدالاتي",
-  "scheduled.confirmed": "موعد مؤكد",
+  "scheduled.confirmed": "موعد الاستلام",
   "scheduled.completed": "مكتمل",
-  "scheduled.pastDate": "موعد سابق",
+  "scheduled.pastDate": "استلام سابق",
   "scheduled.youGiving": "ستعطي",
   "scheduled.youGetting": "ستستلم",
   "scheduled.viewInMySwaps": "عرض في إستبدالاتي →",
@@ -565,6 +592,7 @@ const ar: typeof en = {
   "item.alreadySwapped": "تم الإستبدال مسبقاً",
   "item.proposeSwap": "اقتراح إستبدال",
   "item.listedBy": "مضاف بواسطة",
+  "item.moreFromSeller": "المزيد من {name}",
 
   // Members
   "members.header": "الأعضاء",
@@ -663,9 +691,9 @@ const ar: typeof en = {
   "proposeModal.sentHint": "سيتم إشعار {name} ويمكنه قبول أو رفض عرضك.",
 
   // Safety
-  "safety.offToSwap": "في طريقي للإستبدال",
+  "safety.offToSwap": "الطلب جاهز للاستلام",
   "safety.onMyWay": "في الطريق",
-  "safety.swappedAndSafe": "تم الإستبدال بأمان",
+  "safety.swappedAndSafe": "تم الاستلام",
 
   // Help
   "help.header": "المساعدة",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Loader from "@/components/Loader";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
@@ -11,7 +12,7 @@ import { useLang } from "@/lib/languageContext";
 type OwnItem = { id: string; name: string; category: string; condition: string; points: number; photos: string[]; status: string };
 
 function Stars({ rating }: { rating: number | null }) {
-  if (rating === null) return <p className="text-xs text-[#C4B9AA]">No ratings yet</p>;
+  if (rating === null) return <p className="text-xs text-[#C7C7CC]">No ratings yet</p>;
   return (
     <div className="flex items-center gap-1">
       {[1,2,3,4,5].map((s) => (
@@ -19,7 +20,7 @@ function Stars({ rating }: { rating: number | null }) {
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
         </svg>
       ))}
-      <span className="text-xs text-[#8B7355] ml-0.5">{rating.toFixed(1)}</span>
+      <span className="text-xs text-[#6B6B6B] ml-0.5">{rating.toFixed(1)}</span>
     </div>
   );
 }
@@ -29,6 +30,7 @@ export default function ProfilePage() {
   const { t, isRTL } = useLang();
   const [editing, setEditing] = useState(false);
   const [items, setItems] = useState<OwnItem[]>([]);
+  const [swapsCompleted, setSwapsCompleted] = useState<number | null>(null);
 
   // Edit form state
   const [name, setName] = useState("");
@@ -39,6 +41,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [redeeming, setRedeeming] = useState<string | null>(null);
+  const [redeemMessage, setRedeemMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -55,6 +59,10 @@ export default function ProfilePage() {
     supabase.from("items").select("id, name, category, condition, points, photos, status")
       .eq("owner_id", userId).order("created_at", { ascending: false })
       .then(({ data }) => setItems(data ?? []));
+    supabase.from("swaps").select("id", { count: "exact", head: true })
+      .eq("status", "Completed")
+      .or(`proposer_id.eq.${userId},receiver_id.eq.${userId}`)
+      .then(({ count }) => setSwapsCompleted(count ?? 0));
   }, [userId]);
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -73,6 +81,25 @@ export default function ProfilePage() {
     setUploading(false);
   }
 
+  async function handleRedeem(type: "bosta" | "subscription_discount") {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    setRedeeming(type);
+    setRedeemMessage(null);
+    const res = await fetch("/api/credits/redeem", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ type }),
+    });
+    setRedeeming(null);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setRedeemMessage({ ok: true, text: type === "bosta" ? "Free Bosta delivery applied!" : "10% subscription discount applied!" });
+    } else {
+      setRedeemMessage({ ok: false, text: body.error ?? "Could not redeem credits." });
+    }
+  }
+
   async function handleSave() {
     if (!userId) return;
     setSaving(true);
@@ -84,10 +111,10 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex" dir={isRTL ? "rtl" : "ltr"}>
         <Sidebar />
         <main className="flex-1 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-[#4A3728] border-t-transparent rounded-full animate-spin" />
+          <Loader />
         </main>
       </div>
     );
@@ -103,11 +130,11 @@ export default function ProfilePage() {
         <Sidebar />
         <main className="flex-1 px-8 py-8 overflow-y-auto max-w-2xl">
           <div className="flex items-center gap-4 mb-8">
-            <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 text-sm text-[#8B7355] hover:text-[#4A3728] transition-colors">
+            <button onClick={() => setEditing(false)} className="flex items-center gap-1.5 text-sm text-[#6B6B6B] hover:text-[#111111] transition-colors">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
               {t("common.back")}
             </button>
-            <h1 className="text-2xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">{t("profile.editProfile")}</h1>
+            <h1 className="text-2xl font-light text-[#111111] font-[family-name:var(--font-jost)]">{t("profile.editProfile")}</h1>
           </div>
 
           {/* Avatar */}
@@ -115,23 +142,23 @@ export default function ProfilePage() {
             <div className="relative">
               {avatarUrl
                 // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={avatarUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-[#D9CFC4]" />
-                : <div className="w-20 h-20 rounded-full bg-[#EDE8DF] flex items-center justify-center text-3xl font-medium text-[#4A3728]">{initials}</div>
+                ? <img src={avatarUrl} alt="Profile" className="w-20 h-20 rounded-md object-cover border-2 border-[#E4E4E4]" />
+                : <div className="w-20 h-20 rounded-md bg-[#F0F0EE] flex items-center justify-center text-3xl font-normal text-[#111111]">{initials}</div>
               }
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#4A3728] text-[#F5F0E8] flex items-center justify-center hover:bg-[#6B5040] transition-colors shadow-sm disabled:opacity-60"
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-md bg-[#111111] text-white flex items-center justify-center hover:bg-[#2C2C2C] transition-colors shadow-sm disabled:opacity-60"
               >
                 {uploading
-                  ? <div className="w-3 h-3 border border-[#F5F0E8] border-t-transparent rounded-full animate-spin" />
+                  ? <div className="w-3 h-3 border border-[#F5F5F3] border-t-transparent rounded-full animate-spin" />
                   : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
                 }
               </button>
             </div>
             <div>
-              <p className="text-sm font-medium text-[#4A3728]">{name || "Your Name"}</p>
-              <button onClick={() => fileRef.current?.click()} disabled={uploading} className="text-xs text-[#8B7355] hover:text-[#4A3728] transition-colors mt-0.5">
+              <p className="text-sm font-normal text-[#111111]">{name || "Your Name"}</p>
+              <button onClick={() => fileRef.current?.click()} disabled={uploading} className="text-xs text-[#6B6B6B] hover:text-[#111111] transition-colors mt-0.5">
                 {uploading ? t("profile.uploading") : t("profile.changePhoto")}
               </button>
             </div>
@@ -147,19 +174,19 @@ export default function ProfilePage() {
               { label: t("profile.phone"), value: phone, set: setPhone, placeholder: "+20 100 000 0000" },
             ].map(({ label, value, set, placeholder }) => (
               <div key={label}>
-                <label className="block text-xs font-semibold text-[#6B5040] mb-1.5 uppercase tracking-wide">{label}</label>
+                <label className="block text-xs font-normal text-[#3C3C3C] mb-1.5 uppercase tracking-wide">{label}</label>
                 <input
                   type="text" value={value} onChange={(e) => set(e.target.value)} placeholder={placeholder}
-                  className="w-full rounded-xl border border-[#D9CFC4] bg-white px-4 py-3 text-[#4A3728] placeholder:text-[#C4B9AA] focus:outline-none focus:border-[#4A3728] transition-colors"
+                  className="w-full rounded-xl border border-[#E4E4E4] bg-white px-4 py-3 text-[#111111] placeholder:text-[#C7C7CC] focus:outline-none focus:border-[#111111] transition-colors"
                 />
               </div>
             ))}
             <button
               onClick={handleSave} disabled={saving}
-              className="mt-2 rounded-full bg-[#4A3728] text-[#F5F0E8] py-3 px-8 font-semibold hover:bg-[#6B5040] transition-colors disabled:opacity-60 w-fit flex items-center gap-2"
+              className="mt-2 rounded-md bg-[#111111] text-white py-3 px-8 font-normal hover:bg-[#2C2C2C] transition-colors disabled:opacity-60 w-fit flex items-center gap-2"
             >
               {saving
-                ? <><div className="w-4 h-4 border-2 border-[#F5F0E8] border-t-transparent rounded-full animate-spin" /> {t("profile.saving")}</>
+                ? <><div className="w-4 h-4 border-2 border-[#F5F5F3] border-t-transparent rounded-full animate-spin" /> {t("profile.saving")}</>
                 : saved ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-4 h-4"><path d="M20 6L9 17l-5-5" /></svg> {t("profile.saved")}</>
                 : t("profile.saveChanges")}
             </button>
@@ -178,25 +205,26 @@ export default function ProfilePage() {
         {/* Profile header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-[#EDE8DF] flex items-center justify-center text-2xl font-medium text-[#4A3728] overflow-hidden shrink-0">
+            <div className="w-16 h-16 rounded-md bg-[#F0F0EE] flex items-center justify-center text-2xl font-normal text-[#111111] overflow-hidden shrink-0">
               {profile.avatar_url
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                 : initials}
             </div>
             <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-light text-[#4A3728] font-[family-name:var(--font-jost)]">{profile.name}</h1>
+              <h1 className="text-2xl font-light text-[#111111] font-[family-name:var(--font-jost)]">{profile.name}</h1>
               <Stars rating={rating} />
-              <p className="text-xs text-[#A09080]">
+              <p className="text-xs text-[#A8A8A8]">
                 {t("profile.memberSince", { date: joined })}
                 {profile.area ? ` · ${profile.area}, ${profile.city}` : ""}
                 {profile.rating_count > 0 ? ` · ${t("profile.ratings", { n: profile.rating_count, s: profile.rating_count !== 1 ? "s" : "" })}` : ""}
+                {swapsCompleted !== null && swapsCompleted > 0 ? ` · ${swapsCompleted} swap${swapsCompleted !== 1 ? "s" : ""} completed` : ""}
               </p>
             </div>
           </div>
           <button
             onClick={() => setEditing(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#D9CFC4] text-[#6B5040] text-sm font-medium hover:border-[#4A3728] hover:text-[#4A3728] transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-md border border-[#E4E4E4] text-[#3C3C3C] text-sm font-normal hover:border-[#111111] hover:text-[#111111] transition-colors"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-4 h-4">
               <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
@@ -205,31 +233,96 @@ export default function ProfilePage() {
           </button>
         </div>
 
+        {/* Credits */}
+        <div className="mb-8 bg-white/60 backdrop-blur-sm rounded-2xl border border-[#E4E4E4] p-6 flex flex-col gap-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-normal text-[#111111]">Credits</h2>
+            <span className="flex items-center gap-2 bg-[#F0F4FF] rounded-lg px-4 py-2 text-[#0047AB] font-normal text-lg">
+              ★ {profile.credits ?? 50}
+            </span>
+          </div>
+
+          {profile.referral_code && (
+            <div>
+              <p className="text-xs text-[#6B6B6B] uppercase tracking-wide mb-2">Your Referral Code</p>
+              <div className="flex items-center gap-3 bg-[#F8F8F6] border border-[#E4E4E4] rounded-xl px-4 py-3">
+                <span className="flex-1 font-mono text-base tracking-[0.2em] text-[#111111]">{profile.referral_code}</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(profile.referral_code!)}
+                  className="text-xs text-[#6B6B6B] hover:text-[#111111] transition-colors border border-[#E4E4E4] rounded-md px-3 py-1.5"
+                >Copy</button>
+              </div>
+              <p className="text-xs text-[#A8A8A8] mt-2">Earn 50 credits for every 5 friends who sign up with your code</p>
+            </div>
+          )}
+
+          {redeemMessage && (
+            <div className={`rounded-xl px-4 py-3 text-sm ${redeemMessage.ok ? "bg-[#D8E4D0] text-[#4A6640]" : "bg-[#FFF5F5] text-[#A0624A] border border-[#FCA5A5]"}`}>
+              {redeemMessage.text}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3">
+            <p className="text-xs text-[#6B6B6B] uppercase tracking-wide">Redeem Credits</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleRedeem("bosta")}
+                disabled={!!redeeming || (profile.credits ?? 0) < 100}
+                className="flex items-center gap-3 border border-[#E4E4E4] rounded-xl p-4 text-left hover:border-[#0047AB] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <span className="text-2xl">🛵</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-normal text-[#111111]">Free Bosta Delivery</p>
+                  <p className="text-xs text-[#6B6B6B] mt-0.5">Waive one delivery fee</p>
+                </div>
+                <span className="shrink-0 bg-[#F0F4FF] text-[#0047AB] text-xs rounded-md px-2.5 py-1">
+                  {redeeming === "bosta" ? "..." : "100 credits"}
+                </span>
+              </button>
+
+              <button
+                onClick={() => handleRedeem("subscription_discount")}
+                disabled={!!redeeming || (profile.credits ?? 0) < 2500}
+                className="flex items-center gap-3 border border-[#E4E4E4] rounded-xl p-4 text-left hover:border-[#0047AB] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <span className="text-2xl">🏷️</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-normal text-[#111111]">10% Subscription Discount</p>
+                  <p className="text-xs text-[#6B6B6B] mt-0.5">On your next annual plan</p>
+                </div>
+                <span className="shrink-0 bg-[#F0F4FF] text-[#0047AB] text-xs rounded-md px-2.5 py-1">
+                  {redeeming === "subscription_discount" ? "..." : "2,500 credits"}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* My Stuff */}
-        <h2 className="text-lg font-medium text-[#4A3728] mb-4">{t("profile.myStuff")}</h2>
+        <h2 className="text-lg font-normal text-[#111111] mb-4">{t("profile.myStuff")}</h2>
 
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <p className="text-2xl text-[#8B7355] font-[family-name:var(--font-permanent-marker)] mb-3">{t("profile.nothingListed")}</p>
-            <Link href="/my-stuff" className="text-sm text-[#8B7355] hover:underline">{t("profile.goToMyStuff")}</Link>
+            <p className="text-2xl text-[#6B6B6B] font-[family-name:var(--font-permanent-marker)] mb-3">{t("profile.nothingListed")}</p>
+            <Link href="/my-stuff" className="text-sm text-[#6B6B6B] hover:underline">{t("profile.goToMyStuff")}</Link>
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-3 portrait-grid-2">
             {items.map((item) => (
-              <Link key={item.id} href={`/items/${item.id}`} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm border border-[#EDE8DF] hover:shadow-md transition-shadow">
-                <div className="aspect-square bg-[#EDE8DF] flex items-center justify-center overflow-hidden">
+              <Link key={item.id} href={`/items/${item.id}`} className="bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm border border-[#F0F0EE] hover:shadow-md transition-shadow">
+                <div className="aspect-square bg-[#F0F0EE] flex items-center justify-center overflow-hidden">
                   {item.photos[0]
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={item.photos[0]} alt={item.name} className="w-full h-full object-cover" />
-                    : <svg viewBox="0 0 24 24" fill="none" stroke="#C4B9AA" strokeWidth="1.5" className="w-8 h-8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+                    : <svg viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.5" className="w-8 h-8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
                   }
                 </div>
                 <div className="p-3">
-                  <p className="font-medium text-[#4A3728] truncate text-sm">{item.name}</p>
-                  <p className="text-xs text-[#8B7355] mb-1.5">{item.category} · {item.condition}</p>
+                  <p className="font-normal text-[#111111] truncate text-sm">{item.name}</p>
+                  <p className="text-xs text-[#6B6B6B] mb-1.5">{item.category} · {item.condition}</p>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-[#4A3728]">{item.points} pts</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${item.status === "Available" ? "bg-[#D8E4D0] text-[#4A6640]" : item.status === "Swapped" ? "bg-[#DDD8C8] text-[#6B5040]" : "bg-[#D4E0E8] text-[#2A5060]"}`}>
+                    <span className="text-xs font-normal text-[#111111]">{item.points} pts</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-md font-normal ${item.status === "Available" ? "bg-[#D8E4D0] text-[#4A6640]" : item.status === "Swapped" ? "bg-[#DDD8C8] text-[#3C3C3C]" : "bg-[#D4E0E8] text-[#2A5060]"}`}>
                       {item.status}
                     </span>
                   </div>
