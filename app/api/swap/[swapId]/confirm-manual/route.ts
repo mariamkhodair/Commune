@@ -66,14 +66,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ swa
       await supabaseAdmin.from("items").update({ status: "Swapped" }).in("id", allIds);
   }
 
+  // Notify both members
+  const otherId = swap.proposer_id === user.id ? swap.receiver_id : swap.proposer_id;
+
   // Award credits to both participants
   await Promise.all([
     awardCreditsWithMilestone(user.id),
     awardCreditsWithMilestone(otherId),
   ]);
-
-  // Notify both members
-  const otherId = swap.proposer_id === user.id ? swap.receiver_id : swap.proposer_id;
   const { data: confirmerProfile } = await supabaseAdmin
     .from("profiles")
     .select("name")
