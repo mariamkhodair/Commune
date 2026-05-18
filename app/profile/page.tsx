@@ -252,7 +252,7 @@ export default function ProfilePage() {
                   className="text-xs text-[#6B6B6B] hover:text-[#111111] transition-colors border border-[#E4E4E4] rounded-md px-3 py-1.5"
                 >Copy</button>
               </div>
-              <p className="text-xs text-[#A8A8A8] mt-2">Earn 50 credits for every 5 friends who sign up with your code</p>
+              <p className="text-xs text-[#A8A8A8] mt-2">Earn 50 credits when 5 friends sign up with your code (one-time offer)</p>
             </div>
           )}
 

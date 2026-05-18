@@ -38,17 +38,21 @@ export async function POST(req: NextRequest) {
 
   if (!referrer) return NextResponse.json({ error: "Invalid referral code" }, { status: 404 });
 
-  await supabaseAdmin.from("profiles").update({ referred_by: referrer.id }).eq("id", user.id);
-
-  // Count how many users this referrer has referred
-  const { count: referralCount } = await supabaseAdmin
+  // Check if this referrer's code has already been used 5 times (one-time offer)
+  const { count: existingCount } = await supabaseAdmin
     .from("profiles")
     .select("id", { count: "exact", head: true })
     .eq("referred_by", referrer.id);
 
-  // Award 50 credits at every 5th referral
-  if (referralCount && referralCount % 5 === 0) {
-    await awardCredits(referrer.id, 50, `referral_milestone_${referralCount}`);
+  if (existingCount !== null && existingCount >= 5) {
+    return NextResponse.json({ error: "This referral code has expired" }, { status: 410 });
+  }
+
+  await supabaseAdmin.from("profiles").update({ referred_by: referrer.id }).eq("id", user.id);
+
+  // Award 50 credits only when the 5th friend signs up
+  if (existingCount !== null && existingCount + 1 === 5) {
+    await awardCredits(referrer.id, 50, "referral_milestone_5");
   }
 
   return NextResponse.json({ success: true });

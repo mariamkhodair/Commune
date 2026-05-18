@@ -231,7 +231,7 @@ export default function ProfilePage() {
                 <Text style={{ flex: 1, fontSize: 15, fontWeight: "400", color: "#111111", letterSpacing: 2 }}>{profile.referral_code}</Text>
                 <Ionicons name="share-outline" size={16} color="#6B6B6B" />
               </TouchableOpacity>
-              <Text style={{ fontSize: 11, color: "#A8A8A8", marginTop: 6 }}>Earn 50 credits for every 5 friends who join with your code</Text>
+              <Text style={{ fontSize: 11, color: "#A8A8A8", marginTop: 6 }}>Earn 50 credits when 5 friends join with your code (one-time offer)</Text>
             </View>
           ) : null}
 
